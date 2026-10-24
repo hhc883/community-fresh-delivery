@@ -66,7 +66,7 @@ public interface GrouponMapper {
      *
      * @param now
      */
-    @Select("select * from `groupon` where status = 1 and expire_time <= #{now}")
+    @Select("select * from `groupon` where status = 1 and expire_time <= #{now} order by id")
     List<Groupon> listExpired(LocalDateTime now);
 
     /**

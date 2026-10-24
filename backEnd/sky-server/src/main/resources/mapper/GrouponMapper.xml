@@ -109,7 +109,7 @@
             ) as grouponOrderCount,
             (select ifnull(sum(o.amount), 0)
                from orders o
-               where o.is_groupon = 1 and o.pay_status = 1
+               where o.is_groupon = 1 and o.pay_status = 1 and o.status in (2,3,4,5)
                  <if test="begin != null">and o.order_time &gt;= #{begin}</if>
                  <if test="end != null">and o.order_time &lt;= #{end}</if>
             ) as grouponTurnover

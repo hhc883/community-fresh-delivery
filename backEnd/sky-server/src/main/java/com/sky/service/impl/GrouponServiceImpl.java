@@ -12,6 +12,7 @@ import com.sky.entity.Dish;
 import com.sky.entity.Groupon;
 import com.sky.entity.GrouponMember;
 import com.sky.entity.OrderDetail;
+import com.sky.entity.OrderStock;
 import com.sky.entity.Orders;
 import com.sky.entity.PickupPoint;
 import com.sky.entity.User;
@@ -23,6 +24,7 @@ import com.sky.mapper.GrouponMapper;
 import com.sky.mapper.GrouponMemberMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
+import com.sky.mapper.OrderStockMapper;
 import com.sky.mapper.PickupPointMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.result.PageResult;
@@ -66,11 +68,6 @@ public class GrouponServiceImpl implements GrouponService {
      */
     private static final int DEFAULT_VALID_HOURS = 24;
 
-    /**
-     * 订单号随机后缀生成器
-     */
-    private static final java.util.Random ORDER_NO_RANDOM = new java.util.Random();
-
     @Autowired
     private GrouponMapper grouponMapper;
 
@@ -85,6 +82,9 @@ public class GrouponServiceImpl implements GrouponService {
 
     @Autowired
     private OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    private OrderStockMapper orderStockMapper;
 
     @Autowired
     private AddressBookMapper addressBookMapper;
@@ -127,9 +127,10 @@ public class GrouponServiceImpl implements GrouponService {
         if (dto.getDishId() == null) {
             throw new GrouponBusinessException("请选择要拼团的商品");
         }
+        if (dto.getGrouponId() != null) throw new GrouponBusinessException("开团时不能指定已有拼团");
 
         Long userId = authenticatedUser();
-        userMapper.getByIdForUpdate(userId);
+        if (userMapper.getByIdForUpdate(userId) == null) throw new GrouponBusinessException("用户不存在，请重新登录");
         Groupon previous = previousSubmission(dto, "groupon-open");
         if (previous != null) return previous;
         Dish dish = dishMapper.getById(dto.getDishId());
@@ -177,7 +178,7 @@ public class GrouponServiceImpl implements GrouponService {
         grouponMemberMapper.insert(member);
 
         // 4. 扣减库存
-        deductStock(dish, number);
+        deductStock(dish, number, orderId);
 
         log.info("用户{}开团成功，拼团id={}，商品={}，需{}人成团",
                 userId, groupon.getId(), dish.getName(), requiredSize);
@@ -202,7 +203,7 @@ public class GrouponServiceImpl implements GrouponService {
         }
 
         Long userId = authenticatedUser();
-        userMapper.getByIdForUpdate(userId);
+        if (userMapper.getByIdForUpdate(userId) == null) throw new GrouponBusinessException("用户不存在，请重新登录");
         Groupon previous = previousSubmission(dto, "groupon-join");
         if (previous != null) return previous;
         Groupon groupon = grouponMapper.getByIdForUpdate(dto.getGrouponId());
@@ -263,7 +264,7 @@ public class GrouponServiceImpl implements GrouponService {
         grouponMemberMapper.insert(member);
 
         // 4. 扣减库存
-        deductStock(dish, number);
+        deductStock(dish, number, orderId);
 
         log.info("用户{}参团成功，拼团id={}，当前人数={}/{}",
                 userId, groupon.getId(), groupon.getCurrentSize() + 1, groupon.getRequiredSize());
@@ -342,7 +343,7 @@ public class GrouponServiceImpl implements GrouponService {
      */
     @Override
     public List<GrouponVO> listMine(Integer status) {
-        Long userId = BaseContext.getCurrentId();
+        Long userId = authenticatedUser();
         List<Groupon> list = grouponMapper.listMine(userId, status);
         List<GrouponVO> result = new ArrayList<>();
         for (Groupon g : list) {
@@ -399,7 +400,9 @@ public class GrouponServiceImpl implements GrouponService {
             update.setCancelTime(now());
             if (Orders.PAID.equals(order.getPayStatus())) update.setPayStatus(Orders.REFUND);
             orderMapper.update(update);
-            restoreStock(locked.getDishId(), member.getNumber());
+            for (OrderStock reserved : orderStockMapper.list(order.getId())) {
+                restoreStock(reserved.getDishId(), reserved.getNumber());
+            }
         }
         grouponMapper.update(Groupon.builder().id(locked.getId()).status(finalStatus).updateTime(now()).build());
     }
@@ -496,6 +499,7 @@ public class GrouponServiceImpl implements GrouponService {
         String address = null;
         String phone = null;
         String consignee = null;
+        String pickupPointName = null;
 
         // 优先使用自提点；无自提点则要求收货地址（支持配送到家）
         if (dto.getPickupPointId() != null) {
@@ -504,7 +508,8 @@ public class GrouponServiceImpl implements GrouponService {
                 throw new GrouponBusinessException(MessageConstant.PICKUP_POINT_NOT_FOUND);
             }
             if (dto.getPickupPersonName() == null || dto.getPickupPersonName().trim().isEmpty()
-                    || dto.getPickupPersonPhone() == null || !dto.getPickupPersonPhone().matches("1\\d{10}")) {
+                    || dto.getPickupPersonName().length() > 32
+                    || dto.getPickupPersonPhone() == null || !dto.getPickupPersonPhone().matches("1[3-9]\\d{9}")) {
                 throw new GrouponBusinessException("请填写有效的提货人姓名和手机号");
             }
             // community / address 允许为空，避免拼出 "null null（自提点：xx）"
@@ -513,6 +518,7 @@ public class GrouponServiceImpl implements GrouponService {
             address = (community + " " + pointAddr).trim() + "（自提点：" + point.getName() + "）";
             phone = dto.getPickupPersonPhone();
             consignee = dto.getPickupPersonName().trim();
+            pickupPointName = point.getName();
         } else {
             if (dto.getAddressBookId() == null) {
                 throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
@@ -531,14 +537,14 @@ public class GrouponServiceImpl implements GrouponService {
         LocalDateTime now = now();
 
         Orders orders = new Orders();
-        // 毫秒时间戳 + 3 位随机数，降低同一毫秒并发下单撞号的概率
-        orders.setNumber(System.currentTimeMillis() + String.format("%03d", ORDER_NO_RANDOM.nextInt(1000)));
+        orders.setNumber("G" + java.util.UUID.randomUUID().toString().replace("-", ""));
         orders.setStatus(Orders.PENDING_PAYMENT);
         orders.setPayStatus(Orders.UN_PAID);
         orders.setUserId(userId);
         // orders.address_book_id 为 NOT NULL，自提订单无收货地址时用 0 占位
         orders.setAddressBookId(dto.getAddressBookId() == null ? 0L : dto.getAddressBookId());
         orders.setPickupPointId(dto.getPickupPointId());
+        orders.setPickupPointName(pickupPointName);
         orders.setPickupPersonName(pickup ? consignee : null);
         orders.setPickupPersonPhone(pickup ? phone : null);
         orders.setPickupTimeSlot(pickup ? dto.getPickupTimeSlot() : null);
@@ -602,7 +608,7 @@ public class GrouponServiceImpl implements GrouponService {
      * 扣减库存（stock 为 null 视为不管理库存）。
      * 使用数据库原子更新，避免并发下「读-改-写」导致的超卖。
      */
-    private void deductStock(Dish dish, Integer number) {
+    private void deductStock(Dish dish, Integer number, Long orderId) {
         if (dish.getStock() == null) {
             return;
         }
@@ -612,6 +618,11 @@ public class GrouponServiceImpl implements GrouponService {
             // 并发下库存已被他人扣完，抛异常回滚整个事务
             throw new GrouponBusinessException(MessageConstant.DISH_STOCK_NOT_ENOUGH);
         }
+        OrderStock reservation = new OrderStock();
+        reservation.setOrderId(orderId);
+        reservation.setDishId(dish.getId());
+        reservation.setNumber(n);
+        orderStockMapper.insert(reservation);
     }
 
     /**
