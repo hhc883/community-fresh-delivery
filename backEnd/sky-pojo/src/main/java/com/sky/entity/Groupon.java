@@ -42,6 +42,9 @@ public class Groupon implements Serializable {
 
     private Long id;
 
+    // Response-only: order belonging to the current participant; never persisted on the group.
+    private Long orderId;
+
     //拼团商品id（dish.id）
     private Long dishId;
 

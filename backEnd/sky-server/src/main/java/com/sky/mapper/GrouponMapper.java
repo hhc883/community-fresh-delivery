@@ -31,6 +31,9 @@ public interface GrouponMapper {
     @Select("select * from `groupon` where id = #{id}")
     Groupon getById(Long id);
 
+    @Select("select * from `groupon` where id = #{id} for update")
+    Groupon getByIdForUpdate(Long id);
+
     /**
      * 修改拼团活动（动态 SQL，见 GrouponMapper.xml）
      *
@@ -72,7 +75,7 @@ public interface GrouponMapper {
      *
      * @param grouponId
      */
-    int increaseCurrentSize(Long grouponId);
+    int increaseCurrentSize(@Param("grouponId") Long grouponId, @Param("now") LocalDateTime now);
 
     /**
      * 管理端分页查询拼团活动（关联商品、自提点、团长信息），SQL 见 GrouponMapper.xml

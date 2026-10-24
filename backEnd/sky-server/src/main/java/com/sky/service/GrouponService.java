@@ -74,6 +74,10 @@ public interface GrouponService {
      */
     int closeExpired();
 
+    /** Internal transaction capability: caller first checks ownership/admin authority.
+     * Locks the group before any member order and fails the whole ongoing group. */
+    void cancelOrderGroup(Long grouponId, String reason);
+
     /**
      * 管理端分页查询拼团活动（含商品名、自提点、团长、还差几人成团）
      *

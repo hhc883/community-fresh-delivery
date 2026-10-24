@@ -23,6 +23,8 @@ public class GrouponVO implements Serializable {
 
     private Long id;
 
+    private Long orderId;
+
     private Long dishId;
 
     //商品名称

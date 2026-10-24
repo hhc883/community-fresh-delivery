@@ -37,6 +37,17 @@ public class GrouponJoinDTO implements Serializable {
      */
     private Long pickupPointId;
 
+    private String clientRequestId;
+
+    // 1 delivery, 2 pickup; omitted means infer from the one fulfillment target.
+    private Integer deliveryType;
+
+    private String pickupPersonName;
+
+    private String pickupPersonPhone;
+
+    private String pickupTimeSlot;
+
     /**
      * 备注
      */
