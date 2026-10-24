@@ -26,3 +26,7 @@
 ## 已登记的 GitHub 工作
 
 父规格 [#1](https://github.com/hhc883/community-fresh-delivery/issues/1)，子任务：[#2 基线与契约](https://github.com/hhc883/community-fresh-delivery/issues/2)、[#3 认证与归属](https://github.com/hhc883/community-fresh-delivery/issues/3)、[#4 计价库存幂等](https://github.com/hhc883/community-fresh-delivery/issues/4)、[#5 团购履约统计](https://github.com/hhc883/community-fresh-delivery/issues/5)、[#6 初始化部署和集成](https://github.com/hhc883/community-fresh-delivery/issues/6)。已建立父子与原生 blocking 关系，未关闭父规格。
+
+## 并行开发基线更新
+
+开发期间远端 main 推进到 `0e6a49c`（Gemini 用户端地址/团购、GLM 管理端与团购统计）。本分支合入这些已有提交，前端源码按原负责人提交原样保留，仅整合公共契约；未重写其历史。管理端现已改接 8080 与 `/admin/**`，原先 3001 缺口描述仅指初始基线。新增统计与页面仍需真实数据库和跨端验收。

@@ -103,6 +103,13 @@
       <view class="tabbar-safe-placeholder"></view>
     </view>
 
+    <!-- 悬浮社区拼团快捷入口 -->
+    <view class="floating-groupon" @click="goGroupon">
+      <view class="fg-badge"><text>HOT</text></view>
+      <text class="fg-icon">🔥</text>
+      <text class="fg-text">拼团</text>
+    </view>
+
     <!-- 悬浮购物车组件 -->
     <FloatingCart ref="floatingCart" />
   </view>
@@ -192,7 +199,14 @@ export default {
       uni.navigateTo({ url: '/pages/pickup/pickup' })
     },
     onKingkongTap(k) {
+      if (k.key === 'groupon') {
+        uni.navigateTo({ url: '/pages/groupon/list' })
+        return
+      }
       uni.switchTab({ url: '/pages/category/category' })
+    },
+    goGroupon() {
+      uni.navigateTo({ url: '/pages/groupon/list' })
     },
     goDetail(item) {
       uni.navigateTo({ url: `/pages/detail/detail?id=${item.id}` })
@@ -562,5 +576,54 @@ export default {
 /* 底部防 TabBar 遮挡留白 */
 .tabbar-safe-placeholder {
   height: 140rpx;
+}
+
+/* 悬浮拼团按钮 */
+.floating-groupon {
+  position: fixed;
+  right: 28rpx;
+  bottom: 280rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B35 0%, #FF2442 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 20rpx rgba(255, 36, 66, 0.38);
+  z-index: 998;
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  .fg-badge {
+    position: absolute;
+    top: -8rpx;
+    right: -4rpx;
+    background: #FFD21E;
+    color: #9E1000;
+    font-size: 16rpx;
+    font-weight: 800;
+    padding: 2rpx 8rpx;
+    border-radius: 12rpx;
+    border: 2rpx solid #FFFFFF;
+    line-height: 1.2;
+  }
+
+  .fg-icon {
+    font-size: 32rpx;
+    line-height: 1;
+  }
+
+  .fg-text {
+    font-size: 20rpx;
+    color: #FFFFFF;
+    font-weight: 700;
+    margin-top: 2rpx;
+    line-height: 1;
+  }
 }
 </style>

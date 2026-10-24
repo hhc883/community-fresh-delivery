@@ -76,7 +76,9 @@ public class DishServiceImpl implements DishService {
         List<DishVO> dishVOList = dishMapper.pageQuery(dishPageQueryDTO);
 
         PageResult pageResult = new PageResult();
-        pageResult.setTotal(dishVOList.size());
+        // PageHelper 拦截后 dishVOList 实际是 Page：total 必须取分页器统计的全量行数，
+        // 取 size() 只会得到当前页行数，管理端分页器会显示错误总数
+        pageResult.setTotal(new com.github.pagehelper.PageInfo<>(dishVOList).getTotal());
         pageResult.setRecords(dishVOList);
 
         return pageResult;

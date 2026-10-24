@@ -46,4 +46,77 @@
         order by g.create_time desc
     </select>
 
+    <!--
+      管理端拼团活动分页列表：关联商品、自提点、团长姓名。
+      lackSize / remainMillis 由服务层按行计算，不在 SQL 中取。
+    -->
+    <select id="pageQuery" resultType="com.sky.vo.GrouponVO">
+        select g.id,
+               g.dish_id            as dishId,
+               g.groupon_price      as grouponPrice,
+               g.required_size      as requiredSize,
+               g.current_size       as currentSize,
+               g.status,
+               g.expire_time        as expireTime,
+               g.complete_time      as completeTime,
+               g.create_time        as createTime,
+               d.name               as dishName,
+               d.image              as dishImage,
+               d.price              as originalPrice,
+               d.unit,
+               d.origin,
+               p.name               as pickupPointName,
+               u.name               as leaderName
+        from `groupon` g
+        left join dish d on d.id = g.dish_id
+        left join pickup_point p on p.id = g.pickup_point_id
+        left join user u on u.id = g.leader_user_id
+        <where>
+            <if test="status != null">
+                and g.status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and d.name like concat('%', #{keyword}, '%')
+            </if>
+        </where>
+        order by g.create_time desc
+    </select>
+
+    <!--
+      拼团统计：主表按 create_time 过滤聚合各状态活动数；
+      参团人次限定为区间内活动的成员；拼团订单数/实收金额按订单的 order_time 过滤（仅统计已支付）。
+      区间可空：为空时统计全部历史数据。
+    -->
+    <select id="statistics" resultType="com.sky.vo.GrouponStatisticsVO">
+        select
+            sum(case when g.status = 1 then 1 else 0 end) as ongoing,
+            sum(case when g.status = 2 then 1 else 0 end) as success,
+            sum(case when g.status = 3 then 1 else 0 end) as failed,
+            sum(case when g.status = 4 then 1 else 0 end) as expired,
+            (select count(*)
+               from groupon_member m
+               join groupon g2 on g2.id = m.groupon_id
+               <where>
+                   <if test="begin != null">and g2.create_time &gt;= #{begin}</if>
+                   <if test="end != null">and g2.create_time &lt;= #{end}</if>
+               </where>) as memberCount,
+            (select count(*)
+               from orders o
+               where o.is_groupon = 1
+                 <if test="begin != null">and o.order_time &gt;= #{begin}</if>
+                 <if test="end != null">and o.order_time &lt;= #{end}</if>
+            ) as grouponOrderCount,
+            (select ifnull(sum(o.amount), 0)
+               from orders o
+               where o.is_groupon = 1 and o.pay_status = 1
+                 <if test="begin != null">and o.order_time &gt;= #{begin}</if>
+                 <if test="end != null">and o.order_time &lt;= #{end}</if>
+            ) as grouponTurnover
+        from `groupon` g
+        <where>
+            <if test="begin != null">and g.create_time &gt;= #{begin}</if>
+            <if test="end != null">and g.create_time &lt;= #{end}</if>
+        </where>
+    </select>
+
 </mapper>

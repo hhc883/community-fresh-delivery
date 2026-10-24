@@ -107,6 +107,28 @@
 
     <!-- 底部功能入口列表 -->
     <view class="menu-card list-menu-card">
+      <!-- 我的收货地址 -->
+      <view class="list-item" @click="goAddressList">
+        <view class="li-left">
+          <text class="li-icon orange-icon">🏠</text>
+          <text class="li-title">我的收货地址</text>
+        </view>
+        <text class="li-arrow">›</text>
+      </view>
+
+      <view class="divider"></view>
+
+      <!-- 我的社区拼团 -->
+      <view class="list-item" @click="goMyGroupon">
+        <view class="li-left">
+          <text class="li-icon red-icon">🛒</text>
+          <text class="li-title">我的社区拼团</text>
+        </view>
+        <text class="li-arrow">›</text>
+      </view>
+
+      <view class="divider"></view>
+
       <!-- 切换自提点 -->
       <view class="list-item" @click="goPickup">
         <view class="li-left">
@@ -206,6 +228,12 @@ export default {
     },
     goGoodsDetail(id) {
       uni.navigateTo({ url: `/pages/detail/detail?id=${id}` })
+    },
+    goAddressList() {
+      uni.navigateTo({ url: '/pages/address/list' })
+    },
+    goMyGroupon() {
+      uni.navigateTo({ url: '/pages/groupon/my' })
     },
     goPickup() {
       uni.navigateTo({ url: '/pages/pickup/pickup' })

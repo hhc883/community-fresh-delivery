@@ -207,6 +207,54 @@
         "navigationBarTextStyle": "black",
         "navigationBarTitleText": "邀请赚现金"
       }
+    },
+    {
+      "path": "pages/address/list",
+      "style": {
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "收货地址"
+      }
+    },
+    {
+      "path": "pages/address/edit",
+      "style": {
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "编辑地址"
+      }
+    },
+    {
+      "path": "pages/groupon/list",
+      "style": {
+        "navigationBarBackgroundColor": "#25B873",
+        "navigationBarTextStyle": "white",
+        "navigationBarTitleText": "社区拼团大厅"
+      }
+    },
+    {
+      "path": "pages/groupon/detail",
+      "style": {
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "拼团详情"
+      }
+    },
+    {
+      "path": "pages/groupon/confirm",
+      "style": {
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "拼团结算"
+      }
+    },
+    {
+      "path": "pages/groupon/my",
+      "style": {
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "我的拼团"
+      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 # API v1：首期对接契约
 
-日期：2026-10-24。基线：`929851e`。适用范围：用户小程序、平台管理后台、Codex 后端和 DeepSeek 验收。
+日期：2026-10-24。初始基线：`929851e`；已整合 Gemini/GLM 的远端基线 `0e6a49c`。适用范围：用户小程序、平台管理后台、Codex 后端和 DeepSeek 验收。
 
 本契约区分现有路由与待实现能力。静态路由全表见 [interface-inventory.md](interface-inventory.md)。未列为已验证的接口不能写入验收通过项。
 
@@ -54,7 +54,7 @@
 | 接单/配送/完成 | `PUT /admin/order/confirm`、`PUT /admin/order/delivery/{id}`、`PUT /admin/order/complete/{id}` | confirm body `{id}` | 已有；完整条件更新后续 |
 | 核销 | `POST /admin/order/verify` | `{pickupCode,pickupPointId?}` → OrderVO | 已有原子更新；支付/终态条件需补强 |
 | 商品维护 | `/admin/dish`、`/admin/category` | 具体方法见路由全表 | 已有，GLM 适配已有接口 |
-| 报表 | `GET /admin/report/turnoverStatistics`、`ordersStatistics`、`userStatistics`、`top10` | `begin`、`end` 日期 | 已有；统计口径待对账；团购统计待实现 |
+| 报表 | `GET /admin/report/turnoverStatistics`、`ordersStatistics`、`userStatistics`、`top10` | `begin`、`end` 日期 | 已有；含 GLM 新增团购统计，统计口径待对账 |
 
 `/api/admin/**`、`/api/merchant/**`、`/api/partner/**` 当前没有对应控制器。前端不得视为已实现；GLM 优先改接 `/admin/**`，确需薄适配层时由 Codex 按本契约追加。
 
@@ -76,3 +76,65 @@
 - 真实短信、真实支付退款、评价和营销扩展未完成时明确标为未实现；模拟支付不能表述成真实交易。
 
 变更规则：先更新本文件与状态机，记录影响端及兼容方式，再改实现。状态栏随测试证据更新，不以静态存在替代验证。
+
+## 管理后台接口补充（保留 GLM 已对接路由）
+
+### 认证
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/employee/login` | POST | body `{username,password}`；成功 data `{id,userName,name,token}` |
+| `/admin/employee/logout` | POST | 退出（前端同时清本地 token） |
+
+### 大盘（WorkSpace）
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/workspace/businessData` | GET | 营业额、有效订单、完成率、客单价、新增用户 |
+| `/admin/workspace/overviewOrders` | GET | 各状态订单数（待接单/已接单/派送中/待审核取消） |
+| `/admin/workspace/overviewDishes` | GET | 起售/停售商品数 |
+
+### 商品与分类
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/dish/page` | GET | `name/categoryId/status/page/pageSize`；含 stock、isGroupon 等字段 |
+| `/admin/dish` | POST/PUT | 新增/编辑（DishDTO：含 stock、isGroupon、grouponPrice、grouponSize、grouponValidHours、unit、origin、isFresh） |
+| `/admin/dish/{id}` | GET | 详情（含口味） |
+| `/admin/dish/status/{status}?id=` | POST | 起售(1)/停售(0) |
+| `/admin/dish?ids=` | DELETE | 批量删除 |
+| `/admin/category/list?type=` | GET | 分类列表 |
+| `/admin/category` | POST/PUT | 新增/编辑分类 |
+| `/admin/category/status/{status}?id=` | POST | 分类启用/禁用 |
+| `/admin/category?id=` | DELETE | 删除分类 |
+
+### 订单履约
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/order/conditionSearch` | GET | `page/pageSize/number/phone/status/beginTime/endTime`（时间 `yyyy-MM-dd HH:mm:ss`） |
+| `/admin/order/details/{id}` | GET | 订单详情（含明细、自提点信息、pickupCode） |
+| `/admin/order/confirm` | PUT | 接单 `{id}` |
+| `/admin/order/rejection` | PUT | 拒单 `{id,rejectionReason}` |
+| `/admin/order/cancel` | PUT | 取消 `{id,cancelReason}` |
+| `/admin/order/delivery/{id}` | PUT | 开始派送 |
+| `/admin/order/complete/{id}` | PUT | 完成 |
+| `/admin/order/verify` | POST | 提货码核销（OrderVerifyDTO） |
+| `/admin/order/statistics` | GET | 待接单/已接单/派送中计数 |
+
+### 拼团管理（**新增**）
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/groupon/page`（新增） | GET | `page/pageSize/status(1拼团中 2已成团 3已失败 4已过期)/keyword(商品名模糊)`；data `PageResult{total, records:GrouponVO[]}`，GrouponVO 含 dishName、currentSize、requiredSize、lackSize、expireTime、status、pickupPointName |
+| `/admin/groupon/complete/{id}` | PUT | 手动校验并成团（幂等：已成团时返回 false/成功） |
+| `/admin/groupon/closeExpired` | PUT | 关闭全部超时未成团活动，data 为关闭数量 |
+
+### 报表统计
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/admin/report/turnoverStatistics?begin=&end=` | GET | 营业额趋势（dateList/turnoverList，当天无成交为 0） |
+| `/admin/report/ordersStatistics?begin=&end=` | GET | 订单数/有效订单趋势 |
+| `/admin/report/userStatistics?begin=&end=` | GET | 新增用户趋势 |
+| `/admin/report/top10?begin=&end=` | GET | 销量 Top10 商品（nameList/numberList） |
+| `/admin/report/grouponStatistics`（新增） | GET | `begin/end` 可空（缺省统计全部历史数据；报表页默认传最近 30 天）；data：{ongoing,success,failed,expired,memberCount,grouponOrderCount,grouponTurnover} |
+
+
+上述管理端补充来自 GLM 的既有契约，Codex 在整合时保留端点与字段。新增的 `/admin/groupon/page` 和 `/admin/report/grouponStatistics` 已有实现，当前完整业务和真实数据库对账仍未执行。团购统计按活动 create_time 统计活动与成员，按订单 order_time 统计订单与已付款金额；`begin/end` 为空时取全部历史，非空为包含边界的日期区间。
+
+整合澄清：报表入参是 `begin/end`；订单退款表示为 `status=6,payStatus=2`，不新增未实现的订单状态 7；核销终态与团购条件仍是后续待修复项，不能把目标契约称作全部已验证。

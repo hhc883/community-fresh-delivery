@@ -1,6 +1,6 @@
 # 现有后端路由清单
 
-2026-10-24 从控制器注解静态提取；存在路由不代表运行验收通过。
+2026-10-24 整合远端 0e6a49c 后从控制器注解静态提取；存在路由不代表运行验收通过。
 
 | 方法 | 路径 | 控制器 |
 | --- | --- | --- |
@@ -25,6 +25,7 @@
 | GET | `/admin/employee/{id}` | `admin/EmployeeController.java` |
 | PUT | `/admin/employee` | `admin/EmployeeController.java` |
 | POST | `/admin/employee/logout` | `admin/EmployeeController.java` |
+| GET | `/admin/groupon/page` | `admin/GrouponController.java` |
 | PUT | `/admin/groupon/complete/{id}` | `admin/GrouponController.java` |
 | PUT | `/admin/groupon/closeExpired` | `admin/GrouponController.java` |
 | POST | `/admin/order/verify` | `admin/OrderController.java` |
@@ -45,6 +46,7 @@
 | GET | `/admin/report/userStatistics` | `admin/ReportController.java` |
 | GET | `/admin/report/ordersStatistics` | `admin/ReportController.java` |
 | GET | `/admin/report/top10` | `admin/ReportController.java` |
+| GET | `/admin/report/grouponStatistics` | `admin/ReportController.java` |
 | GET | `/admin/report/export` | `admin/ReportController.java` |
 | POST | `/admin/setmeal` | `admin/SetmealController.java` |
 | GET | `/admin/setmeal/page` | `admin/SetmealController.java` |
@@ -90,7 +92,7 @@
 | PUT | `/user/addressBook` | `user/AddressBookController.java` |
 | PUT | `/user/addressBook/default` | `user/AddressBookController.java` |
 | DELETE | `/user/addressBook` | `user/AddressBookController.java` |
-| GET | `/user/addressBookdefault` | `user/AddressBookController.java` |
+| GET | `/user/addressBook/default` | `user/AddressBookController.java` |
 | GET | `/user/category/list` | `user/CategoryController.java` |
 | GET | `/user/dish/list` | `user/DishController.java` |
 | GET | `/user/groupon/dish/list` | `user/GrouponController.java` |
@@ -112,9 +114,9 @@
 | GET | `/user/setmeal/list` | `user/SetmealController.java` |
 | GET | `/user/setmeal/dish/{id}` | `user/SetmealController.java` |
 | POST | `/user/shoppingCart/add` | `user/ShoppingCardController.java` |
-| GET | `/user/shoppingCartlist` | `user/ShoppingCardController.java` |
+| GET | `/user/shoppingCart/list` | `user/ShoppingCardController.java` |
 | DELETE | `/user/shoppingCart/delete` | `user/ShoppingCardController.java` |
-| POST | `/user/shoppingCartsub` | `user/ShoppingCardController.java` |
+| POST | `/user/shoppingCart/sub` | `user/ShoppingCardController.java` |
 | DELETE | `/user/shoppingCart/clean` | `user/ShoppingCardController.java` |
 | GET | `/user/shop/status` | `user/test.java` |
 | POST | `/user/user/login` | `user/UserController.java` |

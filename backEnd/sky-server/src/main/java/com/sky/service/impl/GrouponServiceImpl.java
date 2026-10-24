@@ -1,9 +1,12 @@
 package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.GrouponJoinDTO;
+import com.sky.dto.GrouponPageQueryDTO;
 import com.sky.entity.AddressBook;
 import com.sky.entity.Dish;
 import com.sky.entity.Groupon;
@@ -22,6 +25,7 @@ import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.PickupPointMapper;
 import com.sky.mapper.UserMapper;
+import com.sky.result.PageResult;
 import com.sky.service.GrouponService;
 import com.sky.vo.GrouponVO;
 import com.sky.websocket.WebSocketServer;
@@ -390,6 +394,28 @@ public class GrouponServiceImpl implements GrouponService {
             log.info("拼团id={} 超时未成团，已关闭并处理{}笔订单", groupon.getId(), members.size());
         }
         return count;
+    }
+
+    /**
+     * 管理端分页查询拼团活动：
+     * SQL 一次 JOIN 取齐商品/自提点/团长信息（避免 N+1），
+     * lackSize 与 remainMillis 由服务层按行补齐。
+     */
+    @Override
+    public PageResult<GrouponVO> getAdminPage(GrouponPageQueryDTO pageQueryDTO) {
+        PageHelper.startPage(pageQueryDTO.getPage(), pageQueryDTO.getPageSize());
+        List<GrouponVO> list = grouponMapper.pageQuery(pageQueryDTO);
+        PageInfo<GrouponVO> pageInfo = new PageInfo<>(list);
+        for (GrouponVO vo : list) {
+            int current = vo.getCurrentSize() == null ? 0 : vo.getCurrentSize();
+            int required = vo.getRequiredSize() == null ? 0 : vo.getRequiredSize();
+            vo.setLackSize(Math.max(required - current, 0));
+            if (vo.getExpireTime() != null) {
+                long millis = Duration.between(LocalDateTime.now(), vo.getExpireTime()).toMillis();
+                vo.setRemainMillis(Math.max(millis, 0));
+            }
+        }
+        return new PageResult<>(pageInfo.getTotal(), list);
     }
 
     // ==================== 私有方法 ====================

@@ -1,6 +1,9 @@
 package com.sky.mapper;
 
+import com.sky.dto.GrouponPageQueryDTO;
 import com.sky.entity.Groupon;
+import com.sky.vo.GrouponStatisticsVO;
+import com.sky.vo.GrouponVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
@@ -70,4 +73,19 @@ public interface GrouponMapper {
      * @param grouponId
      */
     int increaseCurrentSize(Long grouponId);
+
+    /**
+     * 管理端分页查询拼团活动（关联商品、自提点、团长信息），SQL 见 GrouponMapper.xml
+     *
+     * @param pageQueryDTO
+     */
+    List<GrouponVO> pageQuery(GrouponPageQueryDTO pageQueryDTO);
+
+    /**
+     * 拼团统计：区间内各状态活动数、参团人次、拼团订单数与实收金额，SQL 见 GrouponMapper.xml
+     *
+     * @param begin 区间起点（groupon.create_time / orders.order_time），可空
+     * @param end   区间终点，可空
+     */
+    GrouponStatisticsVO statistics(@Param("begin") LocalDateTime begin, @Param("end") LocalDateTime end);
 }
