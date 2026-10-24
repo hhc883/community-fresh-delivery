@@ -4,13 +4,13 @@
 <mapper namespace="com.sky.mapper.OrderMapper">
 
     <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="id">
-        insert into orders (number, status, user_id, address_book_id, order_time, checkout_time, pay_method, pay_status,
+        insert into orders (client_request_id, request_hash, number, status, user_id, address_book_id, order_time, checkout_time, pay_method, pay_status,
                             amount, remark, phone, address, consignee, estimated_delivery_time, delivery_status,
                             pack_amount, tableware_number, tableware_status,
                             pickup_point_id, pickup_point_name, is_groupon, groupon_id,
                             pickup_time_slot, pickup_person_name, pickup_person_phone, verify_status)
         values
-               (#{number}, #{status}, #{userId}, #{addressBookId}, #{orderTime}, #{checkoutTime}, #{payMethod},
+               (#{clientRequestId}, #{requestHash}, #{number}, #{status}, #{userId}, #{addressBookId}, #{orderTime}, #{checkoutTime}, #{payMethod},
                 #{payStatus},#{amount}, #{remark}, #{phone}, #{address}, #{consignee}, #{estimatedDeliveryTime},
                 #{deliveryStatus},#{packAmount}, #{tablewareNumber}, #{tablewareStatus},
                 #{pickupPointId}, #{pickupPointName}, #{isGroupon}, #{grouponId},
