@@ -1,4 +1,8 @@
 sky:
+  auth:
+    # 仅开发演示：明确模拟登录，不发送真实短信。生产必须禁用。
+    mock-login: ${AUTH_MOCK_LOGIN:true}
+    dev-code: ${AUTH_DEV_CODE:123456}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     host: localhost

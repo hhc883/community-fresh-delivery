@@ -48,6 +48,12 @@ public interface OrderMapper {
     @Select("select * from orders where id=#{id}")
     Orders getById(Long id);
 
+    @Select("select * from orders where id=#{id} for update")
+    Orders getByIdForUpdate(Long id);
+
+    @Select("select * from orders where number=#{orderNumber} for update")
+    Orders getByNumberForUpdate(String orderNumber);
+
     /**
      * 根据状态统计订单数量
      * @param status

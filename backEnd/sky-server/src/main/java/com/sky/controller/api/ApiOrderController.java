@@ -52,7 +52,7 @@ public class ApiOrderController {
 
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
-            userId = 1L; // 兜底游客/默认用户
+            throw new com.sky.exception.OrderBusinessException(com.sky.constant.MessageConstant.USER_NOT_LOGIN);
         }
 
         if (submitDTO.getPackAmount() == null) submitDTO.setPackAmount(0);
@@ -164,92 +164,19 @@ public class ApiOrderController {
 
         PageResult<OrderVO> pageResult = orderService.pageQueryByUser(pageNum, pageSize, statusInt);
 
-        // 如果用户目前没有任何订单，提供一个待自提示例单，便于前端立刻看到自提效果
-        if (pageResult == null || pageResult.getRecords() == null || pageResult.getRecords().isEmpty()) {
-            List<OrderVO> fallbackList = generateFallbackOrders();
-            PageResult<OrderVO> fallbackPage = new PageResult<>(fallbackList.size(), fallbackList);
-            return Result.success(fallbackPage);
-        }
-
         return Result.success(pageResult);
     }
 
     @GetMapping("/{id}")
-    @ApiOperation("查询订单详情")
-    public Result<OrderVO> getOrderDetail(@PathVariable String id) {
-        log.info("查询自提订单详情: id={}", id);
-        Long numericId = null;
-        try {
-            numericId = Long.valueOf(id);
-        } catch (Exception ignored) {}
-
-        OrderVO vo = null;
-        if (numericId != null) {
-            try {
-                vo = orderService.details(numericId);
-            } catch (Exception ignored) {}
-        }
-
-        if (vo == null) {
-            // 兜底示例订单
-            vo = createFallbackOrderVO(id);
-        }
-
-        return Result.success(vo);
+    @ApiOperation("查询本人订单详情")
+    public Result<OrderVO> getOrderDetail(@PathVariable Long id) {
+        return Result.success(orderService.userDetails(id));
     }
 
     @PostMapping("/{id}/cancel")
-    @ApiOperation("取消订单")
-    public Result<String> cancelOrder(@PathVariable String id) {
-        log.info("取消自提订单: id={}", id);
-        try {
-            Long numericId = Long.valueOf(id);
-            Orders order = orderMapper.getById(numericId);
-            if (order != null) {
-                order.setStatus(Orders.CANCELLED);
-                order.setCancelTime(LocalDateTime.now());
-                order.setCancelReason("用户自主取消");
-                orderMapper.update(order);
-            }
-        } catch (Exception ignored) {}
+    @ApiOperation("取消本人订单")
+    public Result<String> cancelOrder(@PathVariable Long id) {
+        orderService.userCancel(id);
         return Result.success("订单取消成功");
-    }
-
-    private List<OrderVO> generateFallbackOrders() {
-        List<OrderVO> list = new ArrayList<>();
-        list.add(createFallbackOrderVO("202610220001"));
-        return list;
-    }
-
-    private OrderVO createFallbackOrderVO(String id) {
-        OrderVO vo = new OrderVO();
-        vo.setId(202610220001L);
-        vo.setNumber(StringUtils.hasText(id) ? id : "202610220001");
-        vo.setStatus(Orders.TO_BE_CONFIRMED); // 2 待自提
-        vo.setPayStatus(Orders.PAID);
-        vo.setAmount(new BigDecimal("599.00"));
-        vo.setOrderTime(LocalDateTime.now().minusHours(1));
-        vo.setPickupCode("57865482");
-        vo.setPickupPointId(1L);
-        vo.setPickupPointName("高黎柱发士多店(请自备袋子谢谢)");
-        vo.setPickupPointAddress("广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号");
-        vo.setPickupPointPhone("13800138000");
-        vo.setPickupTimeSlot("次日自提 16:00-18:00");
-        vo.setPickupPersonName("张三");
-        vo.setPickupPersonPhone("13800138000");
-        vo.setVerifyStatus(0);
-
-        List<OrderDetail> details = new ArrayList<>();
-        OrderDetail d = new OrderDetail();
-        d.setId(1L);
-        d.setName("Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量");
-        d.setDishFlavor("晴空翠 4+128G");
-        d.setImage("/static/images/png/dish-2.png");
-        d.setNumber(1);
-        d.setAmount(new BigDecimal("599.00"));
-        details.add(d);
-        vo.setOrderDetailList(details);
-
-        return vo;
     }
 }

@@ -96,6 +96,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
+        requireCurrentUserId();
         // ===== 自提分支（m21）=====
         // 原流程第一件事就是强校验 addressBookId 非空，自提订单根本不走地址簿，
         // 若不前置分流会直接被 AddressBookBusinessException 挡住。
@@ -199,7 +200,9 @@ public class OrderServiceImpl implements OrderService {
      * @param ordersPaymentDTO
      * @return
      */
+    @Transactional(rollbackFor = Exception.class)
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+        requireOwnedOrder(orderMapper.getByNumberForUpdate(ordersPaymentDTO.getOrderNumber()));
         // 当前登录用户id
         // Long userId = BaseContext.getCurrentId();
         // User user = userMapper.getById(userId);
@@ -234,17 +237,32 @@ public class OrderServiceImpl implements OrderService {
      * 最终都汇到这里，因此两条支付路径行为完全一致——这是刻意收敛的单一写码点，
      * 避免「两个入口各写一遍」导致其中一条漏生成。
      *
-     * <p>幂等：重复支付同一单时不重新生成码（已有码则保留），只补状态。
+     * <p>幂等：重复支付有效的已付款订单时不重写提货码、付款时间或履约状态。
      * 否则用户重复点「支付」会看到提货码跳变，到店时按旧码核销会失败。
      *
      * @param outTradeNo 订单号
      */
+    @Transactional
     public void paySuccess(String outTradeNo) {
 
         // 根据订单号查询订单
-        Orders ordersDB = orderMapper.getByNumber(outTradeNo);
+        Orders ordersDB = orderMapper.getByNumberForUpdate(outTradeNo);
         if (ordersDB == null) {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        if (Orders.CANCELLED.equals(ordersDB.getStatus()) || Orders.REFUND.equals(ordersDB.getPayStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        if (Orders.PAID.equals(ordersDB.getPayStatus())
+                && (Orders.TO_BE_CONFIRMED.equals(ordersDB.getStatus())
+                    || Orders.CONFIRMED.equals(ordersDB.getStatus())
+                    || Orders.DELIVERY_IN_PROGRESS.equals(ordersDB.getStatus())
+                    || Orders.COMPLETED.equals(ordersDB.getStatus()))) {
+            return;
+        }
+        if (!Orders.PENDING_PAYMENT.equals(ordersDB.getStatus())
+                || !Orders.UN_PAID.equals(ordersDB.getPayStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
 
         // 根据订单id更新订单的状态、支付方式、支付状态、结账时间
@@ -312,18 +330,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public String mockPay(Long orderId) {
-        Orders ordersDB = orderMapper.getById(orderId);
-        if (ordersDB == null) {
-            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
-        }
-        // 幂等：已支付直接返回已有提货码，不重复走 paySuccess（避免重复发 websocket 来单通知）
-        if (Orders.PAID.equals(ordersDB.getPayStatus()) && StringUtils.hasText(ordersDB.getPickupCode())) {
-            return ordersDB.getPickupCode();
-        }
-        // 已取消的订单不允许再支付
-        if (Orders.CANCELLED.equals(ordersDB.getStatus())) {
-            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
-        }
+        Orders ordersDB = orderMapper.getByIdForUpdate(orderId);
+        requireOwnedOrder(ordersDB);
+        // 所有入口都通过同一状态校验；已完成订单重复支付不会退回待履约。
         paySuccess(ordersDB.getNumber());
         // 回查拿最新码（paySuccess 内部已生成并落库）
         Orders latest = orderMapper.getById(orderId);
@@ -392,11 +401,12 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     public PageResult<OrderVO> pageQueryByUser(int page, int pageSize, Integer status) {
+        Long userId = requireCurrentUserId();
         // 设置分页
         PageHelper.startPage(page, pageSize);
 
         OrdersPageQueryDTO ordersPageQueryDTO = new OrdersPageQueryDTO();
-        ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        ordersPageQueryDTO.setUserId(userId);
         ordersPageQueryDTO.setStatus(status);
 
         // 分页条件查询
@@ -434,6 +444,18 @@ public class OrderServiceImpl implements OrderService {
     public OrderVO details(Long id) {
         // 根据id查询订单
         Orders orders = orderMapper.getById(id);
+        if (orders == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        return toOrderVO(orders);
+    }
+
+    @Override
+    public OrderVO userDetails(Long id) {
+        return toOrderVO(requireOwnedOrder(orderMapper.getById(id)));
+    }
+
+    private OrderVO toOrderVO(Orders orders) {
 
         // 查询该订单对应的菜品/套餐明细
         List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(orders.getId());
@@ -476,41 +498,9 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param id
      */
+    @Transactional
     public void userCancelById(Long id) throws Exception {
-        // 根据id查询订单
-        Orders ordersDB = orderMapper.getById(id);
-
-        // 校验订单是否存在
-        if (ordersDB == null) {
-            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
-        }
-
-        // 订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
-        if (ordersDB.getStatus() > 2) {
-            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
-        }
-
-        Orders orders = new Orders();
-        orders.setId(ordersDB.getId());
-
-        // 订单处于待接单状态下取消，需要进行退款
-        if (ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
-            // 调用微信支付退款接口
-            weChatPayUtil.refund(
-                    ordersDB.getNumber(), // 商户订单号
-                    ordersDB.getNumber(), // 商户退款单号
-                    new BigDecimal(0.01), // 退款金额，单位 元
-                    new BigDecimal(0.01));// 原订单金额
-
-            // 支付状态修改为 退款
-            orders.setPayStatus(Orders.REFUND);
-        }
-
-        // 更新订单状态、取消原因、取消时间
-        orders.setStatus(Orders.CANCELLED);
-        orders.setCancelReason("用户取消");
-        orders.setCancelTime(LocalDateTime.now());
-        orderMapper.update(orders);
+        userCancel(id);
     }
 
     /**
@@ -519,6 +509,7 @@ public class OrderServiceImpl implements OrderService {
      * @param id
      */
     public void repetition(Long id) {
+        requireOwnedOrder(orderMapper.getById(id));
         // 查询当前用户id
         Long userId = BaseContext.getCurrentId();
 
@@ -749,10 +740,7 @@ public class OrderServiceImpl implements OrderService {
      */
     public void reminder(Long id) {
         // 查询订单是否存在
-        Orders orders = orderMapper.getById(id);
-        if (orders == null) {
-            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
-        }
+        Orders orders = requireOwnedOrder(orderMapper.getById(id));
 
         // 基于WebSocket实现催单
         Map<String, Object> map = new HashMap<>();
@@ -763,15 +751,41 @@ public class OrderServiceImpl implements OrderService {
     }
 //cancel order
     @Override
+    @Transactional
     public void userCancel(Long id) {
-        Orders orders = orderMapper.getById(id);
-        if (orders == null) {
-            throw new RuntimeException("订单不存在");
+        Orders orders = requireOwnedOrder(orderMapper.getByIdForUpdate(id));
+        if (Orders.CANCELLED.equals(orders.getStatus())) {
+            return;
+        }
+        if (!Orders.PENDING_PAYMENT.equals(orders.getStatus())
+                && !Orders.TO_BE_CONFIRMED.equals(orders.getStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
         // 设置为已取消
         orders.setStatus(Orders.CANCELLED);
         orders.setCancelTime(LocalDateTime.now());
+        orders.setCancelReason("用户取消");
+        if (Orders.PAID.equals(orders.getPayStatus())) {
+            // 当前支付链路为模拟支付，仅记录模拟退款，不调用真实微信资金接口。
+            orders.setPayStatus(Orders.REFUND);
+        }
         orderMapper.update(orders);
+    }
+
+    private Long requireCurrentUserId() {
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            throw new OrderBusinessException(MessageConstant.USER_NOT_LOGIN);
+        }
+        return userId;
+    }
+
+    private Orders requireOwnedOrder(Orders order) {
+        Long userId = requireCurrentUserId();
+        if (order == null || !userId.equals(order.getUserId())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+        return order;
     }
 
 }

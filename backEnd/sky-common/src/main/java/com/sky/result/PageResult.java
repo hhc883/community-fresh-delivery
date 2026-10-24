@@ -25,7 +25,8 @@ public class PageResult<T> implements Serializable {
 
     public Object getData() {
         java.util.Map<String, Object> map = new java.util.HashMap<>();
-        map.put("total", total);
+        // 此处是计数而非 ID，兼容嵌套信封也保持 JSON number。
+        map.put("total", java.math.BigInteger.valueOf(total));
         map.put("records", records);
         map.put("list", records);
         return map;

@@ -39,6 +39,7 @@ log.bat
 push-to-github.bat
 .env.local
 .env.*.local
+.local/
 
 # ==================== IDE 与操作系统配置 ====================
 .idea/
