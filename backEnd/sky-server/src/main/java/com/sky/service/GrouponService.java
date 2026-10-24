@@ -1,8 +1,10 @@
 package com.sky.service;
 
 import com.sky.dto.GrouponJoinDTO;
+import com.sky.dto.GrouponPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.Groupon;
+import com.sky.result.PageResult;
 import com.sky.vo.GrouponVO;
 
 import java.util.List;
@@ -71,4 +73,11 @@ public interface GrouponService {
      * @return 关闭的团数量
      */
     int closeExpired();
+
+    /**
+     * 管理端分页查询拼团活动（含商品名、自提点、团长、还差几人成团）
+     *
+     * @param pageQueryDTO 分页与筛选参数
+     */
+    PageResult<GrouponVO> getAdminPage(GrouponPageQueryDTO pageQueryDTO);
 }

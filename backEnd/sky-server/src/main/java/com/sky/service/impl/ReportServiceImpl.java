@@ -20,11 +20,13 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
+import com.sky.mapper.GrouponMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.service.ReportService;
 import com.sky.service.WorkspaceService;
 import com.sky.vo.BusinessDataVO;
+import com.sky.vo.GrouponStatisticsVO;
 import com.sky.vo.OrderReportVO;
 import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
@@ -41,6 +43,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private GrouponMapper grouponMapper;
 
     @Autowired
     private WorkspaceService workspaceService;
@@ -194,6 +199,28 @@ public class ReportServiceImpl implements ReportService {
                 .nameList(nameList)
                 .numberList(numberList)
                 .build();
+    }
+
+    /**
+     * 拼团统计。区间可空：为空时统计全部历史数据。
+     * 空表/无命中时聚合行为全 null，这里统一归零，避免前端拿到 null 字段。
+     */
+    @Override
+    public GrouponStatisticsVO getGrouponStatistics(LocalDate begin, LocalDate end) {
+        LocalDateTime beginTime = begin == null ? null : LocalDateTime.of(begin, LocalTime.MIN);
+        LocalDateTime endTime = end == null ? null : LocalDateTime.of(end, LocalTime.MAX);
+        GrouponStatisticsVO vo = grouponMapper.statistics(beginTime, endTime);
+        if (vo == null) {
+            vo = new GrouponStatisticsVO();
+        }
+        if (vo.getOngoing() == null) vo.setOngoing(0);
+        if (vo.getSuccess() == null) vo.setSuccess(0);
+        if (vo.getFailed() == null) vo.setFailed(0);
+        if (vo.getExpired() == null) vo.setExpired(0);
+        if (vo.getMemberCount() == null) vo.setMemberCount(0);
+        if (vo.getGrouponOrderCount() == null) vo.setGrouponOrderCount(0);
+        if (vo.getGrouponTurnover() == null) vo.setGrouponTurnover(java.math.BigDecimal.ZERO);
+        return vo;
     }
 
     /**

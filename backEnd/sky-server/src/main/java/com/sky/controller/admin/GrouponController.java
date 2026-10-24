@@ -1,5 +1,7 @@
 package com.sky.controller.admin;
 
+import com.sky.dto.GrouponPageQueryDTO;
+import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.GrouponService;
 
@@ -20,6 +22,16 @@ public class GrouponController {
 
     @Autowired
     private GrouponService grouponService;
+
+    /**
+     * 拼团活动分页查询（管理后台团购管理页数据源）
+     */
+    @GetMapping("/page")
+    @ApiOperation("拼团活动分页查询")
+    public Result<PageResult> page(GrouponPageQueryDTO grouponPageQueryDTO) {
+        log.info("管理端拼团活动分页查询：{}", grouponPageQueryDTO);
+        return Result.success(grouponService.getAdminPage(grouponPageQueryDTO));
+    }
 
     /**
      * 手动触达成团校验，可用于排查「人数已满但状态未更新」的异常数据

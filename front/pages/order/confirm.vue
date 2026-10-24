@@ -1,23 +1,62 @@
 <template>
   <view class="confirm-page">
-    <!-- 顶部提货人与自提点地址卡片 -->
-    <view class="card consignee-card" @click="goPersonEdit">
+    <!-- 履约方式切换 Tab -->
+    <view class="delivery-tabs">
+      <view
+        :class="['tab-item', deliveryType === 'pickup' ? 'active' : '']"
+        @click="deliveryType = 'pickup'"
+      >
+        <text class="tab-text">🏬 到店自提</text>
+      </view>
+      <view
+        :class="['tab-item', deliveryType === 'delivery' ? 'active' : '']"
+        @click="deliveryType = 'delivery'"
+      >
+        <text class="tab-text">🛵 送货到家</text>
+      </view>
+    </view>
+
+    <!-- 模式A：到店自提卡片 -->
+    <view class="card consignee-card" v-if="deliveryType === 'pickup'" @click="goPersonEdit">
       <view class="cc-left">
         <view class="user-row">
           <text class="user-icon">👤</text>
-          <text class="user-name">{{ person.name || '李某' }}</text>
+          <text class="user-name">提货人：{{ person.name || '张三' }}</text>
           <text class="user-phone">{{ person.phone || '13800138000' }}</text>
         </view>
         <view class="addr-text">
-          {{ person.address || '广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号' }}
+          自提网点：{{ pickupPoint.name || '高黎柱发士多店(请自备袋子谢谢)' }}
+        </view>
+        <view class="addr-sub">
+          {{ pickupPoint.address || person.address || '广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号' }}
         </view>
       </view>
       <text class="cc-arrow">›</text>
     </view>
 
-    <!-- 自提时间选择行 -->
+    <!-- 模式B：送货到家地址卡片 -->
+    <view class="card consignee-card delivery-card" v-else @click="goSelectAddress">
+      <view class="cc-left" v-if="selectedAddress">
+        <view class="user-row">
+          <text class="user-icon">📍</text>
+          <text class="user-name">{{ selectedAddress.consignee }}</text>
+          <text class="user-phone">{{ selectedAddress.phone }}</text>
+          <text class="tag-default" v-if="selectedAddress.isDefault === 1">默认</text>
+        </view>
+        <view class="addr-text">
+          {{ formatAddress(selectedAddress) }}
+        </view>
+      </view>
+      <view class="cc-left empty-addr" v-else>
+        <text class="user-icon">📍</text>
+        <text class="empty-addr-text">请选择或添加收货地址</text>
+      </view>
+      <text class="cc-arrow">›</text>
+    </view>
+
+    <!-- 自提/配送时间选择行 -->
     <view class="card time-card" @click="showTimeModal = true">
-      <text class="tc-label">自提时间选择</text>
+      <text class="tc-label">{{ deliveryType === 'pickup' ? '自提时间' : '期望送达' }}</text>
       <view class="tc-val">
         <text class="tc-time">{{ selectedDateText }} {{ selectedTimeSlot }}</text>
         <text class="arrow">›</text>
@@ -124,19 +163,21 @@
 
 <script>
 import { mapState } from 'vuex'
-import { createOrder } from '@/api/index.js'
+import { createOrder, getDefaultAddress } from '@/api/index.js'
 
 export default {
   data() {
     return {
       submitting: false,
       showTimeModal: false,
+      deliveryType: 'pickup', // 'pickup' | 'delivery'
+      selectedAddress: null,
       tempDateIndex: 0,
       tempSlotIndex: 3, // 默认 16:00-18:00
       selectedDateIndex: 0,
       selectedSlotIndex: 3,
       person: {
-        name: '李某',
+        name: '张三',
         phone: '13800138000',
         address: '广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号'
       },
@@ -194,13 +235,40 @@ export default {
       } catch (e) {}
     }
 
+    // 默认尝试加载默认收货地址
+    this.loadDefaultAddress()
+
+    // 监听地址选择事件
+    uni.$on('selectAddress', (addr) => {
+      this.selectedAddress = addr
+      this.deliveryType = 'delivery'
+    })
+
     // 读取结算商品缓存
     const checkoutItems = uni.getStorageSync('checkout_items')
     if (checkoutItems && checkoutItems.length > 0) {
       this.orderItems = checkoutItems
     }
   },
+  onUnload() {
+    uni.$off('selectAddress')
+  },
   methods: {
+    formatAddress(item) {
+      if (!item) return ''
+      return [item.provinceName, item.cityName, item.districtName, item.detail].filter(Boolean).join('') || item.detail
+    },
+    async loadDefaultAddress() {
+      try {
+        const res = await getDefaultAddress()
+        if (res.data) {
+          this.selectedAddress = res.data
+        }
+      } catch (e) {}
+    },
+    goSelectAddress() {
+      uni.navigateTo({ url: '/pages/address/list?from=order' })
+    },
     goPersonEdit() {
       uni.navigateTo({
         url: '/pages/order/person'
@@ -218,15 +286,18 @@ export default {
     },
     async onSubmitOrder() {
       if (this.submitting) return
+      
+      if (this.deliveryType === 'delivery' && !this.selectedAddress) {
+        return uni.showToast({ title: '请先选择送货上门地址', icon: 'none' })
+      }
+
       this.submitting = true
 
+      const isPickup = this.deliveryType === 'pickup'
       const orderPayload = {
         amount: this.finalPayPrice,
-        pickupPointId: this.pickupPoint.id || 1,
-        pickupPointName: this.pickupPoint.name || '高黎柱发士多店',
-        pickupTimeSlot: `${this.selectedDateText} ${this.selectedTimeSlot}`,
-        consigneeName: this.person.name,
-        consigneePhone: this.person.phone,
+        deliveryStatus: isPickup ? 1 : 2,
+        orderTime: new Date().toISOString(),
         orderDetailList: this.orderItems.map(item => ({
           name: item.name,
           dishId: item.dishId || 2,
@@ -237,12 +308,26 @@ export default {
         }))
       }
 
+      if (isPickup) {
+        orderPayload.pickupPointId = (this.pickupPoint && this.pickupPoint.id) || 1
+        orderPayload.pickupPointName = (this.pickupPoint && this.pickupPoint.name) || '高黎柱发士多店'
+        orderPayload.pickupPersonName = this.person.name
+        orderPayload.pickupPersonPhone = this.person.phone
+        orderPayload.pickupTimeSlot = `${this.selectedDateText} ${this.selectedTimeSlot}`
+      } else {
+        orderPayload.addressBookId = this.selectedAddress.id
+        orderPayload.consignee = this.selectedAddress.consignee
+        orderPayload.phone = this.selectedAddress.phone
+        orderPayload.address = this.formatAddress(this.selectedAddress)
+      }
+
       try {
         let orderId = 'ORD' + Date.now()
         try {
           const res = await createOrder(orderPayload)
-          if (res && res.data && res.data.data) {
-            orderId = res.data.data.id || res.data.data.orderNumber || orderId
+          if (res && res.data) {
+            const dataObj = res.data.data || res.data
+            orderId = dataObj.id || dataObj.orderNumber || orderId
           }
         } catch (e) {
           // Local fallback
@@ -267,12 +352,73 @@ export default {
   box-sizing: border-box;
 }
 
+.delivery-tabs {
+  display: flex;
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.02);
+
+  .tab-item {
+    flex: 1;
+    height: 72rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12rpx;
+    transition: all 0.2s;
+
+    .tab-text {
+      font-size: 28rpx;
+      font-weight: 500;
+      color: #646A73;
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #25B873 0%, #1DA362 100%);
+      
+      .tab-text {
+        color: #FFFFFF;
+        font-weight: 600;
+      }
+    }
+  }
+}
+
 .card {
   background-color: #FFFFFF;
   border-radius: 16rpx;
   padding: 28rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.02);
+}
+
+.addr-sub {
+  font-size: 24rpx;
+  color: #8F959E;
+  margin-top: 6rpx;
+}
+
+.tag-default {
+  background-color: #E8F8F0;
+  color: #25B873;
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+  margin-left: 12rpx;
+}
+
+.empty-addr {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+
+  .empty-addr-text {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: #25B873;
+  }
 }
 
 /* 提货人信息卡片 */

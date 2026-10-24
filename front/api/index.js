@@ -73,7 +73,8 @@ const request = (options) => {
           rejectUnauthorized(reject)
           return
         }
-        if (res.statusCode === 200 && body && body.code === 200) {
+        if (res.statusCode === 200 && body && (body.code === 200 || body.code === 1)) {
+          body.code = 200
           resolve(body)
         } else {
           // 业务校验失败(400)/资源不存在(404)/系统异常(500)/HTTP 状态码异常：
@@ -580,6 +581,58 @@ export function getMyReviews() {
   })
 }
 
+// ==================== 收货地址簿接口 ====================
+
+export function getAddressList() {
+  return request({ url: '/user/addressBook/list', method: 'GET' })
+}
+
+export function getDefaultAddress() {
+  return request({ url: '/user/addressBook/default', method: 'GET' })
+}
+
+export function setDefaultAddress(id) {
+  return request({ url: '/user/addressBook/default', method: 'PUT', data: { id } })
+}
+
+export function getAddressDetail(id) {
+  return request({ url: `/user/addressBook/${id}`, method: 'GET' })
+}
+
+export function addAddress(data) {
+  return request({ url: '/user/addressBook', method: 'POST', data })
+}
+
+export function updateAddress(data) {
+  return request({ url: '/user/addressBook', method: 'PUT', data })
+}
+
+export function deleteAddress(id) {
+  return request({ url: `/user/addressBook?id=${id}`, method: 'DELETE' })
+}
+
+// ==================== 社区拼团接口 ====================
+
+export function getGrouponDishList() {
+  return request({ url: '/user/groupon/dish/list', method: 'GET' })
+}
+
+export function getGrouponDetail(id) {
+  return request({ url: `/user/groupon/detail/${id}`, method: 'GET' })
+}
+
+export function openGroupon(data) {
+  return request({ url: '/user/groupon/open', method: 'POST', data })
+}
+
+export function joinGroupon(data) {
+  return request({ url: '/user/groupon/join', method: 'POST', data })
+}
+
+export function getMyGroupons(status) {
+  return request({ url: '/user/groupon/my', method: 'GET', data: status != null ? { status } : {} })
+}
+
 export default {
   decorateDish,
   getDishes,
@@ -608,5 +661,17 @@ export default {
   freeMyClaims,
   getReviews,
   submitReview,
-  getMyReviews
+  getMyReviews,
+  getAddressList,
+  getDefaultAddress,
+  setDefaultAddress,
+  getAddressDetail,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  getGrouponDishList,
+  getGrouponDetail,
+  openGroupon,
+  joinGroupon,
+  getMyGroupons
 }

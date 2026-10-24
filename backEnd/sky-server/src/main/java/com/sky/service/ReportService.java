@@ -2,6 +2,7 @@ package com.sky.service;
 
 import java.time.LocalDate;
 
+import com.sky.vo.GrouponStatisticsVO;
 import com.sky.vo.OrderReportVO;
 import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
@@ -44,6 +45,15 @@ public interface ReportService {
      * @return
      */
     SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end);
+
+    /**
+     * 拼团统计：区间内各状态活动数、参团人次、拼团订单数与实收金额（区间可空）
+     *
+     * @param begin
+     * @param end
+     * @return
+     */
+    GrouponStatisticsVO getGrouponStatistics(LocalDate begin, LocalDate end);
 
     /**
      * 导出excel

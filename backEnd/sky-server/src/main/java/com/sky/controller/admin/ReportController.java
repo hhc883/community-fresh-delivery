@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.sky.result.Result;
 import com.sky.service.ReportService;
+import com.sky.vo.GrouponStatisticsVO;
 import com.sky.vo.OrderReportVO;
 import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
@@ -77,6 +78,18 @@ public class ReportController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
         return Result.success(reportService.getSalesTop10(begin, end));
+    }
+
+    /**
+     * 拼团统计：区间内各状态活动数、参团人次、拼团订单数与实收金额。
+     * 区间可空，缺省统计全部历史数据（报表页默认传最近 30 天）。
+     */
+    @GetMapping("/grouponStatistics")
+    public Result<GrouponStatisticsVO> grouponStatistics(
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
+            @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        log.info("拼团统计：begin={}, end={}", begin, end);
+        return Result.success(reportService.getGrouponStatistics(begin, end));
     }
 
     /**
