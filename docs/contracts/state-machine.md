@@ -39,5 +39,7 @@
 ## 4 履约双模式
 
 - **送货上门**：管理端按 3→4→5 推进派送状态，无独立骑手端。
-- **社区自提**：用户到自提点出示 8 位 `pickup_code`，管理端 `/admin/order/verify` 核销；
-  核销后订单进入完成履约态，重复核销无第二次效果。
+- **社区自提**：用户到自提点出示 8 位 `pickup_code`，管理端 `/admin/order/verify` 核销。
+  服务端真实判定条件（OrderServiceImpl#verifyByCode）：码格式合法 + `pay_status=1`（已支付）+
+  `verify_status=0`（未核销）；核销为抢占式条件 UPDATE（verify_status=0 才生效），成功即置
+  `verify_status=1`、订单状态置已完成。重复核销、并发核销、码不存在均被拒绝且无第二次履约效果。

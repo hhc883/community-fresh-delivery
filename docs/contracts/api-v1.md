@@ -80,7 +80,7 @@
 | `/admin/report/ordersStatistics?begin=&end=` | GET | 订单数/有效订单趋势 |
 | `/admin/report/userStatistics?begin=&end=` | GET | 新增用户趋势 |
 | `/admin/report/top10?begin=&end=` | GET | 销量 Top10 商品（nameList/numberList） |
-| `/admin/report/grouponStatistics`（新增） | GET | `begin/end` 可空（默认当日）；data：{ongoing,success,failed,expired,memberCount,grouponOrderCount,grouponTurnover} |
+| `/admin/report/grouponStatistics`（新增） | GET | `begin/end` 可空（缺省统计全部历史数据；报表页默认传最近 30 天）；data：{ongoing,success,failed,expired,memberCount,grouponOrderCount,grouponTurnover} |
 
 ## 3 错误与边界行为（对齐验收用例）
 

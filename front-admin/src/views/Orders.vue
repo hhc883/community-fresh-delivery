@@ -213,7 +213,7 @@ function requireConfirmed(action, text) {
   }).catch(() => null)
 }
 
-async function runWrite(action, fn, row) {
+async function runWrite(action, fn) {
   try {
     await fn()
     ElMessage.success('操作成功')
@@ -228,7 +228,7 @@ async function runWrite(action, fn, row) {
 async function onConfirm(row) {
   const ok = await requireConfirmed('接单', `确定接单 ${row.number}？\n接单后订单进入「已接单」，可继续派送。`)
   if (!ok) return
-  runWrite('接单', () => confirmOrder(row.id), row)
+  runWrite('接单', () => confirmOrder(row.id))
 }
 
 async function onReject(row) {
@@ -243,7 +243,7 @@ async function onReject(row) {
   } catch (e) {
     return
   }
-  runWrite('拒单', () => rejectOrder(row.id, reason), row)
+  runWrite('拒单', () => rejectOrder(row.id, reason))
 }
 
 async function onCancel(row) {
@@ -258,19 +258,19 @@ async function onCancel(row) {
   } catch (e) {
     return
   }
-  runWrite('取消', () => cancelOrder(row.id, reason), row)
+  runWrite('取消', () => cancelOrder(row.id, reason))
 }
 
 async function onDelivery(row) {
   const ok = await requireConfirmed('派送', `确定开始派送 ${row.number}？\n派送后订单进入「派送中」，完成后由「完成」收尾。`)
   if (!ok) return
-  runWrite('派送', () => deliveryOrder(row.id), row)
+  runWrite('派送', () => deliveryOrder(row.id))
 }
 
 async function onComplete(row) {
   const ok = await requireConfirmed('完成订单', `确定将 ${row.number} 标记为已完成？\n完成后订单进入终态，计入营业额与销量统计。`)
   if (!ok) return
-  runWrite('完成', () => completeOrder(row.id), row)
+  runWrite('完成', () => completeOrder(row.id))
 }
 
 // ---- 详情 ----

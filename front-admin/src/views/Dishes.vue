@@ -200,7 +200,7 @@
 // 写操作成功与否一律以服务端返回为准：成功后重拉当前页核对，不本地改行。
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { createCategory, createDish, deleteCategory, deleteDishes, getCategoryList, getDish, getDishPage, setCategoryStatus, setDishStatus, updateCategory, updateDish } from '../api'
+import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryList, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
 
 const viewState = ref('loading')
 const errorText = ref('')
@@ -218,7 +218,7 @@ const filter = reactive({ name: '', categoryId: null, status: null })
 function resolveImage(image) {
   if (!image) return ''
   if (/^https?:\/\//.test(image) || image.startsWith('/')) return image
-  return 'http://localhost:8080/api/common/download?name=' + encodeURIComponent(image)
+  return BASE_URL + '/api/common/download?name=' + encodeURIComponent(image)
 }
 
 async function loadCategories() {
