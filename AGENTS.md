@@ -6,7 +6,7 @@
 - GLM 主责 `front-admin/`、`front-merchant/`、`front-partner/` 与 `docs/agents/glm/`。
 - Codex 主责 `backEnd/`、部署、工程脚本、CI、根文档与公共契约。
 - DeepSeek 主责 `tests/acceptance/`、`docs/qa/`、`docs/thesis/`、`docs/agents/deepseek/`。
-- 不擅自修改其他负责人目录；跨端缺口在公共契约和任务中记录。各开发者使用独立工作树及功能分支。
+- 用户于 2026-10-24 后续明确要求 Codex 接手其他暂不可用 Agent 的未完成工作；本轮可修改上述全部目录。原负责人名称保留为历史分工，各实现者仍使用独立工作树和功能分支。
 - 技术基线为 Spring Boot 2.7.3 / MyBatis / MySQL / Redis；不为毕设另建后端或升级 Boot 3。
 - 保留 `/api/**` 的成功码 200 与 `/user/**`、`/admin/**` 的成功码 1，使用现有响应适配层。
 - 身份取自 JWT；用户操作只允许本人资源；服务端计价；交易修改使用事务与条件更新。
