@@ -1,0 +1,74 @@
+name: core verification
+on:
+  push:
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0.44
+        env:
+          MYSQL_ROOT_PASSWORD: ci-isolated-password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping --silent -h127.0.0.1 -uroot -pci-isolated-password"
+          --health-interval=5s --health-timeout=3s --health-retries=30
+      redis:
+        image: redis:7.4-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-timeout=3s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backEnd/pom.xml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Backend public interface tests and executable package
+        run: mvn -B -ntp -f backEnd/pom.xml verify
+      - name: Install MySQL CLI
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+      - name: Real MySQL HTTP acceptance in a new database
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: ci-isolated-password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: '6379'
+          ACCEPTANCE_ADMIN_PASSWORD: '123456'
+        run: python scripts/run-acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-evidence
+          path: |
+            .local/acceptance/
+            backEnd/sky-server/target/surefire-reports/
+  frontend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - directory: front
+            script: build:h5
+          - directory: front
+            script: build:mp-weixin
+          - directory: front-admin
+            script: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+      - run: npm ci
+        working-directory: ${{ matrix.directory }}
+      - run: npm run ${{ matrix.script }}
+        working-directory: ${{ matrix.directory }}
