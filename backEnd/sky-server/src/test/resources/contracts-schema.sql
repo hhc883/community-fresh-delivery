@@ -79,3 +79,17 @@ CREATE TABLE dish (
     tags VARCHAR(255), limit_buy INT, good_rate VARCHAR(32),
     create_time TIMESTAMP, update_time TIMESTAMP, create_user BIGINT, update_user BIGINT
 );
+
+CREATE TABLE order_stock (
+    order_id BIGINT NOT NULL, dish_id BIGINT NOT NULL, number INT NOT NULL,
+    PRIMARY KEY(order_id, dish_id)
+);
+CREATE TABLE setmeal (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, category_id BIGINT, name VARCHAR(64), price DECIMAL(10,2),
+    status INT, description VARCHAR(255), image VARCHAR(255), create_time TIMESTAMP, update_time TIMESTAMP,
+    create_user BIGINT, update_user BIGINT
+);
+CREATE TABLE setmeal_dish (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, setmeal_id BIGINT, dish_id BIGINT,
+    name VARCHAR(64), price DECIMAL(10,2), copies INT
+);
