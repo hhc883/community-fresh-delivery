@@ -6,6 +6,7 @@ The chosen HTTP port must be unoccupied, preventing tests against another server
 import argparse
 from datetime import datetime, timezone
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -76,7 +77,10 @@ def main():
             child.wait(timeout=5)
 
     report = {"createdAt": datetime.now(timezone.utc).isoformat(), "database": database, "baseUrl": base_url,
-              "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "results": []}
+              "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+              "jarSha256": hashlib.sha256(args.jar.read_bytes()).hexdigest(),
+              "workingTreeChanges": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True).strip(),
+              "results": []}
     try:
         process = start()
         spec = importlib.util.spec_from_file_location("http_acceptance", ROOT / "tests/acceptance/http_acceptance.py")
