@@ -34,6 +34,7 @@
         where id = #{grouponId}
           and status = 1
           and current_size &lt; required_size
+          and expire_time &gt; #{now}
     </update>
 
     <select id="listMine" resultType="com.sky.entity.Groupon">

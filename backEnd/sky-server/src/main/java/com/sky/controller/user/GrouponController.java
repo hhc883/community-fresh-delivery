@@ -36,14 +36,14 @@ public class GrouponController {
     @PostMapping("/open")
     @ApiOperation("开团（以拼团价购买并成为团长）")
     public Result<Groupon> open(@RequestBody GrouponJoinDTO dto) {
-        log.info("用户开团：{}", dto);
+        log.info("用户开团，商品id={}", dto.getDishId());
         return Result.success(grouponService.openGroupon(dto));
     }
 
     @PostMapping("/join")
     @ApiOperation("参团（加入他人已开的团）")
     public Result<Groupon> join(@RequestBody GrouponJoinDTO dto) {
-        log.info("用户参团：{}", dto);
+        log.info("用户参团，拼团id={}", dto.getGrouponId());
         return Result.success(grouponService.joinGroupon(dto));
     }
 
