@@ -61,3 +61,9 @@ CREATE TABLE user (
     phone VARCHAR(32), sex VARCHAR(1), id_number VARCHAR(32), avatar VARCHAR(255),
     create_time TIMESTAMP, password VARCHAR(255), balance DECIMAL(10,2)
 );
+
+CREATE TABLE shopping_cart (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(64), image VARCHAR(255),
+    user_id BIGINT, dish_id BIGINT, setmeal_id BIGINT, dish_flavor VARCHAR(255),
+    number INT, amount DECIMAL(10,2), create_time TIMESTAMP
+);

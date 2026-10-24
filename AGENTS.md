@@ -28,4 +28,4 @@ GitHub Issues：`hhc883/community-fresh-delivery`。详见 `docs/agents/issue-tr
 
 单上下文：根 `GLOSSARY.md` 与 `docs/adr/`；不存在时继续工作。详见 `docs/agents/domain.md`。
 
-本批来源规格为四 Agent 方案中 Codex C1–C8；首批范围见 `docs/development/backend-baseline.md`。代码审查固定点为初始提交 `929851efa141ff2c05b9652f23cd4e7b1e091f3a`。
+本批来源规格为四 Agent 方案中 Codex C1–C8；首批范围见 `docs/development/backend-baseline.md`。初始规格基线为 `929851efa141ff2c05b9652f23cd4e7b1e091f3a`。整合其他 Agent 提交后，本批差异审查固定点为 `0e6a49c33b2b09c867ee698cf2a604b34dcd7759`，不把保留的其他负责人提交算作本批直接修改。

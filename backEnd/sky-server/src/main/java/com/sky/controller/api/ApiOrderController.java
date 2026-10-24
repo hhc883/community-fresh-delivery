@@ -1,9 +1,6 @@
 package com.sky.controller.api;
 
-import com.github.pagehelper.Page;
-import com.github.pagehelper.PageHelper;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
@@ -13,6 +10,7 @@ import com.sky.mapper.PickupPointMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
+import com.sky.service.AddressBookService;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import io.swagger.annotations.Api;
@@ -37,6 +35,9 @@ public class ApiOrderController {
     private OrderService orderService;
 
     @Autowired
+    private AddressBookService addressBookService;
+
+    @Autowired
     private OrderMapper orderMapper;
 
     @Autowired
@@ -53,6 +54,9 @@ public class ApiOrderController {
         Long userId = BaseContext.getCurrentId();
         if (userId == null) {
             throw new com.sky.exception.OrderBusinessException(com.sky.constant.MessageConstant.USER_NOT_LOGIN);
+        }
+        if (submitDTO.getAddressBookId() != null) {
+            addressBookService.getById(submitDTO.getAddressBookId());
         }
 
         if (submitDTO.getPackAmount() == null) submitDTO.setPackAmount(0);

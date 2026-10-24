@@ -34,10 +34,10 @@ import com.sky.entity.Orders;
 import com.sky.entity.PickupPoint;
 import com.sky.entity.ShoppingCart;
 // import com.sky.entity.User;
-import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.service.OrderService;
+import com.sky.service.AddressBookService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
@@ -47,7 +47,6 @@ import com.sky.websocket.WebSocketServer;
 
 import lombok.extern.slf4j.Slf4j;
 
-import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.PickupPointMapper;
@@ -70,7 +69,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderDetailMapper orderDetailMapper;
 
     @Autowired
-    private AddressBookMapper addressBookMapper;
+    private AddressBookService addressBookService;
 
     @Autowired
     private PickupPointMapper pickupPointMapper;
@@ -123,11 +122,7 @@ public class OrderServiceImpl implements OrderService {
         // 注意：自提订单跳过地址簿校验（addressBook 保持 null，后续赋值分支也跳过）
         AddressBook addressBook = null;
         if (pickupPoint == null) {
-            addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
-            if (addressBook == null) {
-                // 抛出异常
-                throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
-            }
+            addressBook = addressBookService.getById(ordersSubmitDTO.getAddressBookId());
         }
         Long userId = BaseContext.getCurrentId();
         ShoppingCart shoppingCart = new ShoppingCart();

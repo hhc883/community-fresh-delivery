@@ -75,7 +75,7 @@ class BackendContractTest {
         BaseContext.removeCurrentId();
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
         fixtures = new JdbcTemplate(dataSource);
-        for (String table : new String[]{"order_detail", "orders", "address_book", "pickup_point", "user"}) {
+        for (String table : new String[]{"order_detail", "orders", "shopping_cart", "address_book", "pickup_point", "user"}) {
             fixtures.update("DELETE FROM " + table);
         }
     }
@@ -336,6 +336,34 @@ class BackendContractTest {
                 .andExpect(jsonPath("$.data.detail").value("second-address"));
         mvc.perform(get("/user/addressBook/list").header("Authorization", userToken(11L)))
                 .andExpect(jsonPath("$.data[?(@.isDefault == 1)]", org.hamcrest.Matchers.hasSize(1)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"/user/order/submit,0", "/api/orders,400"})
+    void usersCannotSubmitOrdersWithAnotherUsersAddress(String path, int failureCode) throws Exception {
+        fixtures.update("INSERT INTO address_book (id,user_id,consignee,phone,detail,is_default) "
+                + "VALUES (202,22,'Bob','13800000022','private-address',1)");
+        fixtures.update("INSERT INTO shopping_cart (id,user_id,dish_id,name,number,amount) "
+                + "VALUES (301,11,1,'Vegetables',1,19.90)");
+        mvc.perform(post(path).header("Authorization", userToken(11L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"addressBookId\":202,\"amount\":19.90,"
+                                + "\"items\":[{\"dishId\":1,\"quantity\":1,\"price\":19.90}]}"))
+                .andExpect(jsonPath("$.code").value(failureCode));
+        mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.total").value(0));
+    }
+
+    @Test
+    void identifierSerializationKeepsCountdownDurationNumeric() throws Exception {
+        com.sky.vo.GrouponVO group = com.sky.vo.GrouponVO.builder()
+                .id(9007199254740993L).remainMillis(123000L).build();
+        com.sky.json.JacksonObjectMapper mapper = new com.sky.json.JacksonObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode response = mapper.readTree(mapper.writeValueAsString(group));
+        assertEquals("9007199254740993", response.path("id").textValue());
+        org.junit.jupiter.api.Assertions.assertTrue(response.path("remainMillis").isNumber(),
+                "A countdown duration is a quantity, not an identifier");
+        assertEquals(123000, response.path("remainMillis").longValue());
     }
 
     private String adminToken(long id) {

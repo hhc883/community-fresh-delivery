@@ -138,8 +138,11 @@ public class ApiAuthController {
         }
         // 旧 MD5 账户在验证真实密码后迁移，不接受存储值本身或明文兜底。
         if (!bcrypt) {
-            userMapper.update(User.builder().id(user.getId())
-                    .password(PASSWORD_ENCODER.encode(password)).build());
+            int migrated = userMapper.migratePassword(user.getId(), storedPassword,
+                    PASSWORD_ENCODER.encode(password));
+            if (migrated != 1) {
+                return Result.error(400, "账户信息已更新，请重新登录");
+            }
         }
 
         Map<String, Object> claims = new HashMap<>();
