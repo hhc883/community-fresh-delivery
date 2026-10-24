@@ -1,0 +1,165 @@
+### 社区团购接口验证
+### 用法：IntelliJ IDEA / VS Code (REST Client) 打开本文件，逐个点击运行。
+### 顺序很重要：先登录拿 token，再开团，再用第二个账号参团验证成团。
+
+@host = http://localhost:8080
+@token = 粘贴第一步返回的 token
+@token2 = 粘贴第二个账号的 token（用另一个 openid 登录得到）
+
+### ------------------------------------------------------------
+### 0. 先确认服务活着（无需登录）
+### ------------------------------------------------------------
+GET {{host}}/user/shop/status
+
+### ------------------------------------------------------------
+### 1. 用户登录，拿到 token（会写入到 authentication 头用）
+###    code 随便填，本地开发环境后端不校验微信 code
+### ------------------------------------------------------------
+POST {{host}}/user/user/login
+Content-Type: application/json
+
+{
+  "code": "test_user_1"
+}
+
+### 再用「另一个 openid」登录，拿第二个 token 用于参团
+POST {{host}}/user/user/login
+Content-Type: application/json
+
+{
+  "code": "test_user_2"
+}
+
+### ------------------------------------------------------------
+### 2. 拼团商品列表（不需要登录，应返回 3 个示例商品）
+###    预期：code=1，data 里有「云南高原红提」等，isGroupon=1
+### ------------------------------------------------------------
+GET {{host}}/user/groupon/dish/list
+
+### 带关键字搜索
+GET {{host}}/user/groupon/dish/list?keyword=苹果
+
+### ------------------------------------------------------------
+### 3. 自提点列表（不需要登录，应返回 3 个示例自提点）
+### ------------------------------------------------------------
+GET {{host}}/user/pickupPoint/list
+
+### ------------------------------------------------------------
+### 4. 开团（用 token）
+###    把 dishId 改成第 2 步返回的某个商品 id
+###    预期：code=1，data.id 是新的拼团 id，status=1，currentSize=1
+###    重点核对：data.grouponPrice 应等于商品的 grouponPrice
+### ------------------------------------------------------------
+POST {{host}}/user/groupon/open
+Content-Type: application/json
+authentication: {{token}}
+
+{
+  "dishId": 1,
+  "number": 2,
+  "pickupPointId": 1,
+  "remark": "验证开团"
+}
+
+### ------------------------------------------------------------
+### 5. 查询该商品当前可加入的团
+###    预期：能看到第 4 步开的团，lackSize = requiredSize - 1
+### ------------------------------------------------------------
+GET {{host}}/user/groupon/joinable/1
+
+### ------------------------------------------------------------
+### 6. 拼团详情（把 1 换成第 4 步返回的 groupon id）
+###    预期：currentSize=1，lackSize=2（若成团人数为3），remainMillis > 0
+### ------------------------------------------------------------
+GET {{host}}/user/groupon/detail/1
+
+### ------------------------------------------------------------
+### 7. 参团（用第二个 token，把 grouponId 换成第 4 步返回的 id）
+###    预期：code=1，currentSize 变成 2
+###    若第 4 步的商品成团人数为 2，则此处应变 status=2（已成团）
+### ------------------------------------------------------------
+POST {{host}}/user/groupon/join
+Content-Type: application/json
+authentication: {{token2}}
+
+{
+  "grouponId": 1,
+  "number": 1,
+  "pickupPointId": 1,
+  "remark": "验证参团"
+}
+
+### ------------------------------------------------------------
+### 8. 再次查看详情，确认成团状态
+###    重点核对：status 是否变为 2、completeTime 是否有值
+### ------------------------------------------------------------
+GET {{host}}/user/groupon/detail/1
+
+### ------------------------------------------------------------
+### 9. 我的拼团（用 token）
+###    预期：能查到刚参与的团
+### ------------------------------------------------------------
+GET {{host}}/user/groupon/mine
+authentication: {{token}}
+
+### 只看拼团中的
+GET {{host}}/user/groupon/mine?status=1
+authentication: {{token}}
+
+### ------------------------------------------------------------
+### 10. 验证重复参团被拦截
+###     预期：code=0，msg="您已参与该团，不能重复参团"
+### ------------------------------------------------------------
+POST {{host}}/user/groupon/join
+Content-Type: application/json
+authentication: {{token2}}
+
+{
+  "grouponId": 1,
+  "number": 1,
+  "pickupPointId": 1
+}
+
+### ------------------------------------------------------------
+### 11. 验证「商品不支持拼团」被拦截
+###     用一个 is_groupon=0 的普通菜品 id 开团
+###     预期：code=0，msg="该商品不支持拼团"
+### ------------------------------------------------------------
+POST {{host}}/user/groupon/open
+Content-Type: application/json
+authentication: {{token}}
+
+{
+  "dishId": 999,
+  "number": 1,
+  "pickupPointId": 1
+}
+
+### ------------------------------------------------------------
+### 12. 管理端：手动关闭超时拼团（管理端 token）
+### ------------------------------------------------------------
+PUT {{host}}/admin/groupon/closeExpired
+token: {{adminToken}}
+
+### ============================================================
+### 需要重点核对的 4 个点（对应修复过的缺陷）
+### ============================================================
+### A. 金额语义：下单后查数据库
+###      SELECT amount FROM orders WHERE groupon_id = <id>;
+###      SELECT number, amount FROM order_detail WHERE order_id = <订单id>;
+###    预期：orders.amount = 拼团价 × 数量（总额）
+###          order_detail.amount = 拼团价（单价，不是总额！）
+###
+### B. 库存原子扣减：开团后查
+###      SELECT name, stock FROM dish WHERE id = <dishId>;
+###    预期：stock = 原库存 - 购买数量（不应扣成负数）
+###
+### C. 拼团人数：参团后查
+###      SELECT current_size, required_size, status FROM `groupon` WHERE id = <id>;
+###    预期：current_size 等于实际参团人数，且不超过 required_size
+###
+### D. 拼团订单标识：查
+###      SELECT id, number, is_groupon, groupon_id, pickup_point_id, address
+###      FROM orders WHERE is_groupon = 1;
+###    预期：address 形如「阳光小区 1号楼架空层快递驿站旁（自提点：阳光小区自提点）」
+###          不应出现 "null null"

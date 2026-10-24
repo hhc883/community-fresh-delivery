@@ -1,0 +1,98 @@
+/* ==================== 生鲜配送自提风格 — 全局 SCSS 变量 ==================== */
+
+/* 主色调 — 生鲜自然绿 */
+$primary-color: #25B873;
+$primary-dark: #1ea062;
+$primary-soft: #E8F7F0;
+
+/* 点缀色 / 价格色 / 促销 */
+$accent-color: #FF5E1E;
+$accent-soft: #FFF2ED;
+
+/* 背景色 */
+$bg-color: #F7F8FA;
+$bg-card: #FFFFFF;
+$bg-warm: #F4FAF6;
+
+/* 文字颜色 */
+$white: #FFFFFF;
+$text-primary: #1F2329;
+$text-secondary: #86909C;
+$text-light: #C9CDD4;
+$text-price: #FF5E1E;
+$text-price-original: #B4BCCC;
+
+/* 边框 */
+$border-color: #EBF0F2;
+$border-light: #F2F4F7;
+
+/* 阴影 */
+$shadow-sm: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+$shadow-md: 0 8rpx 24rpx rgba(37, 184, 115, 0.08);
+
+/* ---- 通用工具类 ---- */
+
+.btn-primary {
+  background-color: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: 40rpx;
+  padding: 14rpx 40rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+}
+
+.card {
+  background-color: $bg-card;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: $shadow-sm;
+  box-sizing: border-box;
+}
+
+.price {
+  color: $accent-color;
+  font-weight: 700;
+  font-size: 32rpx;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-container {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding-bottom: 120rpx;
+  box-sizing: border-box;
+}

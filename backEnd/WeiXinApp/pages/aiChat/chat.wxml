@@ -1,0 +1,66 @@
+<!--pages/aiChat/chat.wxml-->
+<view class="chat-page">
+  <!-- 顶栏 -->
+  <view class="topbar">
+    <view class="topbar-btn" bindtap="onOpenDrawer">≡</view>
+    <view class="topbar-title">{{session ? session.title : 'AI 助手'}}</view>
+    <view class="topbar-btn" bindtap="onNewChat">+</view>
+    <view class="topbar-btn small" bindtap="onGoSettings">⚙</view>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view class="msg-list" scroll-y scroll-into-view="{{lastMsgId}}" scroll-with-animation>
+    <block wx:if="{{messages.length === 0}}">
+      <view class="empty">
+        <view>开始一段对话吧</view>
+        <view wx:if="{{!settings || !settings.apiKey}}" class="goto-settings" bindtap="onGoSettings">
+          前往设置填写 API Key
+        </view>
+      </view>
+    </block>
+    <block wx:for="{{messages}}" wx:for-item="m" wx:key="id">
+      <view id="{{m.id}}" class="msg-row {{m.role}}">
+        <view class="bubble {{m.role}}{{m.pending ? ' pending' : ''}}{{m.error ? ' error' : ''}}">
+          <block wx:if="{{m.error}}">⚠ {{m.error}}</block>
+          <block wx:else>{{m.content}}</block>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+
+  <!-- 输入栏 -->
+  <view class="input-bar">
+    <textarea
+      value="{{input}}"
+      bindinput="onInput"
+      placeholder="说点什么..."
+      auto-height
+      show-confirm-bar="{{false}}"
+      disable-default-padding="{{true}}"
+      adjust-position="{{true}}"
+    />
+    <button class="send-btn" disabled="{{sending || !input}}" bindtap="onSend">
+      {{sending ? '...' : '发送'}}
+    </button>
+  </view>
+
+  <!-- 左侧抽屉 -->
+  <view wx:if="{{showDrawer}}" class="drawer-mask" bindtap="onCloseDrawer"></view>
+  <view wx:if="{{showDrawer}}" class="drawer">
+    <view class="drawer-header">历史会话</view>
+    <scroll-view class="drawer-list" scroll-y>
+      <view
+        wx:for="{{sessions}}"
+        wx:for-item="s"
+        wx:key="id"
+        class="drawer-item {{session && s.id === session.id ? 'active' : ''}}"
+        bindtap="onPickSession"
+        data-id="{{s.id}}"
+      >
+        <view class="drawer-item-title">{{s.title || '新对话'}}</view>
+        <view class="drawer-item-del" catchtap="onDeleteSession" data-id="{{s.id}}">删除</view>
+      </view>
+    </scroll-view>
+    <view class="drawer-footer" bindtap="onClearAll">清空所有会话</view>
+  </view>
+</view>

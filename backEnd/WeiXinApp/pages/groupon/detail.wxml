@@ -1,0 +1,79 @@
+<!--pages/groupon/detail.wxml-->
+<view class="page">
+  <view wx:if="{{loading}}" class="tip">加载中...</view>
+
+  <!-- 模式一：某商品可加入的团 -->
+  <block wx:elif="{{dishId}}">
+    <view wx:if="{{joinableList.length === 0}}" class="tip">
+      该商品暂无可加入的团{'\n'}你可以返回列表页发起一个新团
+    </view>
+
+    <view wx:else class="group-list">
+      <view class="group-card" wx:for="{{joinableList}}" wx:key="id">
+        <image class="group-img" src="{{item.dishImage}}" mode="aspectFill" />
+        <view class="group-body">
+          <view class="group-name">{{item.dishName}}</view>
+          <view class="group-price">拼团价 ¥{{item.grouponPrice}}</view>
+
+          <!-- 参团进度 -->
+          <view class="progress-row">
+            <text class="lack">还差 {{item.lackSize}} 人成团</text>
+            <text class="size">{{item.currentSize}}/{{item.requiredSize}}人</text>
+          </view>
+
+          <view class="countdown">剩余 {{item.countdownText}}</view>
+          <view wx:if="{{item.leaderName}}" class="leader">团长：{{item.leaderName}}</view>
+
+          <view class="btn btn-main" catchtap="onJoin" data-id="{{item.id}}">立即参团</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 模式二：某个团的详情 -->
+  <block wx:elif="{{detail}}">
+    <view class="detail-card">
+      <image class="detail-img" src="{{detail.dishImage}}" mode="aspectFill" />
+      <view class="detail-name">{{detail.dishName}}</view>
+
+      <view class="detail-price-row">
+        <text class="price-now">¥{{detail.grouponPrice}}</text>
+        <text class="price-old">原价 ¥{{detail.originalPrice}}</text>
+      </view>
+
+      <view class="detail-meta">
+        <text wx:if="{{detail.unit}}" class="tag">{{detail.unit}}</text>
+        <text wx:if="{{detail.origin}}" class="tag">产地 {{detail.origin}}</text>
+      </view>
+
+      <!-- 状态区 -->
+      <view class="status-box">
+        <block wx:if="{{detail.status === 1}}">
+          <view class="status-title">还差 {{detail.lackSize}} 人成团</view>
+          <view class="countdown">剩余 {{detail.countdownText}}</view>
+        </block>
+        <block wx:elif="{{detail.status === 2}}">
+          <view class="status-title success">🎉 拼团成功</view>
+        </block>
+        <block wx:elif="{{detail.status === 4}}">
+          <view class="status-title fail">拼团已过期</view>
+        </block>
+        <block wx:else>
+          <view class="status-title fail">拼团已失败</view>
+        </block>
+      </view>
+
+      <view class="members" bindtap="onViewMembers">
+        参团成员 {{detail.currentSize}}/{{detail.requiredSize}} 人 ›
+      </view>
+
+      <view wx:if="{{detail.pickupPointName}}" class="pickup">
+        自提点：{{detail.pickupPointName}}
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="tip">未找到拼团信息</view>
+
+  <view class="bottom-link" bindtap="goList">返回团购列表</view>
+</view>

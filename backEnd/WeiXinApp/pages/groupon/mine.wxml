@@ -1,0 +1,35 @@
+<!--pages/groupon/mine.wxml-->
+<view class="page">
+  <!-- 状态筛选 -->
+  <view class="tabs">
+    <view
+      class="tab {{activeIndex === index ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="label"
+      data-index="{{index}}"
+      bindtap="onTab"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="tip">加载中...</view>
+
+  <view wx:elif="{{list.length === 0}}" class="tip">
+    还没有拼团记录{'\n'}去社区团购看看吧
+    <view class="go-btn" bindtap="goList">去拼团</view>
+  </view>
+
+  <view wx:else class="list">
+    <view class="item" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="onDetail">
+      <image class="item-img" src="{{item.dishImage}}" mode="aspectFill" />
+      <view class="item-body">
+        <view class="item-name">{{item.dishName}}</view>
+        <view class="item-price">拼团价 ¥{{item.grouponPrice}}</view>
+        <view class="item-progress">
+          {{item.currentSize}}/{{item.requiredSize}} 人
+          <text wx:if="{{item.status === 1}}" class="lack">· 还差{{item.lackSize}}人</text>
+        </view>
+      </view>
+      <view class="status status-{{item.status}}">{{item.statusText}}</view>
+    </view>
+  </view>
+</view>

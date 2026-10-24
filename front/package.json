@@ -1,0 +1,28 @@
+{
+  "name": "fresh-pickup",
+  "version": "1.0.0",
+  "description": "生鲜配送 uniapp 前端（H5 + 微信小程序双端）",
+  "private": true,
+  "scripts": {
+    "dev:h5": "node scripts/uni-cli.js",
+    "dev:mp-weixin": "node scripts/uni-cli.js -p mp-weixin",
+    "build:h5": "node scripts/uni-cli.js build",
+    "build:mp-weixin": "node scripts/uni-cli.js build -p mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5030220261016001",
+    "vue": "3.4.21",
+    "vuex": "4.1.0"
+  },
+  "devDependencies": {
+    "@dcloudio/uni-cli-shared": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5030220261016001",
+    "esbuild": "^0.28.2",
+    "esbuild-wasm": "^0.20.2",
+    "sass": "^1.105.2",
+    "vite": "5.2.8"
+  }
+}

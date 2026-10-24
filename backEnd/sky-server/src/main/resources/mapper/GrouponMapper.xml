@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.GrouponMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into `groupon` (dish_id, leader_user_id, groupon_price, required_size, current_size,
+                               status, expire_time, pickup_point_id, create_time, update_time)
+        values (#{dishId}, #{leaderUserId}, #{grouponPrice}, #{requiredSize}, #{currentSize},
+                #{status}, #{expireTime}, #{pickupPointId}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update">
+        update `groupon`
+        <set>
+            <if test="currentSize != null">current_size = #{currentSize},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="completeTime != null">complete_time = #{completeTime},</if>
+            <if test="expireTime != null">expire_time = #{expireTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--
+      原子递增参团人数：
+      where 中带 status = 1 and current_size < required_size，
+      保证并发参团时不会超过成团人数（超员请求影响行数为 0，服务端据此回滚）。
+    -->
+    <update id="increaseCurrentSize">
+        update `groupon`
+        set current_size = current_size + 1,
+            update_time  = now()
+        where id = #{grouponId}
+          and status = 1
+          and current_size &lt; required_size
+    </update>
+
+    <select id="listMine" resultType="com.sky.entity.Groupon">
+        select g.* from `groupon` g
+        inner join groupon_member gm on gm.groupon_id = g.id
+        where gm.user_id = #{userId}
+        <if test="status != null">
+            and g.status = #{status}
+        </if>
+        order by g.create_time desc
+    </select>
+
+</mapper>

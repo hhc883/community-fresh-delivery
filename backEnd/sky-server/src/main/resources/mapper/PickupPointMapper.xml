@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.PickupPointMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into pickup_point (name, community, address, contact, phone, open_time, status, create_time, update_time)
+        values (#{name}, #{community}, #{address}, #{contact}, #{phone}, #{openTime}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <select id="list" resultType="com.sky.entity.PickupPoint">
+        select * from pickup_point
+        <where>
+            <if test="name != null">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="community != null">
+                and community = #{community}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <update id="update">
+        update pickup_point
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="community != null">community = #{community},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="contact != null">contact = #{contact},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="openTime != null">open_time = #{openTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

@@ -1,0 +1,87 @@
+<!--pages/groupon/confirm.wxml-->
+<view class="page">
+  <!-- 商品信息 -->
+  <view class="card goods">
+    <image class="goods-img" src="{{dishImage}}" mode="aspectFill" />
+    <view class="goods-info">
+      <view class="goods-name">{{dishName}}</view>
+      <view class="goods-tag">{{mode === 'open' ? '开团（你将成为团长）' : '参团'}}</view>
+      <view class="goods-price">¥{{price}}</view>
+    </view>
+  </view>
+
+  <!-- 履约方式 -->
+  <view class="card">
+    <view class="card-title">履约方式</view>
+    <view class="type-row">
+      <view class="type-item {{deliveryType === 'pickup' ? 'active' : ''}}" bindtap="onDeliveryType" data-type="pickup">
+        社区自提点
+      </view>
+      <view class="type-item {{deliveryType === 'address' ? 'active' : ''}}" bindtap="onDeliveryType" data-type="address">
+        送货到家
+      </view>
+    </view>
+
+    <!-- 自提点选择 -->
+    <block wx:if="{{deliveryType === 'pickup'}}">
+      <picker wx:if="{{pickupPoints.length > 0}}" mode="selector" range="{{pickupPoints}}" range-key="name" value="{{pickupPointIndex}}" bindchange="onPickupChange">
+        <view class="picker-row">
+          <text>{{pickupPointIndex >= 0 ? pickupPoints[pickupPointIndex].name : '请选择自提点'}}</text>
+          <text class="arrow">›</text>
+        </view>
+      </picker>
+      <view wx:else class="empty-tip">
+        暂无可用自提点，请联系管理员在后台添加
+      </view>
+
+      <view wx:if="{{pickupPointIndex >= 0}}" class="point-detail">
+        <view>{{pickupPoints[pickupPointIndex].community}} {{pickupPoints[pickupPointIndex].address}}</view>
+        <view wx:if="{{pickupPoints[pickupPointIndex].openTime}}">营业时间：{{pickupPoints[pickupPointIndex].openTime}}</view>
+        <view wx:if="{{pickupPoints[pickupPointIndex].phone}}">联系电话：{{pickupPoints[pickupPointIndex].phone}}</view>
+      </view>
+    </block>
+
+    <!-- 收货地址选择 -->
+    <block wx:else>
+      <picker wx:if="{{addresses.length > 0}}" mode="selector" range="{{addresses}}" range-key="detail" value="{{addressIndex}}" bindchange="onAddressChange">
+        <view class="picker-row">
+          <text>{{addressIndex >= 0 ? addresses[addressIndex].detail : '请选择收货地址'}}</text>
+          <text class="arrow">›</text>
+        </view>
+      </picker>
+      <view wx:else class="empty-tip">
+        暂无收货地址，请先到「我的-收货地址」添加
+      </view>
+
+      <view wx:if="{{addressIndex >= 0}}" class="point-detail">
+        <view>收货人：{{addresses[addressIndex].consignee}} {{addresses[addressIndex].phone}}</view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 数量 -->
+  <view class="card">
+    <view class="num-row">
+      <text class="card-title">购买数量</text>
+      <view class="stepper">
+        <view class="step-btn" bindtap="onMinus">−</view>
+        <input class="step-input" type="number" value="{{number}}" bindinput="onNumberChange" />
+        <view class="step-btn" bindtap="onPlus">+</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="card">
+    <view class="card-title">备注</view>
+    <input class="remark-input" placeholder="选填，如：请挑新鲜的" value="{{remark}}" bindinput="onRemark" />
+  </view>
+
+  <!-- 底部提交栏 -->
+  <view class="footer">
+    <view class="footer-amount">合计 <text class="amount">¥{{price * number}}</text></view>
+    <view class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
+      {{submitting ? '提交中...' : (mode === 'open' ? '确认开团' : '确认参团')}}
+    </view>
+  </view>
+</view>

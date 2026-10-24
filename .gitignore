@@ -1,0 +1,59 @@
+# ==================== 编译与打包产物 ====================
+**/target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.map
+*.exe
+
+# ==================== Node.js 与前端产物 ====================
+**/node_modules/
+**/dist/
+**/esbuild-bin/
+**/unpackage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================== 日志与临时文件 ====================
+*.log
+**/logs/
+*.tmp
+*.temp
+*.pid
+tmp-*.txt
+f1.txt
+f2.txt
+
+# ==================== 本地运行与私有凭据 ====================
+start-local.bat
+start.bat
+stop.bat
+log.bat
+push-to-github.bat
+.env.local
+.env.*.local
+
+# ==================== IDE 与操作系统配置 ====================
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ==================== 本地独立工具与临时运行时 ====================
+backEnd_sb3_backup/
+backEnd/Web/nginx-1.20.2/nginx.exe
+backEnd/Web/nginx-1.20.2/temp/
+backEnd/Web/nginx-1.20.2/logs/
+backEnd/Web/nginx-1.20.2/html/sky_backup/
+backEnd/graphify-out/

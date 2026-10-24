@@ -1,0 +1,178 @@
+/* pages/groupon/detail.wxss */
+.page {
+  min-height: 100vh;
+  background: #f6f6f6;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.tip {
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+  padding: 80rpx 0;
+  white-space: pre-line;
+}
+
+/* ===== 可参团列表 ===== */
+.group-card {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.group-img {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 12rpx;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.group-body {
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+.group-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.group-price {
+  color: #E95F3C;
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 8rpx 0;
+}
+
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  margin-bottom: 6rpx;
+}
+
+.lack {
+  color: #E95F3C;
+}
+
+.size {
+  color: #999;
+}
+
+.countdown {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 6rpx;
+}
+
+.leader {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.btn {
+  text-align: center;
+  font-size: 26rpx;
+  border-radius: 30rpx;
+  padding: 12rpx 0;
+  margin-top: 14rpx;
+}
+
+.btn-main {
+  color: #fff;
+  background: #E95F3C;
+}
+
+/* ===== 团详情 ===== */
+.detail-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+}
+
+.detail-img {
+  width: 100%;
+  height: 420rpx;
+  border-radius: 12rpx;
+  background: #eee;
+}
+
+.detail-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin: 20rpx 0 10rpx;
+}
+
+.detail-price-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-now {
+  color: #E95F3C;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.price-old {
+  color: #999;
+  font-size: 24rpx;
+  text-decoration: line-through;
+  margin-left: 16rpx;
+}
+
+.detail-meta {
+  margin: 16rpx 0;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #E95F3C;
+  border: 1rpx solid #f3c0b3;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-right: 10rpx;
+}
+
+.status-box {
+  background: #fdece7;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  text-align: center;
+  margin-top: 20rpx;
+}
+
+.status-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #E95F3C;
+}
+
+.status-title.success {
+  color: #2eaa5c;
+}
+
+.status-title.fail {
+  color: #999;
+}
+
+.members,
+.pickup {
+  font-size: 28rpx;
+  color: #666;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.bottom-link {
+  text-align: center;
+  color: #E95F3C;
+  font-size: 28rpx;
+  padding: 40rpx 0;
+}

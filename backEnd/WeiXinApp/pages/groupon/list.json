@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "社区团购",
+  "navigationBarBackgroundColor": "#E95F3C",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "light"
+}

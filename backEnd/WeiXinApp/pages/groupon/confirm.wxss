@@ -1,0 +1,194 @@
+/* pages/groupon/confirm.wxss */
+.page {
+  min-height: 100vh;
+  background: #f6f6f6;
+  padding: 20rpx 20rpx 140rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.card-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+/* 商品 */
+.goods {
+  display: flex;
+}
+
+.goods-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+.goods-info {
+  flex: 1;
+  margin-left: 20rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.goods-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.goods-tag {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 22rpx;
+  color: #E95F3C;
+  background: #fdece7;
+  border-radius: 6rpx;
+  padding: 4rpx 12rpx;
+}
+
+.goods-price {
+  color: #E95F3C;
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+/* 履约方式 */
+.type-row {
+  display: flex;
+  margin-bottom: 16rpx;
+}
+
+.type-item {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  border: 1rpx solid #ddd;
+  border-radius: 30rpx;
+  padding: 14rpx 0;
+  margin-right: 16rpx;
+}
+
+.type-item:last-child {
+  margin-right: 0;
+}
+
+.type-item.active {
+  color: #E95F3C;
+  border-color: #E95F3C;
+  background: #fdece7;
+}
+
+.picker-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 28rpx;
+  color: #333;
+  border: 1rpx solid #eee;
+  border-radius: 12rpx;
+  padding: 22rpx 20rpx;
+}
+
+.picker-row .arrow {
+  color: #999;
+  font-size: 34rpx;
+}
+
+.empty-tip {
+  font-size: 26rpx;
+  color: #999;
+  padding: 20rpx 0;
+}
+
+.point-detail {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.7;
+  margin-top: 14rpx;
+}
+
+/* 数量 */
+.num-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+}
+
+.step-btn {
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 52rpx;
+  text-align: center;
+  border: 1rpx solid #ddd;
+  border-radius: 50%;
+  font-size: 32rpx;
+  color: #666;
+}
+
+.step-input {
+  width: 90rpx;
+  text-align: center;
+  font-size: 30rpx;
+}
+
+/* 备注 */
+.remark-input {
+  font-size: 28rpx;
+  border: 1rpx solid #eee;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+/* 底部栏 */
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 20rpx 30rpx;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.footer-amount {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.amount {
+  color: #E95F3C;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.submit-btn {
+  background: #E95F3C;
+  color: #fff;
+  font-size: 30rpx;
+  border-radius: 40rpx;
+  padding: 18rpx 60rpx;
+}
+
+.submit-btn.disabled {
+  opacity: 0.6;
+}

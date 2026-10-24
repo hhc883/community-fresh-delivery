@@ -1,0 +1,127 @@
+# 自提核销全链路实测（IntelliJ HTTP Client / VS Code REST Client 格式）
+# 注意：本工程已升级对接生鲜自提前端规范，统一信封为：{"code":200,"message":"操作成功","msg":"操作成功","data":...}
+
+@base = http://localhost:8080
+
+### 0. 确认服务活着
+GET {{base}}/user/pickupPoint/list
+
+### ==============================
+### Part A: 生鲜自提前端专用接口实测 (/api/**)
+### ==============================
+
+### A1. 字典接口（分类）
+GET {{base}}/api/dict?group=dish_category
+
+### A2. 字典接口（金刚区与服务保障）
+GET {{base}}/api/dict?group=kingkong_entry
+
+### A3. 自提网点列表
+GET {{base}}/api/stores
+
+### A4. 商品列表（支持 category / keyword 过滤）
+GET {{base}}/api/dishes?category=meat
+
+### A5. 商品详情
+GET {{base}}/api/dishes/1
+
+### A6. 手机号快捷登录（自动签发 Bearer Token，支持新老用户）
+# @name apiLogin
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{ "phone": "13800138000", "code": "1234" }
+
+> {% client.global.set("bearerToken", response.body.data.token); %}
+
+### A7. 用户中心
+GET {{base}}/api/user/me
+Authorization: Bearer {{bearerToken}}
+
+### A8. 前端直接下单（带 orderDetailList / items，免购物车直接提交）
+# @name apiOrderSubmit
+POST {{base}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{bearerToken}}
+
+{
+  "pickupPointId": 1,
+  "pickupPointName": "高黎柱发士多店(请自备袋子谢谢)",
+  "pickupTimeSlot": "次日自提 16:00-18:00",
+  "consigneeName": "张三",
+  "consigneePhone": "13800138000",
+  "amount": 599.00,
+  "orderDetailList": [
+    {
+      "name": "Redmi 9A 4GB+128GB",
+      "dishId": 2,
+      "number": 1,
+      "amount": 599.00,
+      "image": "/static/images/png/dish-2.png",
+      "dishFlavor": "晴空翠 4+128G"
+    }
+  ]
+}
+
+> {% client.global.set("apiOrderId", response.body.data.id); %}
+
+### A9. 前端模拟支付并生成 8 位提货码
+# @name apiPay
+POST {{base}}/api/pay/{{apiOrderId}}/mock-pay
+Authorization: Bearer {{bearerToken}}
+
+> {% client.global.set("apiPickupCode", response.body.data); %}
+
+### A10. 查询订单详情（含提货码与自提点信息）
+GET {{base}}/api/orders/{{apiOrderId}}
+Authorization: Bearer {{bearerToken}}
+
+### A11. 团长核销（首次核销成功，verifyStatus=1）
+POST {{base}}/admin/order/verify
+Content-Type: application/json
+
+{ "pickupCode": "{{apiPickupCode}}", "pickupPointId": 1 }
+
+### ==============================
+### Part B: 苍穹外卖原有/兼容链路实测
+### ==============================
+
+### B1. 模拟登录（mock-login 已开，游客模式的 mock code 也能登）
+# @name login
+POST {{base}}/user/user/login
+Content-Type: application/json
+
+{ "code": "the code is a mock one" }
+
+> {% client.global.set("token", response.body.data.token); %}
+
+### B2. 查自提点（带回 latitude / longitude / image）
+GET {{base}}/user/pickupPoint/list
+
+### B3. 模拟支付 → 返回 8 位提货码
+# @name pay
+POST {{base}}/user/order/{{apiOrderId}}/mock-pay
+token: {{token}}
+
+### B4. 订单详情
+GET {{base}}/user/order/orderDetail/{{apiOrderId}}
+token: {{token}}
+
+### B5. 重复核销（应报「该订单已核销，不能重复领货」）
+POST {{base}}/admin/order/verify
+Content-Type: application/json
+
+{ "pickupCode": "{{apiPickupCode}}", "pickupPointId": 1 }
+
+### B6. 错误码格式（应报格式不正确）
+POST {{base}}/admin/order/verify
+Content-Type: application/json
+
+{ "pickupCode": "ABC123" }
+
+### B7. 不存在的码
+POST {{base}}/admin/order/verify
+Content-Type: application/json
+
+{ "pickupCode": "99999999" }
+

@@ -1,0 +1,44 @@
+<!--pages/groupon/list.wxml-->
+<view class="page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input class="search-input" placeholder="搜索生鲜商品" value="{{keyword}}" bindinput="onKeyword" bindconfirm="onSearch" confirm-type="search" />
+    <view class="search-btn" bindtap="onSearch">搜索</view>
+  </view>
+
+  <!-- 我的拼团入口 -->
+  <view class="mine-entry" bindtap="goMine">
+    <text>我的拼团</text>
+    <text class="arrow">›</text>
+  </view>
+
+  <!-- 商品列表 -->
+  <view wx:if="{{loading}}" class="tip">加载中...</view>
+
+  <view wx:elif="{{dishList.length === 0}}" class="tip">
+    暂无参与拼团的商品
+  </view>
+
+  <view wx:else class="goods-list">
+    <view class="goods-card" wx:for="{{dishList}}" wx:key="id">
+      <image class="goods-img" src="{{item.image}}" mode="aspectFill" lazy-load />
+      <view class="goods-info">
+        <view class="goods-name">{{item.name}}</view>
+        <view class="goods-meta">
+          <text wx:if="{{item.unit}}" class="tag">{{item.unit}}</text>
+          <text wx:if="{{item.origin}}" class="tag">{{item.origin}}</text>
+          <text wx:if="{{item.stock !== null}}" class="tag">库存 {{item.stock}}</text>
+        </view>
+        <view class="goods-price">
+          <text class="price-now">¥{{item.grouponPrice}}</text>
+          <text class="price-old">¥{{item.price}}</text>
+          <text class="groupon-tip">{{item.grouponSize}}人团</text>
+        </view>
+        <view class="goods-actions">
+          <view class="btn btn-plain" catchtap="onOpen" data-dish="{{item}}">我要开团</view>
+          <view class="btn btn-main" catchtap="onJoin" data-id="{{item.id}}">去参团</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

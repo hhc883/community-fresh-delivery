@@ -1,0 +1,27 @@
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: sky_take_out
+    username: 'root'         # 替换为空字符串
+    password: '123456'         # 替换为空字符串
+  alioss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: 'YOUR_ALIYUN_ACCESS_KEY_ID'
+    access-key-secret: 'YOUR_ALIYUN_ACCESS_KEY_SECRET'
+    bucket-name: 'hhc883'
+  redis:
+    host: localhost
+    port: 6379
+  wechat:
+    app-id: 'wx1e8ef94dca32ccbb'
+    app-secret: 'YOUR_WECHAT_APP_SECRET'
+    # 本地模拟登录开关：
+    # 微信开发者工具在「游客模式」（未关联 AppID）下，wx.login 只返回
+    # "the code is a mock one"，后端拿它调真实微信接口必然失败，
+    # 导致本地无法登录、所有需要 token 的接口都 401。
+    # 置为 true 后，后端跳过微信接口，按 code 生成稳定的模拟 openid，
+    # 本地即可正常登录并测试拼团等需要登录的功能。
+    # ⚠️ 生产环境务必设为 false 或删除本行。
+    mock-login: true

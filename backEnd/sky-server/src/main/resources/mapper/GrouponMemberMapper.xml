@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.GrouponMemberMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into groupon_member (groupon_id, user_id, order_id, is_leader, number, amount, create_time)
+        values (#{grouponId}, #{userId}, #{orderId}, #{isLeader}, #{number}, #{amount}, #{createTime})
+    </insert>
+
+</mapper>

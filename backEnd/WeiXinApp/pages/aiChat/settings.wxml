@@ -1,0 +1,47 @@
+<!--pages/aiChat/settings.wxml-->
+<view class="page">
+  <view class="form-group">
+    <text class="label">SiliconFlow API Key</text>
+    <input
+      class="input"
+      value="{{apiKey}}"
+      bindinput="onKeyInput"
+      password
+      placeholder="sk-xxxxxxxxxxxxxxxx"
+      maxlength="200"
+    />
+    <view class="hint">
+      在 https://cloud.siliconflow.cn/account/ak 创建。
+      注意：Key 会存到小程序 localStorage，明文可见，请勿在生产环境使用。
+    </view>
+  </view>
+
+  <view class="form-group">
+    <text class="label">默认模型</text>
+    <picker
+      class="picker"
+      mode="selector"
+      range="{{models}}"
+      range-key="name"
+      value="{{modelIndex}}"
+      bindchange="onModelChange"
+    >
+      <view>{{models[modelIndex].name}}</view>
+    </picker>
+    <view class="hint">完整列表：https://docs.siliconflow.cn/cn/api-reference/chat-completions/chat-completions</view>
+  </view>
+
+  <view class="form-group">
+    <text class="label">System Prompt（系统提示）</text>
+    <textarea
+      class="textarea"
+      value="{{systemPrompt}}"
+      bindinput="onPromptInput"
+      placeholder="你是苍穹外卖的 AI 助手..."
+      maxlength="500"
+    />
+    <view class="hint">定义 AI 的角色和行为。每次新会话自动套用。</view>
+  </view>
+
+  <button class="save-btn" bindtap="onSave">保存</button>
+</view>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.DishMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into dish (name, category_id, price, image, description, create_time, update_time, create_user,
+                          update_user, status,
+                          is_groupon, groupon_price, groupon_size, groupon_valid_hours, stock, unit, origin, is_fresh)
+        values (#{name}, #{categoryId}, #{price}, #{image}, #{description}, #{createTime}, #{updateTime}, #{createUser},
+                #{updateUser}, #{status},
+                #{isGroupon}, #{grouponPrice}, #{grouponSize}, #{grouponValidHours}, #{stock}, #{unit}, #{origin}, #{isFresh})
+    </insert>
+
+    <select id="pageQuery" resultType="com.sky.vo.DishVO">
+        select d.* , c.name as categoryName from dish d left outer join category c on d.category_id = c.id
+        <where>
+            <if test="name != null">
+                and d.name like concat('%',#{name},'%')
+            </if>
+            <if test="categoryId != null">
+                and d.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and d.status = #{status}
+            </if>
+        </where>
+        order by d.create_time desc
+    </select>
+
+    <update id="update">
+        update dish
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="image != null">image = #{image},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="isGroupon != null">is_groupon = #{isGroupon},</if>
+            <if test="grouponPrice != null">groupon_price = #{grouponPrice},</if>
+            <if test="grouponSize != null">groupon_size = #{grouponSize},</if>
+            <if test="grouponValidHours != null">groupon_valid_hours = #{grouponValidHours},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="origin != null">origin = #{origin},</if>
+            <if test="isFresh != null">is_fresh = #{isFresh},</if>
+            <if test="soldCount != null">sold_count = #{soldCount},</if>
+            <if test="promoTag != null">promo_tag = #{promoTag},</if>
+            <if test="seckill != null">seckill = #{seckill},</if>
+            <if test="seckillPrice != null">seckill_price = #{seckillPrice},</if>
+            <if test="tags != null">tags = #{tags},</if>
+            <if test="limitBuy != null">limit_buy = #{limitBuy},</if>
+            <if test="goodRate != null">good_rate = #{goodRate},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="updateUser != null">update_user = #{updateUser},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="list" resultType="Dish" parameterType="Dish">
+        select * from dish
+        <where>
+            <if test="name != null">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="isGroupon != null">
+                and is_groupon = #{isGroupon}
+            </if>
+            <if test="isFresh != null">
+                and is_fresh = #{isFresh}
+            </if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <select id="countByMap" resultType="java.lang.Integer">
+        select count(id) from dish
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+        </where>
+    </select>
+    <!-- 启用/停用菜品 -->
+    <update id="updateStatus">
+        update dish
+        set status = #{status},
+            update_time = #{updateTime},
+            update_user = #{updateUser}
+        where id = #{id}
+    </update>
+
+    <!-- 查询参与拼团的起售商品 -->
+    <select id="listGrouponDish" resultType="com.sky.entity.Dish">
+        select * from dish
+        where is_groupon = 1 and status = 1
+        order by create_time desc
+    </select>
+
+    <!--
+      原子扣减库存：where 带 stock >= number，并发下不会扣成负数。
+      影响行数 0 即库存不足，由服务层抛出业务异常并回滚整个事务。
+    -->
+    <update id="deductStock">
+        update dish
+        set stock = stock - #{number},
+            update_time = now()
+        where id = #{id}
+          and stock is not null
+          and stock &gt;= #{number}
+    </update>
+
+    <!-- 原子归还库存 -->
+    <update id="restoreStock">
+        update dish
+        set stock = stock + #{number},
+            update_time = now()
+        where id = #{id}
+          and stock is not null
+    </update>
+</mapper>
