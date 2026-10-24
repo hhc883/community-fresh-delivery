@@ -250,7 +250,8 @@ CREATE TABLE IF NOT EXISTS `groupon_member`  (
   `create_time` datetime(0) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_member_groupon`(`groupon_id`) USING BTREE,
-  UNIQUE INDEX `idx_groupon_user`(`groupon_id`, `user_id`) USING BTREE
+  UNIQUE INDEX `idx_groupon_user`(`groupon_id`, `user_id`) USING BTREE,
+  UNIQUE KEY `uq_groupon_member_order` (`order_id`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '拼团成员' ROW_FORMAT = Dynamic;
 
 CREATE TABLE IF NOT EXISTS `order_stock` (

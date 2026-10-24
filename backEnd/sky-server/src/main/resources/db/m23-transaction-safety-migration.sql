@@ -21,3 +21,9 @@ CREATE TABLE IF NOT EXISTS order_stock (
  number INT NOT NULL,
  PRIMARY KEY(order_id,dish_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SET @ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='groupon_member' AND index_name='idx_groupon_user')=0,
+ 'ALTER TABLE groupon_member ADD UNIQUE KEY idx_groupon_user (groupon_id,user_id)', 'DO 0');
+PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
+SET @ddl = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='groupon_member' AND index_name='uq_groupon_member_order')=0,
+ 'ALTER TABLE groupon_member ADD UNIQUE KEY uq_groupon_member_order (order_id)', 'DO 0');
+PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
