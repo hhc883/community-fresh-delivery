@@ -116,9 +116,10 @@ class Acceptance:
     def duplicate_and_stock(self):
         token = self.users[0]
         body = self.order(token)
-        first = self.ok("POST", "/api/orders", body, token)
-        second = self.ok("POST", "/api/orders", body, token)
-        assert str(first["id"]) == str(second["id"]), (first, second)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            repeats = list(executor.map(lambda _: self.ok("POST", "/api/orders", body, token), range(8)))
+        first = repeats[0]
+        assert len({str(item["id"]) for item in repeats}) == 1, repeats
         self.ok("POST", "/api/orders/" + str(first["id"]) + "/cancel", token=token)
         self.stock(1)
 
@@ -152,8 +153,11 @@ class Acceptance:
         token = self.users[0]
         order = self.ok("POST", "/api/orders", self.order(token), token)
         path = "/api/pay/" + str(order["id"]) + "/mock-pay"
-        code = self.ok("POST", path, token=token)
-        assert code == self.ok("POST", path, token=token)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            codes = list(executor.map(lambda _: self.ok("POST", path, token=token), range(8)))
+        code = codes[0]
+        assert all(value == code for value in codes), codes
+        self.rejected("POST", "/admin/order/verify", {"pickupCode": code, "pickupPointId": "2"}, self.admin)
         self.ok("POST", "/admin/order/verify", {"pickupCode": code, "pickupPointId": "1"}, self.admin)
         self.rejected("POST", "/admin/order/verify", {"pickupCode": code, "pickupPointId": "1"}, self.admin)
         assert self.detail(order["id"], token)["status"] == 5
@@ -217,6 +221,9 @@ class Acceptance:
         assert [Decimal(x) for x in turnover["turnoverList"].split(",")] == [Decimal("37.50"), Decimal("0")], turnover
         top = self.ok("GET", "/admin/report/top10?begin=2000-01-01&end=2000-01-01", token=self.admin)
         assert top["numberList"] == "3", top
+        groups = self.ok("GET", "/admin/report/grouponStatistics?begin=2001-01-01&end=2001-01-01", token=self.admin)
+        assert groups["expired"] == 1 and groups["memberCount"] == 1 and groups["grouponOrderCount"] == 1, groups
+        assert Decimal(str(groups["grouponTurnover"])) == Decimal("0"), groups
         self.rejected("GET", "/admin/report/ordersStatistics?begin=2000-01-02&end=2000-01-01", token=self.admin)
 
     def run(self):
