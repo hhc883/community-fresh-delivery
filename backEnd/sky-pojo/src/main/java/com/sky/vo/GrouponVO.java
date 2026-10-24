@@ -59,7 +59,7 @@ public class GrouponVO implements Serializable {
     private LocalDateTime expireTime;
 
     //剩余毫秒数，前端用于倒计时
-    private Long remainMillis;
+    private long remainMillis;
 
     //团长昵称
     private String leaderName;

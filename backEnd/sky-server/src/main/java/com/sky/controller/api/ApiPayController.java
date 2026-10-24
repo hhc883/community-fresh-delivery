@@ -1,10 +1,11 @@
 package com.sky.controller.api;
 
 import com.sky.entity.Orders;
+import com.sky.constant.MessageConstant;
+import com.sky.exception.OrderBusinessException;
 import com.sky.mapper.OrderMapper;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
-import com.sky.utils.PickupCodeUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -44,16 +45,9 @@ public class ApiPayController {
             order = orderMapper.getByNumber(orderId);
         }
 
-        String pickupCode;
-        if (order != null) {
-            // 真实订单调用服务层完成支付并生成唯一提货码
-            pickupCode = orderService.mockPay(order.getId());
-        } else {
-            // 本地离线/mock调试订单生成合法 8 位提货码
-            pickupCode = PickupCodeUtil.generate();
-            log.info("未找到数据库订单，生成模拟提货码: orderId={}, pickupCode={}", orderId, pickupCode);
+        if (order == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
-
-        return Result.success(pickupCode);
+        return Result.success(orderService.mockPay(order.getId()));
     }
 }
