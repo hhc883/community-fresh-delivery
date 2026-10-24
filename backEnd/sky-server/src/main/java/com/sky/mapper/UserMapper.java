@@ -28,6 +28,9 @@ public interface UserMapper {
     @Select("select * from user where id = #{id}")
     User getById(Long userId);
 
+    @Select("select * from user where id = #{id} for update")
+    User getByIdForUpdate(Long id);
+
     /**
      * 根据手机号查询用户
      * @param phone
