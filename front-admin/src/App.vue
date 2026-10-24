@@ -7,14 +7,11 @@
         <el-tag type="warning" effect="dark" size="small">运营端</el-tag>
       </div>
       <nav class="nav">
-        <router-link to="/overview" class="nav-link" :class="{ active: isActive('/overview') }">大盘</router-link><!-- F-55：与 Overview.vue 标题同批去掉「当日」，理由见该处注释 -->
-        <router-link to="/audit-logs" class="nav-link" :class="{ active: isActive('/audit-logs') }">审计记录</router-link>
-        <!-- F-20.22 Step 5b-2：四个运营 P0 页（每页 = 一条 5b-1 只读列表 + 一个 AdminController 旧写端点）。
-             FE-G6-10：这四条会改数据，挂橙点区分于前两条只读页，图例跟在最后一条后面。 -->
-        <router-link to="/orders" class="nav-link" :class="{ active: isActive('/orders') }"><span class="nav-dot" title="本页会改数据"></span>核销台</router-link>
+        <router-link to="/overview" class="nav-link" :class="{ active: isActive('/overview') }">大盘</router-link>
         <router-link to="/dishes" class="nav-link" :class="{ active: isActive('/dishes') }"><span class="nav-dot" title="本页会改数据"></span>商品管理</router-link>
-        <router-link to="/reviews" class="nav-link" :class="{ active: isActive('/reviews') }"><span class="nav-dot" title="本页会改数据"></span>评价审核</router-link>
-        <router-link to="/store-applies" class="nav-link" :class="{ active: isActive('/store-applies') }"><span class="nav-dot" title="本页会改数据"></span>入驻审核</router-link>
+        <router-link to="/orders" class="nav-link" :class="{ active: isActive('/orders') }"><span class="nav-dot" title="本页会改数据"></span>订单履约</router-link>
+        <router-link to="/groupon" class="nav-link" :class="{ active: isActive('/groupon') }"><span class="nav-dot" title="本页会改数据"></span>拼团管理</router-link>
+        <router-link to="/reports" class="nav-link" :class="{ active: isActive('/reports') }">统计报表</router-link>
         <span class="nav-legend" title="橙点入口对应的页面会修改数据，操作前有二次确认">● 会改数据（操作前有二次确认）</span>
       </nav>
       <div class="actions">
@@ -29,8 +26,8 @@
 </template>
 
 <script setup>
-// 外壳（F-20.11 三页共同要求 + F-20.22 四页扩到六条入口）：右上角标明当前是「运营端」（本仓第四端，
-// 与 C 端/商家端/主理人端区分），并给退出登录——本期后端无登出端点（JWT 无状态），退出 = 清 admin_token + 回 /login，
+// 外壳：右上角标明当前是「运营端」，并给退出登录。
+// 退出 = 调 /admin/employee/logout（尽力通知）+ 清 admin_token + 回 /login，
 // 清态与跳转都走 api 层的 logout()，本组件不各自读 storage（键名真源只有 TOKEN_STORAGE_KEY 一处）。
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
