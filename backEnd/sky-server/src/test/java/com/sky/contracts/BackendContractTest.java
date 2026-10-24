@@ -75,13 +75,109 @@ class BackendContractTest {
         BaseContext.removeCurrentId();
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
         fixtures = new JdbcTemplate(dataSource);
-        for (String table : new String[]{"order_detail", "orders", "shopping_cart", "address_book", "pickup_point", "user"}) {
+        for (String table : new String[]{"order_stock", "order_detail", "orders", "shopping_cart", "address_book", "pickup_point", "user", "dish", "setmeal", "setmeal_dish"}) {
             fixtures.update("DELETE FROM " + table);
         }
     }
 
     @AfterEach
     void clearContext() { BaseContext.removeCurrentId(); }
+
+    @Test
+    void directCheckoutUsesCatalogPriceAndNamesInsteadOfClientValues() throws Exception {
+        fixtures.update("INSERT INTO user (id,phone) VALUES (11,'13800000011')");
+        fixtures.update("INSERT INTO pickup_point (id,name,address,status) VALUES (1,'社区自提点','社区路1号',1)");
+        fixtures.update("INSERT INTO dish (id,name,price,status,stock) VALUES (1,'番茄',12.50,1,5)");
+        String result = mvc.perform(post("/api/orders").header("Authorization", userToken(11L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientRequestId\":\"price-case-1\",\"pickupPointId\":1,"
+                                + "\"pickupPersonName\":\"测试用户\",\"pickupPersonPhone\":\"13800000011\","
+                                + "\"amount\":0.01,\"packAmount\":-100,\"items\":[{\"dishId\":1,\"number\":2,"
+                                + "\"name\":\"客户端伪造名称\",\"price\":0.01}]}"))
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.orderAmount").value(25.00))
+                .andReturn().getResponse().getContentAsString();
+        String id = com.alibaba.fastjson.JSON.parseObject(result).getJSONObject("data").getString("id");
+        mvc.perform(get("/api/orders/" + id).header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.amount").value(25.00))
+                .andExpect(jsonPath("$.data.orderDetailList[0].name").value("番茄"))
+                .andExpect(jsonPath("$.data.orderDetailList[0].amount").value(12.50));
+    }
+
+    @Test
+    void retryingCheckoutReturnsSameOrderAndRejectsReusingKeyForDifferentItems() throws Exception {
+        checkoutFixtures(5);
+        String first = checkout("intent-1", 2, 200);
+        String retry = checkout("intent-1", 2, 200);
+        assertEquals(first, retry);
+        checkout("intent-1", 1, 400);
+        mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    @Test
+    void insufficientStockRejectsWholeCheckoutWithoutCreatingAnOrder() throws Exception {
+        checkoutFixtures(3);
+        checkout("stock-1", 2, 200);
+        checkout("stock-2", 2, 400);
+        mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    @Test
+    void cancellingAnOrderRestoresItsOriginalReservationOnlyOnce() throws Exception {
+        checkoutFixtures(3);
+        String id = checkout("cancel-stock-1", 2, 200);
+        mvc.perform(post("/api/orders/" + id + "/cancel").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(200));
+        mvc.perform(post("/api/orders/" + id + "/cancel").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(200));
+        checkout("cancel-stock-2", 3, 200);
+        checkout("cancel-stock-3", 1, 400);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0", "-1", "1.5", "10000"})
+    void checkoutRejectsNonpositiveFractionalAndExcessiveQuantities(String number) throws Exception {
+        checkoutFixtures(3);
+        mvc.perform(post("/api/orders").header("Authorization", userToken(11L))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"clientRequestId\":\"invalid-qty\","
+                                + "\"pickupPointId\":1,\"pickupPersonName\":\"测试\",\"pickupPersonPhone\":\"13800000011\","
+                                + "\"items\":[{\"dishId\":1,\"number\":" + number + "}]}"))
+                .andExpect(jsonPath("$.code").value(400));
+        mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.total").value(0));
+    }
+
+    @Test
+    void failureOnSecondProductRollsBackTheFirstProductsReservation() throws Exception {
+        checkoutFixtures(1);
+        fixtures.update("INSERT INTO dish (id,name,price,status,stock) VALUES (2,'青菜',4.00,1,0)");
+        mvc.perform(post("/api/orders").header("Authorization", userToken(11L))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"clientRequestId\":\"rollback-1\","
+                                + "\"pickupPointId\":1,\"pickupPersonName\":\"测试\",\"pickupPersonPhone\":\"13800000011\","
+                                + "\"items\":[{\"dishId\":1,\"number\":1},{\"dishId\":2,\"number\":1}]}"))
+                .andExpect(jsonPath("$.code").value(400));
+        checkout("rollback-2", 1, 200);
+        mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    private void checkoutFixtures(int stock) {
+        fixtures.update("INSERT INTO user (id,phone) VALUES (11,'13800000011')");
+        fixtures.update("INSERT INTO pickup_point (id,name,address,status) VALUES (1,'社区自提点','社区路1号',1)");
+        fixtures.update("INSERT INTO dish (id,name,price,status,stock) VALUES (1,'番茄',12.50,1,?)", stock);
+    }
+
+    private String checkout(String key, int quantity, int code) throws Exception {
+        String body = "{\"clientRequestId\":\"" + key + "\",\"pickupPointId\":1,"
+                + "\"pickupPersonName\":\"测试用户\",\"pickupPersonPhone\":\"13800000011\","
+                + "\"items\":[{\"dishId\":1,\"number\":" + quantity + "}]}";
+        String result = mvc.perform(post("/api/orders").header("Authorization", userToken(11L))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.code").value(code)).andReturn().getResponse().getContentAsString();
+        return code == 200 ? com.alibaba.fastjson.JSON.parseObject(result).getJSONObject("data").getString("id") : null;
+    }
 
     @Test
     void emptyOrderHistoryContainsNoDemonstrationOrders() throws Exception {
@@ -388,7 +484,7 @@ class BackendContractTest {
     @Import({WebMvcConfiguration.class, JwtTokenUserInterceptor.class, JwtTokenAdminInterceptor.class,
             ApiOrderController.class, ApiPayController.class, ApiAuthController.class,
             AddressBookController.class, com.sky.controller.user.OrderController.class,
-            com.sky.controller.admin.OrderController.class, OrderServiceImpl.class,
+            com.sky.controller.admin.OrderController.class, OrderServiceImpl.class, com.sky.service.CheckoutService.class,
             AddressBookServiceImpl.class, GlobalExceptionHandler.class, ResultResponseAdvice.class,
             WebSocketServer.class})
     static class TestConfiguration {

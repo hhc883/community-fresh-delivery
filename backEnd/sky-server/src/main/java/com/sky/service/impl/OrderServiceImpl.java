@@ -66,6 +66,15 @@ public class OrderServiceImpl implements OrderService {
     private OrderMapper orderMapper;
 
     @Autowired
+    private com.sky.service.CheckoutService checkoutService;
+
+    @Autowired
+    private com.sky.mapper.OrderStockMapper orderStockMapper;
+
+    @Autowired
+    private com.sky.mapper.DishMapper dishMapper;
+
+    @Autowired
     private OrderDetailMapper orderDetailMapper;
 
     @Autowired
@@ -95,98 +104,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
-        requireCurrentUserId();
-        // ===== 自提分支（m21）=====
-        // 原流程第一件事就是强校验 addressBookId 非空，自提订单根本不走地址簿，
-        // 若不前置分流会直接被 AddressBookBusinessException 挡住。
-        // 故这里以 pickupPointId 是否为 null 作为唯一分流判据：
-        //   非空 → 自提：校验自提点存在且启用，落提货人快照
-        //   为空 → 保持原有配送流程，一行不改
-        PickupPoint pickupPoint = null;
-        if (ordersSubmitDTO.getPickupPointId() != null) {
-            pickupPoint = pickupPointMapper.getById(ordersSubmitDTO.getPickupPointId());
-            if (pickupPoint == null) {
-                throw new OrderBusinessException(MessageConstant.PICKUP_POINT_NOT_FOUND);
-            }
-            if (!Integer.valueOf(1).equals(pickupPoint.getStatus())) {
-                throw new OrderBusinessException(MessageConstant.PICKUP_POINT_DISABLED);
-            }
-            // 提货人信息是核销时核对身份的唯一依据，自提订单必须齐全
-            if (!StringUtils.hasText(ordersSubmitDTO.getPickupPersonName())
-                    || !StringUtils.hasText(ordersSubmitDTO.getPickupPersonPhone())) {
-                throw new OrderBusinessException(MessageConstant.PICKUP_PERSON_REQUIRED);
-            }
-        }
-
-        // 业务异常处理，地址为空、购物车为空
-        // 注意：自提订单跳过地址簿校验（addressBook 保持 null，后续赋值分支也跳过）
-        AddressBook addressBook = null;
-        if (pickupPoint == null) {
-            addressBook = addressBookService.getById(ordersSubmitDTO.getAddressBookId());
-        }
-        Long userId = BaseContext.getCurrentId();
-        ShoppingCart shoppingCart = new ShoppingCart();
-        shoppingCart.setUserId(userId);
-        List<ShoppingCart> cartList = shoppingCartMapper.list(shoppingCart);
-        if (cartList == null || cartList.isEmpty()) {
-            // 抛出异常
-            throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
-        }
-
-        // 订单表插入一条数据
-        Orders orders = new Orders();
-        // 先把 DTO 同名字段拷进实体（含 pickupPointId/pickupTimeSlot/pickupPersonName/pickupPersonPhone，
-        // 这四个是 m21 给 OrdersSubmitDTO 新加的同名字段，BeanUtils 会自动带上）
-        BeanUtils.copyProperties(ordersSubmitDTO, orders);
-        orders.setOrderTime(LocalDateTime.now());
-        orders.setPayStatus(Orders.UN_PAID);
-        orders.setStatus(Orders.PENDING_PAYMENT);
-        orders.setNumber(String.valueOf(System.currentTimeMillis()));
-        if (pickupPoint != null) {
-            // 自提：地址快照取自提点，收货人取提货人（订单列表/详情无需再关联地址簿）
-            orders.setAddress(pickupPoint.getAddress());
-            orders.setPhone(ordersSubmitDTO.getPickupPersonPhone());
-            orders.setConsignee(ordersSubmitDTO.getPickupPersonName());
-            orders.setPickupPointName(pickupPoint.getName());
-        } else if (StringUtils.hasText(ordersSubmitDTO.getPickupPointName())) {
-            orders.setPickupPointName(ordersSubmitDTO.getPickupPointName());
-        } else {
-            orders.setAddress(addressBook.getDetail());
-            orders.setPhone(addressBook.getPhone());
-            orders.setConsignee(addressBook.getConsignee());
-        }
-        orders.setUserId(userId);
-        // orders.is_groupon 是 NOT NULL 列，普通下单必须显式标记为非拼团订单，
-        // 否则会以 NULL 插入而触发完整性约束异常（表现为前端「未知错误」）。
-        orders.setIsGroupon(0);
-        // 核销状态 NOT NULL DEFAULT 0；实体默认值此处生效（普通 new，非 builder）
-        orders.setVerifyStatus(Orders.UN_VERIFIED);
-
-        orderMapper.insert(orders);
-
-        // 订单详情表插入多条数据
-        List<OrderDetail> orderDetailList = new ArrayList<>();
-        cartList.forEach(cart -> {
-            OrderDetail orderDetail = new OrderDetail();
-            BeanUtils.copyProperties(cart, orderDetail);
-            orderDetail.setOrderId(orders.getId());
-            orderDetailList.add(orderDetail);
-        });
-        orderDetailMapper.insertBatch(orderDetailList);
-
-        // 清空购物车
-        shoppingCartMapper.deleteByUserId(userId);
-
-        // 返回 VO
-        OrderSubmitVO orderSubmitVO = OrderSubmitVO.builder()
-                .id(orders.getId())
-                .orderTime(orders.getOrderTime())
-                .orderNumber(orders.getNumber())
-                .orderAmount(orders.getAmount())
-                .amount(orders.getAmount())
-                .build();
-
-        return orderSubmitVO;
+        return checkoutService.submit(ordersSubmitDTO);
     }
 
     /**
@@ -765,6 +683,13 @@ public class OrderServiceImpl implements OrderService {
             orders.setPayStatus(Orders.REFUND);
         }
         orderMapper.update(orders);
+        restoreReservedStock(orders.getId());
+    }
+
+    private void restoreReservedStock(Long orderId) {
+        for (com.sky.entity.OrderStock reservation : orderStockMapper.list(orderId)) {
+            dishMapper.restoreStock(reservation.getDishId(), reservation.getNumber());
+        }
     }
 
     private Long requireCurrentUserId() {
