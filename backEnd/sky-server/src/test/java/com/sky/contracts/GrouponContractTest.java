@@ -174,6 +174,54 @@ class GrouponContractTest {
         assertEquals(new java.math.BigDecimal("25.50"),report.getGrouponTurnover());
     }
 
+    @Test void detailAndMineExposeOnlyTheCallersOrderAndPickupSnapshotsTheRecipient() throws Exception {
+        String body = mvc.perform(post("/user/groupon/open").header("Authorization",token(11))
+                        .contentType("application/json").content("{\"dishId\":1,\"number\":1,\"pickupPointId\":1,\"deliveryType\":2,\"pickupPersonName\":\"Alice\",\"pickupPersonPhone\":\"13800000011\"}"))
+                .andExpect(jsonPath("$.code").value(1)).andReturn().getResponse().getContentAsString();
+        String orderId = com.jayway.jsonpath.JsonPath.read(body,"$.data.orderId");
+        String groupId = com.jayway.jsonpath.JsonPath.read(body,"$.data.id");
+        mvc.perform(get("/user/groupon/detail/"+groupId).header("Authorization",token(11)))
+                .andExpect(jsonPath("$.data.orderId").value(orderId))
+                .andExpect(jsonPath("$.data.members[0].orderId").doesNotExist())
+                .andExpect(jsonPath("$.data.members[0].phone").doesNotExist());
+        mvc.perform(get("/user/groupon/detail/"+groupId).header("Authorization",token(22)))
+                .andExpect(jsonPath("$.data.orderId").isEmpty());
+        mvc.perform(get("/user/groupon/mine").header("Authorization",token(11)))
+                .andExpect(jsonPath("$.data[0].orderId").value(orderId));
+        mvc.perform(get("/user/groupon/mine").header("Authorization",token(22)))
+                .andExpect(jsonPath("$.data").isEmpty());
+        mvc.perform(get("/api/orders/"+orderId).header("Authorization",token(11)))
+                .andExpect(jsonPath("$.data.pickupPersonName").value("Alice"))
+                .andExpect(jsonPath("$.data.pickupPersonPhone").value("13800000011"))
+                .andExpect(jsonPath("$.data.pickupPointName").value("Store"));
+    }
+
+    @Test void simultaneousExpiryClosesAGroupOnlyOnce() throws Exception {
+        BaseContext.setCurrentId(11L);
+        Groupon group = service.openGroupon(request(11,2));
+        fixtures.update("UPDATE groupon SET expire_time='2000-01-01 00:00:00' WHERE id=?",group.getId());
+        java.util.List<Integer> closed = runBoth(service::closeExpired, service::closeExpired);
+        assertEquals(1,closed.get(0)+closed.get(1));
+        assertEquals(10,service.listGrouponDish(null).get(0).getStock());
+        assertEquals(4,service.getDetail(group.getId()).getStatus());
+    }
+
+    @Test void emptyAndSingleDayReportsHaveDefinedResultsAndReversedDatesAreRejected() {
+        java.time.LocalDate day = java.time.LocalDate.of(2026,10,22);
+        assertEquals("2026-10-22",reports.getTurnoverReport(day,day).getDateList());
+        assertEquals("0.0",reports.getTurnoverReport(day,day).getTurnoverList());
+        com.sky.vo.GrouponStatisticsVO empty = reports.getGrouponStatistics(null,null);
+        assertEquals(0,empty.getOngoing()); assertEquals(0,empty.getSuccess());
+        assertEquals(0,empty.getFailed()); assertEquals(0,empty.getExpired());
+        assertEquals(0,empty.getMemberCount()); assertEquals(0,empty.getGrouponOrderCount());
+        assertEquals(java.math.BigDecimal.ZERO,empty.getGrouponTurnover().stripTrailingZeros());
+        assertThrows(com.sky.exception.BaseException.class, () -> reports.getTurnoverReport(day,day.minusDays(1)));
+        assertThrows(com.sky.exception.BaseException.class, () -> reports.getOrderStatistics(day,day.minusDays(1)));
+        assertThrows(com.sky.exception.BaseException.class, () -> reports.getUserStatistics(day,day.minusDays(1)));
+        assertThrows(com.sky.exception.BaseException.class, () -> reports.getSalesTop10(day,day.minusDays(1)));
+        assertThrows(com.sky.exception.BaseException.class, () -> reports.getGrouponStatistics(day,day.minusDays(1)));
+    }
+
     @Test void onlyOneContenderGetsLastPlaceAndCompletionDoesNotPayOrders() throws Exception {
         BaseContext.setCurrentId(11L);
         Groupon group = service.openGroupon(request(11,1));
