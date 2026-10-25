@@ -26,15 +26,15 @@
       >
         查看拼团
       </button></view
-    ></view
-  >
+    ><view v-else class="empty">商品不存在或已下架</view
+  ></view>
 </template>
 <script>
 import { getDishDetail } from "../../api/index.js";
 export default {
   data: () => ({ id: "", dish: null, loading: true, error: "" }),
   onLoad(o) {
-    this.id = o.id;
+    this.id = o.id || "";
     this.load();
   },
   methods: {
@@ -42,22 +42,27 @@ export default {
       this.loading = true;
       this.error = "";
       try {
+        if (!this.id) throw new Error("缺少商品标识");
         this.dish = (await getDishDetail(this.id)).data;
       } catch (e) {
-        this.error = e.message;
+        this.error = e.message || "商品加载失败";
+        this.dish = null;
       } finally {
         this.loading = false;
       }
     },
     add() {
+      if (!this.dish) return;
       this.$store.commit("addToCart", this.dish);
     },
     buy() {
+      if (!this.dish) return;
       uni.navigateTo({
         url: "/pages/order/confirm?dishId=" + encodeURIComponent(this.id),
       });
     },
     group() {
+      if (!this.dish) return;
       uni.navigateTo({
         url: "/pages/groupon/detail?dishId=" + encodeURIComponent(this.id),
       });

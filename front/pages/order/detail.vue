@@ -8,25 +8,25 @@
         ><text class="title">{{ labels[order.status] || "未知状态" }}</text
         ><text class="sub"
           >{{ payLabels[order.payStatus] }} ·
-          {{ order.pickupPointId ? "社区自提" : "配送到家" }}</text
-        ><text class="sub" v-if="Number(order.grouponId)"
+          {{ isPickup ? "社区自提" : "配送到家" }}</text
+        ><text class="sub" v-if="order.grouponId && String(order.grouponId) !== '0'"
           >团购订单需成团并付款后履约</text
         ></view
       ><view class="card stack"
         ><text>订单号：{{ order.number || order.orderNumber }}</text
         ><text>下单时间：{{ order.orderTime }}</text
         ><text class="price">实付 ¥{{ $fmtMoney(order.amount) }}</text
-        ><text v-if="order.pickupPointId"
-          >自提点：{{ order.pickupPointName || order.pickupPointId }}</text
-        ><text v-if="order.pickupPointAddress">{{
+        ><text v-if="isPickup"
+          >自提点：{{ order.pickupPointName || order.pickupPointAddress || ("自提点 #" + order.pickupPointId) }}</text
+        ><text v-if="isPickup && order.pickupPointAddress && order.pickupPointName">{{
           order.pickupPointAddress
         }}</text
-        ><text v-if="order.address">收货地址：{{ order.address }}</text
+        ><text v-if="!isPickup && order.address">收货地址：{{ order.address }}</text
         ><text
           >联系人：{{ order.pickupPersonName || order.consignee || "-" }}
           {{ order.pickupPersonPhone || order.phone || "" }}</text
         ><text
-          v-if="order.pickupPointId && order.pickupCode && Number(order.payStatus) === 1"
+          v-if="isPickup && order.pickupCode && Number(order.payStatus) === 1"
           class="code"
           >{{ order.pickupCode }}</text
         ><text v-if="Number(order.verifyStatus) === 1"
@@ -75,6 +75,16 @@ export default {
     },
     payLabels: { 0: "未付款", 1: "已模拟付款", 2: "已模拟退款" },
   }),
+  computed: {
+    isPickup() {
+      if (!this.order) return false;
+      // deliveryType: 1 为配送到家，2 为社区自提。
+      // 配送订单绝不显示提货码与自提点
+      if (Number(this.order.deliveryType) === 1) return false;
+      if (Number(this.order.deliveryType) === 2) return true;
+      return Boolean(this.order.pickupPointId);
+    },
+  },
   onLoad(o) {
     this.id = o.id || "";
   },

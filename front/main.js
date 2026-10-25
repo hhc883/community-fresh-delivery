@@ -81,9 +81,16 @@ const store = createStore({
       safeSetStorage("user", user);
     },
     setClearUser(state) {
+      const oldUserId = state.user?.id;
       state.user = {};
+      state.pickupPoint = {};
+      state.pickupPerson = {};
       try {
         uni.removeStorageSync("user");
+        if (oldUserId) {
+          uni.removeStorageSync("pending-checkout:" + String(oldUserId));
+        }
+        uni.removeStorageSync("pending-checkout:guest");
       } catch {}
     },
     setPickupPoint(state, p) {

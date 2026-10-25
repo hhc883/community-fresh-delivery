@@ -26,9 +26,15 @@ export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = typeof fn === 'function' ? fn : null
 }
 
-// 401 统一处理：清本地登录态 + 通知 store + 结构化 reject（仅 reject 不重试，无死循环）
+// 401 统一处理：清本地登录态 + 挂起意图 + 通知 store + 结构化 reject（仅 reject 不重试，无死循环）
 function rejectUnauthorized(reject) {
   try {
+    const cached = uni.getStorageSync('user')
+    const user = typeof cached === 'string' ? JSON.parse(cached) : cached
+    if (user && user.id) {
+      uni.removeStorageSync('pending-checkout:' + String(user.id))
+    }
+    uni.removeStorageSync('pending-checkout:guest')
     uni.removeStorageSync('user')
   } catch (e) {
     // 存储异常静默
@@ -590,11 +596,11 @@ export function getDefaultAddress() {
 }
 
 export function setDefaultAddress(id) {
-  return request({ url: '/user/addressBook/default', method: 'PUT', data: { id } })
+  return request({ url: '/user/addressBook/default', method: 'PUT', data: { id: String(id) } })
 }
 
 export function getAddressDetail(id) {
-  return request({ url: `/user/addressBook/${id}`, method: 'GET' })
+  return request({ url: `/user/addressBook/${encodeURIComponent(String(id))}`, method: 'GET' })
 }
 
 export function addAddress(data) {
@@ -606,7 +612,7 @@ export function updateAddress(data) {
 }
 
 export function deleteAddress(id) {
-  return request({ url: `/user/addressBook?id=${id}`, method: 'DELETE' })
+  return request({ url: `/user/addressBook?id=${encodeURIComponent(String(id))}`, method: 'DELETE' })
 }
 
 // ==================== 社区拼团接口 ====================
@@ -616,7 +622,7 @@ export function getGrouponDishList() {
 }
 
 export function getGrouponDetail(id) {
-  return request({ url: `/user/groupon/detail/${id}`, method: 'GET' })
+  return request({ url: `/user/groupon/detail/${encodeURIComponent(String(id))}`, method: 'GET' })
 }
 
 export function openGroupon(data) {
@@ -632,7 +638,7 @@ export function getMyGroupons(status) {
 }
 
 export function getCategories() { return request({ url: '/user/category/list', data: { type: 1 } }) }
-export function getJoinableGroupons(id) { return request({ url: '/user/groupon/joinable/' + encodeURIComponent(id) }) }
+export function getJoinableGroupons(id) { return request({ url: '/user/groupon/joinable/' + encodeURIComponent(String(id)) }) }
 
 export default {
   decorateDish,

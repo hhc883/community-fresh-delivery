@@ -44,7 +44,7 @@
         </el-table-column>
         <el-table-column label="方式" width="90">
           <template #default="{ row }">
-            <el-tag v-if="row.pickupPointId" type="success" size="small">自提</el-tag>
+            <el-tag v-if="isPickupOrder(row)" type="success" size="small">自提</el-tag>
             <el-tag v-else type="primary" size="small">配送</el-tag>
           </template>
         </el-table-column>
@@ -68,8 +68,8 @@
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button v-if="row.status === 2" link type="success" @click="onConfirm(row)">接单</el-button>
             <el-button v-if="row.status === 2" link type="danger" @click="onReject(row)">拒单</el-button>
-            <el-button v-if="row.status === 3 && !row.pickupPointId" link type="primary" @click="onDelivery(row)">派送</el-button>
-            <el-button v-if="row.status === 4 && !row.pickupPointId" link type="success" @click="onComplete(row)">完成</el-button>
+            <el-button v-if="row.status === 3 && !isPickupOrder(row)" link type="primary" @click="onDelivery(row)">派送</el-button>
+            <el-button v-if="row.status === 4 && !isPickupOrder(row)" link type="success" @click="onComplete(row)">完成</el-button>
             <el-button v-if="row.status === 2 || row.status === 3" link type="warning" @click="onCancel(row)">取消</el-button>
           </template>
         </el-table-column>
@@ -102,10 +102,10 @@
           <el-descriptions-item label="收货人">{{ detail.data.consignee || detail.data.userName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="手机号">{{ detail.data.phone || '-' }}</el-descriptions-item>
           <el-descriptions-item label="地址">{{ detail.data.address || '-' }}</el-descriptions-item>
-          <el-descriptions-item v-if="detail.data.pickupPointName" label="自提点">
-            {{ detail.data.pickupPointName }}（{{ detail.data.pickupPointAddress || '-' }}）
+          <el-descriptions-item v-if="isPickupOrder(detail.data) && (detail.data.pickupPointName || detail.data.pickupPointId)" label="自提点">
+            {{ detail.data.pickupPointName || ('自提点 #' + detail.data.pickupPointId) }}（{{ detail.data.pickupPointAddress || '-' }}）
           </el-descriptions-item>
-          <el-descriptions-item v-if="detail.data.pickupPointId && detail.data.pickupCode" label="提货码">
+          <el-descriptions-item v-if="isPickupOrder(detail.data) && detail.data.pickupCode" label="提货码">
             <span class="pickup-code">{{ detail.data.pickupCode }}</span>
           </el-descriptions-item>
           <el-descriptions-item v-if="detail.data.remark" label="备注">{{ detail.data.remark }}</el-descriptions-item>
@@ -163,6 +163,14 @@ const page = ref(1)
 const pageSize = 10
 const filter = reactive({ number: '', phone: '', status: null })
 const range = ref(null)
+
+// 履约类型判定：deliveryType 1 配送（绝不显示提货码与自提点），2 自提；缺省时按 pickupPointId 判定
+function isPickupOrder(order) {
+  if (!order) return false
+  if (Number(order.deliveryType) === 1) return false
+  if (Number(order.deliveryType) === 2) return true
+  return Boolean(order.pickupPointId)
+}
 
 async function loadOrders() {
   viewState.value = 'loading'
