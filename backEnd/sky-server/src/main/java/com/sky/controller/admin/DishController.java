@@ -42,7 +42,10 @@ public class DishController {
     @ApiOperation("菜品分页查询")
     public Result<PageResult> page(DishPageQueryDTO dishPageQueryDTO) {
         log.info("菜品分页查询：{}", dishPageQueryDTO);
-        dishPageQueryDTO.setPageSize(100000);
+        // 分页大小由前端传入，不再强制 100000；缺省按 10 条/页
+        if (dishPageQueryDTO.getPageSize() <= 0) {
+            dishPageQueryDTO.setPageSize(10);
+        }
         return Result.success(dishService.pageQuery(dishPageQueryDTO));
     }
 

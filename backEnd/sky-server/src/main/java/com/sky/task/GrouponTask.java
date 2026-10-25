@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
  * 拼团超时处理定时任务
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "sky.scheduling.enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 public class GrouponTask {
 
@@ -26,7 +27,7 @@ public class GrouponTask {
      * 因此这里显式填入「系统操作人」= 0，并在 finally 中清理
      * （@Scheduled 默认单线程池会复用线程，不清理会污染后续任务）。
      */
-    @Scheduled(cron = "0 */5 * * * ?")
+    @Scheduled(cron = "0 */5 * * * ?", zone = "Asia/Shanghai")
     public void processExpiredGroupon() {
         try {
             BaseContext.setCurrentId(0L);

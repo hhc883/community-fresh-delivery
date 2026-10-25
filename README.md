@@ -1,74 +1,63 @@
 # 社区团购与生鲜配送系统
 
-毕业设计开发中的项目。当前真实技术基线是 **Spring Boot 2.7.3 + MyBatis + MySQL + Redis**，用户端为 uni-app Vue3，管理端为 Vue3 / Element Plus。
+毕业设计核心工程：uni-app Vue3 用户端、Vue3 / Element Plus 管理端、Spring Boot **2.7.3** 三模块后端、MyBatis / MySQL 8 / Redis。服务默认 `http://127.0.0.1:8080`，业务时间为 Asia/Shanghai。支付、退款和开发验证码均为明确的模拟流程。
 
-既有页面与接口仍在补齐和验证，不能据文件存在认定功能完成。真实微信支付、短信和复杂营销不属于首期交付；现有支付入口为模拟支付。开发 profile 的手机号登录使用明确标识的模拟验证码（默认 123456），可用 AUTH_DEV_CODE 覆盖；对外部署必须设置 AUTH_MOCK_LOGIN=false，并关闭已有微信 mock-login。未配置短信服务时不返回“已发送”。
+[部署与启动手册](deploy/RUNBOOK.md) · [API 契约](docs/contracts/api-v1.md) · [状态机](docs/contracts/state-machine.md) · [需求对应](docs/qa/requirements-mapping.md) · [验收报告](docs/qa/acceptance-report.md) · [论文与答辩素材](docs/thesis/implementation-facts.md)
 
-## 协作与契约
+## 快速开始
 
-- [四 Agent 协作开发方案](docs/毕业设计四Agent协作开发方案.md)：职责和 A01–A14 验收。
-- [API v1](docs/contracts/api-v1.md)：路由、成功码、角色、金额与兼容约定。
-- [订单与团购状态机](docs/contracts/state-machine.md)。
-- [现有路由清单](docs/contracts/interface-inventory.md)：静态提取，不代表运行验收通过。
-- [后端基线与需求对应](docs/development/backend-baseline.md)。
-
-## 目录
-
-| 目录 | 内容 | 主责 |
-| --- | --- | --- |
-| `front/` | uni-app 用户端，H5 / 微信小程序 | Gemini |
-| `front-admin/` | 平台管理后台 | GLM |
-| `front-merchant/`、`front-partner/` | 扩展运营端，核心闭环后再启用 | GLM |
-| `backEnd/sky-common` | 公共异常、JWT、结果和工具 | Codex |
-| `backEnd/sky-pojo` | 实体、DTO、VO | Codex |
-| `backEnd/sky-server` | 服务、控制器、MyBatis 和后端内部测试 | Codex |
-| `deploy/`、`scripts/`、`tools/` | 部署和工程脚本 | Codex |
-| `tests/acceptance/`、`docs/qa/`、`docs/thesis/` | 独立验收和毕设素材，按方案逐步增加 | DeepSeek |
-
-历史 `backEnd/WeiXinApp/` 与 `backEnd/Web/` 暂作参考，主用户端是 `front/`。
-
-## 后端环境与构建
-
-建议 JDK 17、Maven 3.9.x、MySQL 8 和 Redis。项目保留 Boot 2.7，不按旧 README 中的 Boot 3 路径启动。
+安装 JDK 17、Maven 3.9.x、Node 22、MySQL 8 和 Redis。配置从环境读取，不复制历史个人设置。
 
 ```powershell
-mvn -f backEnd/pom.xml test
-mvn -f backEnd/pom.xml package
-java -Duser.timezone=Asia/Shanghai -jar backEnd/sky-server/target/sky-server-1.0-SNAPSHOT.jar
+mvn -B -ntp -f backEnd/pom.xml verify
+# 配置 DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD 后：
+python scripts/database.py init --confirm-database cfd_demo
+python scripts/database.py migrate --confirm-database cfd_demo
+python scripts/database.py seed --confirm-database cfd_demo
+java -Duser.timezone=Asia/Shanghai -jar backEnd/sky-server/target/sky-server-1.0-SNAPSHOT.jar --spring.profiles.active=dev
 ```
 
-Windows 可显式指定便携工具目录，不依赖旧 build-run.bat 的个人路径：
-
-```powershell
-./scripts/test-backend.ps1 -JavaHome '<JDK目录>' -MavenHome '<Maven目录>'
-# 单个回归测试：增加 -Test 'BackendContractTest#测试名'
-```
-
-该脚本把 Maven 缓存放在忽略的 `.local/m2/`。测试使用隔离 H2，只证明相应后端行为；真实 MySQL 初始化、跨端联调和小程序真机另行验收。
-
-默认后端地址 `http://localhost:8080`，接口文档 `/doc.html`。配置位于 `backEnd/sky-server/src/main/resources/application*.yml`。现有 dev 配置含历史个人设置，应在本地以环境变量或私有配置覆盖，不能复制到生产。
-
-## 数据初始化
-
-`backEnd/sky_take_out.sql` 含 **DROP TABLE**，只可用于明确的空开发/测试数据库，不可反复导入已有业务库。
-
-已有数据库的增量脚本位于 `backEnd/sky-server/src/main/resources/db/`。基线已含部分自提字段；m21/m22 有各自的字段检查与固定数据库名，执行前核对目标库和结构。当前仍待完成干净 MySQL 环境的顺序验证，不能将这段说明当作初始化验收通过。
-
-## 前端运行与联调
+上例必须显式设置 `DB_NAME=cfd_demo`；init 拒绝已有表的数据库。演示种子含公开的虚构管理员 `admin / 123456`，仅限隔离本地演示。已有业务库应先验证备份，再单独 migrate；不能执行 init 或覆盖历史 SQL。详细环境、应用最小权限账号、Redis 以及生产 profile 见部署手册。
 
 ```powershell
 cd front
 npm ci
 npm run dev:h5
-npm run dev:mp-weixin
+# 微信源码构建：npm run build:mp-weixin
+cd ../front-admin
+npm ci
+npm run dev
 ```
 
-管理端在 `front-admin/` 使用自身 package.json 的命令。各端构建与微信真机验证由对应负责人提供证据。
+用户端 API 地址由构建配置指定，默认 8080；在手机上联调时配置宿主机可访问地址。后台默认开发端口 5177。微信构建与微信真机验收分别记录。
 
-用户端开发配置指向 8080。已整合的 GLM 管理端也改接 8080 与真实 `/admin/**`，新增地址/团购页面和管理统计来自各端负责人提交；尚需跨端运行验证。独立商家、自提点端仍未接通，不纳入当前验收。旧 `scripts/smoke.sh` 包含与现有工程不符的假设，不能作为当前验收通过依据。
+## 验证
 
-## 当前开发次序
+后端公开接口/服务回归执行 `mvn -f backEnd/pom.xml test`；Windows 可使用 `scripts/test-backend.ps1` 指定便携 JDK 和 Maven。前端执行 H5、mp-weixin 与管理端构建。
 
-先核实基线与契约，再修复认证、示例数据和订单归属；随后完成服务端计价、事务库存、幂等、团购、履约、报表和部署。各项完成后记录实际命令与结果；未执行、失败、阻塞均保留真实状态。
+真实 MySQL 外部 HTTP 验收：
+
+```powershell
+$env:ACCEPTANCE_ADMIN_PASSWORD='123456'
+python scripts/run-acceptance.py
+```
+
+该脚本自动创建新的 `cfd_acceptance_*` 数据库，在空闲 18080 端口启动自己的后端，然后验证地址隔离、上下架、服务端价格、库存并发、幂等支付、订单归属、配送、自提、团购和固定样例报表，重启后复查历史订单。它不会连接任意已有应用进行写入，也不包含 DROP/reset。报告记录源码提交、JAR SHA256、版本和结果；依赖端口及命令见部署手册。
+
+[CI](.github/workflows/core.yml) 配置后端测试、MySQL/Redis 外部验收、H5/微信/管理端构建。配置文件存在不代表远端 CI 已执行；当前实际结果、未执行项和设备限制见验收报告。
+
+## 目录与范围
+
+| 目录 | 内容 |
+| --- | --- |
+| `front/` | 主用户端，H5 / 微信小程序 |
+| `front-admin/` | 核心管理后台 |
+| `backEnd/sky-common`、`sky-pojo`、`sky-server` | 公共能力、实体契约、后端实现 |
+| `backEnd/sql/` | 无 DROP 当前结构与独立虚构种子 |
+| `deploy/`、`scripts/` | 依赖环境、启动、迁移、备份、验收、部署模板 |
+| `tests/acceptance/`、`docs/qa/`、`docs/thesis/` | 外部验收及交付事实材料 |
+| `front-merchant/`、`front-partner/` | 历史扩展端，未作为核心已交付功能 |
+
+真实短信、微信资金交易、独立商家/自提点权限、骑手端和复杂营销不包含在核心演示。原四 Agent 负责人名称只保留为历史分工；当前由 Codex 按用户后续授权接手未完成工作。原课题文档联系方式不上传。
 
 遵循 [LICENSE](LICENSE)。

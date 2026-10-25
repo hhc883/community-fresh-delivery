@@ -87,14 +87,12 @@ public class PickupPoint implements Serializable {
     }
 
     public String getService() {
-        return serviceTags != null ? serviceTags : "支持冷冻/冷藏";
-    }
-
-    public void setService(String service) {
-        this.serviceTags = service;
+        // 只返回数据库真实值，不编造默认服务标签
+        return serviceTags;
     }
 
     public String getDistance() {
-        return distance != null ? distance : "260m";
+        // 只返回数据库真实值，距离需要由客户端按定位计算，不在服务端编造
+        return distance;
     }
 }

@@ -53,7 +53,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         // 查询总订单数
         Integer totalOrderCount = orderMapper.countByMap(map);
 
+        // 大盘口径：营业额与有效订单只统计已付款且已完成的订单
         map.put("status", Orders.COMPLETED);
+        map.put("payStatus", Orders.PAID);
         // 营业额
         Double turnover = orderMapper.sumByMap(map);
         turnover = turnover == null ? 0.0 : turnover;
@@ -71,7 +73,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
             unitPrice = Double.parseDouble(String.format("%.2f", turnover / validOrderCount));
         }
 
-        // 新增用户数
+        // 新增用户数（与订单统计同一 [begin, end] 边界口径）
         Integer newUsers = userMapper.countByMap(map);
 
         return BusinessDataVO.builder()

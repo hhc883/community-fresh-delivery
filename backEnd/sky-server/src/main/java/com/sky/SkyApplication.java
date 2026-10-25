@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Slf4j
 public class SkyApplication {
     public static void main(String[] args) {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Shanghai"));
         SpringApplication.run(SkyApplication.class, args);
         log.info("server started");
     }

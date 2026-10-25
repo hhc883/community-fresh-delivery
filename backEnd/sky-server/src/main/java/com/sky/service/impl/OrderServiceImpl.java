@@ -75,6 +75,15 @@ public class OrderServiceImpl implements OrderService {
     private com.sky.mapper.DishMapper dishMapper;
 
     @Autowired
+    private com.sky.mapper.GrouponMapper grouponMapper;
+
+    @Autowired
+    private com.sky.service.GrouponService grouponService;
+
+    @Autowired
+    private com.sky.mapper.UserMapper userMapper;
+
+    @Autowired
     private OrderDetailMapper orderDetailMapper;
 
     @Autowired
@@ -115,32 +124,13 @@ public class OrderServiceImpl implements OrderService {
      */
     @Transactional(rollbackFor = Exception.class)
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
-        requireOwnedOrder(orderMapper.getByNumberForUpdate(ordersPaymentDTO.getOrderNumber()));
-        // 当前登录用户id
-        // Long userId = BaseContext.getCurrentId();
-        // User user = userMapper.getById(userId);
-
-        // 直接调用paySuccess方法，模拟支付成功
+        Orders initial = requireOwnedOrder(orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber()));
         paySuccess(ordersPaymentDTO.getOrderNumber());
-
-        // 调用微信支付接口，生成预支付交易单
-        // JSONObject jsonObject = weChatPayUtil.pay(
-        // ordersPaymentDTO.getOrderNumber(), // 商户订单号
-        // new BigDecimal(0.01), // 支付金额，单位 元
-        // "社区生鲜配送订单", // 商品描述
-        // user.getOpenid() // 微信用户的openid
-        // );
-
-        // if (jsonObject.getString("code") != null &&
-        // jsonObject.getString("code").equals("ORDERPAID")) {
-        // throw new OrderBusinessException("该订单已支付");
-        // }
-
-        // OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
-        // vo.setPackageStr(jsonObject.getString("package"));
-
-        // return vo;
-        return null;
+        // 当前读回查：并发重复支付时本事务快照可能早于先到事务的提交，
+        // 普通一致性读会拿到 pickupCode 为空的旧版本；FOR UPDATE 保证读到已提交的最新码。
+        // paySuccess 的所有路径都已按 group→order 顺序持有订单行锁，此处不引入新的锁顺序。
+        Orders paid = orderMapper.getByIdForUpdate(initial.getId());
+        return OrderPaymentVO.builder().mock(true).pickupCode(paid == null ? null : paid.getPickupCode()).build();
     }
 
     /**
@@ -159,9 +149,16 @@ public class OrderServiceImpl implements OrderService {
     public void paySuccess(String outTradeNo) {
 
         // 根据订单号查询订单
-        Orders ordersDB = orderMapper.getByNumberForUpdate(outTradeNo);
-        if (ordersDB == null) {
-            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        Orders initial = requireOwnedOrder(orderMapper.getByNumber(outTradeNo));
+        Orders ordersDB = requireOwnedOrder(lockOrder(initial.getId(), false));
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
+        if (Integer.valueOf(1).equals(ordersDB.getIsGroupon())) {
+            com.sky.entity.Groupon group = grouponMapper.getById(ordersDB.getGrouponId());
+            if (group == null || (!com.sky.entity.Groupon.SUCCESS.equals(group.getStatus())
+                    && (!com.sky.entity.Groupon.IN_PROGRESS.equals(group.getStatus())
+                        || group.getExpireTime() == null || !group.getExpireTime().isAfter(now)))) {
+                throw new OrderBusinessException("拼团已结束，不能支付");
+            }
         }
         if (Orders.CANCELLED.equals(ordersDB.getStatus()) || Orders.REFUND.equals(ordersDB.getPayStatus())) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
@@ -177,17 +174,21 @@ public class OrderServiceImpl implements OrderService {
                 || !Orders.UN_PAID.equals(ordersDB.getPayStatus())) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
+        if (!Integer.valueOf(1).equals(ordersDB.getIsGroupon())
+                && (ordersDB.getOrderTime() == null || !ordersDB.getOrderTime().plusMinutes(15).isAfter(now))) {
+            throw new OrderBusinessException("订单已超时，不能支付");
+        }
 
         // 根据订单id更新订单的状态、支付方式、支付状态、结账时间
         Orders orders = Orders.builder()
                 .id(ordersDB.getId())
                 .status(Orders.TO_BE_CONFIRMED)
                 .payStatus(Orders.PAID)
-                .checkoutTime(LocalDateTime.now())
+                .checkoutTime(now)
                 .build();
 
         // 提货码：仅首次支付生成；已存在则沿用（幂等，见方法注释）
-        if (!StringUtils.hasText(ordersDB.getPickupCode())) {
+        if (ordersDB.getPickupPointId() != null && !StringUtils.hasText(ordersDB.getPickupCode())) {
             orders.setPickupCode(generateUniquePickupCode());
         }
 
@@ -243,12 +244,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public String mockPay(Long orderId) {
-        Orders ordersDB = orderMapper.getByIdForUpdate(orderId);
+        Orders ordersDB = orderMapper.getById(orderId);
         requireOwnedOrder(ordersDB);
         // 所有入口都通过同一状态校验；已完成订单重复支付不会退回待履约。
         paySuccess(ordersDB.getNumber());
-        // 回查拿最新码（paySuccess 内部已生成并落库）
-        Orders latest = orderMapper.getById(orderId);
+        // 当前读回查：并发重复支付时本事务快照可能早于先到事务的提交，
+        // 普通一致性读会拿到 pickupCode 为空的旧版本；FOR UPDATE 保证读到已提交的最新码。
+        Orders latest = orderMapper.getByIdForUpdate(orderId);
         return latest == null ? null : latest.getPickupCode();
     }
 
@@ -278,6 +280,12 @@ public class OrderServiceImpl implements OrderService {
         if (ordersDB == null) {
             throw new OrderBusinessException(MessageConstant.PICKUP_CODE_NOT_FOUND);
         }
+        ordersDB = lockOrder(ordersDB.getId(), true);
+        if (ordersDB.getPickupPointId() == null
+                || (!Orders.TO_BE_CONFIRMED.equals(ordersDB.getStatus()) && !Orders.CONFIRMED.equals(ordersDB.getStatus()))
+                || !Orders.UN_VERIFIED.equals(ordersDB.getVerifyStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
 
         // 归属校验：只在调用方声明了自己是哪个自提点时做，避免单点多店场景误伤
         if (dto.getPickupPointId() != null
@@ -290,7 +298,7 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_PAID);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
         int affected = orderMapper.verifyByCode(code, now, Orders.COMPLETED);
         if (affected == 0) {
             // 行数为 0：要么已被核销，要么并发下被别人抢先——两者对用户是同一句话
@@ -421,7 +429,10 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param id
      */
+    @Transactional
     public void repetition(Long id) {
+        Long currentUser = requireCurrentUserId();
+        if (userMapper.getByIdForUpdate(currentUser) == null) throw new OrderBusinessException("用户不存在");
         requireOwnedOrder(orderMapper.getById(id));
         // 查询当前用户id
         Long userId = BaseContext.getCurrentId();
@@ -436,7 +447,7 @@ public class OrderServiceImpl implements OrderService {
             // 将原订单详情里面的菜品信息重新复制到购物车对象中
             BeanUtils.copyProperties(x, shoppingCart, "id");
             shoppingCart.setUserId(userId);
-            shoppingCart.setCreateTime(LocalDateTime.now());
+            shoppingCart.setCreateTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
 
             return shoppingCart;
         }).collect(Collectors.toList());
@@ -526,7 +537,13 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param ordersConfirmDTO
      */
+    @Transactional
     public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders current = lockOrder(ordersConfirmDTO.getId(), true);
+        if (current == null || !Orders.TO_BE_CONFIRMED.equals(current.getStatus())
+                || !Orders.PAID.equals(current.getPayStatus())) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
         Orders orders = Orders.builder()
                 .id(ordersConfirmDTO.getId())
                 .status(Orders.CONFIRMED)
@@ -540,65 +557,40 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param ordersRejectionDTO
      */
-    public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
-        // 根据id查询订单
-        Orders ordersDB = orderMapper.getById(ordersRejectionDTO.getId());
-
-        // 订单只有存在且状态为2（待接单）才可以拒单
-        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
-            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
-        }
-
-        // // 支付状态
-        // Integer payStatus = ordersDB.getPayStatus();
-        // if (payStatus == Orders.PAID) {
-        //     // 用户已支付，需要退款
-        //     String refund = weChatPayUtil.refund(
-        //             ordersDB.getNumber(),
-        //             ordersDB.getNumber(),
-        //             new BigDecimal(0.01),
-        //             new BigDecimal(0.01));
-        //     log.info("申请退款：{}", refund);
-        // }
-
-        // 拒单需要退款，根据订单id更新订单状态、拒单原因、取消时间
-        Orders orders = new Orders();
-        orders.setId(ordersDB.getId());
-        orders.setStatus(Orders.CANCELLED);
-        orders.setRejectionReason(ordersRejectionDTO.getRejectionReason());
-        orders.setCancelTime(LocalDateTime.now());
-
-        orderMapper.update(orders);
+    @Transactional
+    public void rejection(OrdersRejectionDTO request) {
+        cancelByAdministrator(request.getId(), request.getRejectionReason(), true);
     }
 
-    /**
-     * 取消订单
-     *
-     * @param ordersCancelDTO
-     */
-    public void cancel(OrdersCancelDTO ordersCancelDTO) throws Exception {
-        // 根据id查询订单
-        Orders ordersDB = orderMapper.getById(ordersCancelDTO.getId());
+    @Transactional
+    public void cancel(OrdersCancelDTO request) {
+        cancelByAdministrator(request.getId(), request.getCancelReason(), false);
+    }
 
-        // 支付状态
-        Integer payStatus = ordersDB.getPayStatus();
-        if (payStatus == 1) {
-            // 用户已支付，需要退款
-            String refund = weChatPayUtil.refund(
-                    ordersDB.getNumber(),
-                    ordersDB.getNumber(),
-                    new BigDecimal(0.01),
-                    new BigDecimal(0.01));
-            log.info("申请退款：{}", refund);
+    private void cancelByAdministrator(Long id, String reason, boolean rejected) {
+        Orders initial = orderMapper.getById(id);
+        if (initial == null) throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        if (Orders.CANCELLED.equals(initial.getStatus())) return;
+        if (Integer.valueOf(1).equals(initial.getIsGroupon())) {
+            grouponService.cancelOrderGroup(initial.getGrouponId(), StringUtils.hasText(reason) ? reason : "管理员取消");
+            return;
         }
-
-        // 管理端取消订单需要退款，根据订单id更新订单状态、取消原因、取消时间
-        Orders orders = new Orders();
-        orders.setId(ordersCancelDTO.getId());
-        orders.setStatus(Orders.CANCELLED);
-        orders.setCancelReason(ordersCancelDTO.getCancelReason());
-        orders.setCancelTime(LocalDateTime.now());
-        orderMapper.update(orders);
+        Orders current = lockOrder(id, false);
+        if (Orders.CANCELLED.equals(current.getStatus())) return;
+        if (rejected ? !Orders.TO_BE_CONFIRMED.equals(current.getStatus())
+                : (!Orders.PENDING_PAYMENT.equals(current.getStatus()) && !Orders.TO_BE_CONFIRMED.equals(current.getStatus())
+                    && !Orders.CONFIRMED.equals(current.getStatus()))) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Orders update = new Orders();
+        update.setId(id);
+        update.setStatus(Orders.CANCELLED);
+        update.setCancelTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+        if (rejected) update.setRejectionReason(StringUtils.hasText(reason) ? reason : "管理员拒单");
+        else update.setCancelReason(StringUtils.hasText(reason) ? reason : "管理员取消");
+        if (Orders.PAID.equals(current.getPayStatus())) update.setPayStatus(Orders.REFUND);
+        orderMapper.update(update);
+        restoreReservedStock(id);
     }
 
     /**
@@ -606,12 +598,14 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param id
      */
+    @Transactional
     public void delivery(Long id) {
         // 根据id查询订单
-        Orders ordersDB = orderMapper.getById(id);
+        Orders ordersDB = lockOrder(id, true);
 
         // 校验订单是否存在，并且状态为3
-        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.CONFIRMED)) {
+        if (!Orders.CONFIRMED.equals(ordersDB.getStatus()) || !Orders.PAID.equals(ordersDB.getPayStatus())
+                || ordersDB.getPickupPointId() != null) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
 
@@ -628,12 +622,14 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param id
      */
+    @Transactional
     public void complete(Long id) {
         // 根据id查询订单
-        Orders ordersDB = orderMapper.getById(id);
+        Orders ordersDB = lockOrder(id, true);
 
         // 校验订单是否存在，并且状态为4
-        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)) {
+        if (!Orders.DELIVERY_IN_PROGRESS.equals(ordersDB.getStatus()) || !Orders.PAID.equals(ordersDB.getPayStatus())
+                || ordersDB.getPickupPointId() != null) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
 
@@ -641,7 +637,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setId(ordersDB.getId());
         // 更新订单状态,状态转为完成
         orders.setStatus(Orders.COMPLETED);
-        orders.setDeliveryTime(LocalDateTime.now());
+        orders.setDeliveryTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
 
         orderMapper.update(orders);
     }
@@ -666,7 +662,16 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public void userCancel(Long id) {
-        Orders orders = requireOwnedOrder(orderMapper.getByIdForUpdate(id));
+        Orders initial = requireOwnedOrder(orderMapper.getById(id));
+        if (Integer.valueOf(1).equals(initial.getIsGroupon())) {
+            if (Orders.CANCELLED.equals(initial.getStatus())) return;
+            if (!Orders.PENDING_PAYMENT.equals(initial.getStatus()) && !Orders.TO_BE_CONFIRMED.equals(initial.getStatus())) {
+                throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+            }
+            grouponService.cancelOrderGroup(initial.getGrouponId(), "成员取消，拼团失败");
+            return;
+        }
+        Orders orders = requireOwnedOrder(lockOrder(id, false));
         if (Orders.CANCELLED.equals(orders.getStatus())) {
             return;
         }
@@ -676,7 +681,7 @@ public class OrderServiceImpl implements OrderService {
         }
         // 设置为已取消
         orders.setStatus(Orders.CANCELLED);
-        orders.setCancelTime(LocalDateTime.now());
+        orders.setCancelTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
         orders.setCancelReason("用户取消");
         if (Orders.PAID.equals(orders.getPayStatus())) {
             // 当前支付链路为模拟支付，仅记录模拟退款，不调用真实微信资金接口。
@@ -686,10 +691,41 @@ public class OrderServiceImpl implements OrderService {
         restoreReservedStock(orders.getId());
     }
 
+    @Override
+    @Transactional
+    public boolean expireUnpaidOrder(Long id) {
+        Orders current = orderMapper.getByIdForUpdate(id);
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai"));
+        if (current == null || Integer.valueOf(1).equals(current.getIsGroupon())
+                || !Orders.PENDING_PAYMENT.equals(current.getStatus()) || !Orders.UN_PAID.equals(current.getPayStatus())
+                || current.getOrderTime() == null || current.getOrderTime().plusMinutes(15).isAfter(now)) return false;
+        Orders update = new Orders();
+        update.setId(id);
+        update.setStatus(Orders.CANCELLED);
+        update.setCancelTime(now);
+        update.setCancelReason("订单超时，自动取消");
+        orderMapper.update(update);
+        restoreReservedStock(id);
+        return true;
+    }
+
     private void restoreReservedStock(Long orderId) {
         for (com.sky.entity.OrderStock reservation : orderStockMapper.list(orderId)) {
             dishMapper.restoreStock(reservation.getDishId(), reservation.getNumber());
         }
+    }
+
+    /** All group/order mutations take the group lock first, matching expiry and cancellation. */
+    private Orders lockOrder(Long orderId, boolean requireCompletedGroup) {
+        Orders initial = orderMapper.getById(orderId);
+        if (initial == null) throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        if (Integer.valueOf(1).equals(initial.getIsGroupon())) {
+            com.sky.entity.Groupon group = grouponMapper.getByIdForUpdate(initial.getGrouponId());
+            if (group == null || (requireCompletedGroup && !com.sky.entity.Groupon.SUCCESS.equals(group.getStatus()))) {
+                throw new OrderBusinessException("拼团尚未成功，不能履约");
+            }
+        }
+        return orderMapper.getByIdForUpdate(orderId);
     }
 
     private Long requireCurrentUserId() {

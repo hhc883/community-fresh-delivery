@@ -41,6 +41,7 @@ class GrouponContractTest {
 
     @Autowired private GrouponService service;
     @Autowired private com.sky.service.ReportService reports;
+    @Autowired private com.sky.service.WorkspaceService workspace;
     @Autowired private DataSource dataSource;
     @Autowired private WebApplicationContext context;
     @Autowired private JwtProperties jwt;
@@ -161,6 +162,23 @@ class GrouponContractTest {
         com.sky.vo.TurnoverReportVO report = reports.getTurnoverReport(java.time.LocalDate.of(2026,10,22),java.time.LocalDate.of(2026,10,23));
         assertEquals("2026-10-22,2026-10-23",report.getDateList());
         assertEquals("17.0,8.5",report.getTurnoverList());
+    }
+
+    @Test void workspaceCountsOnlyPaidCompletedOrdersAndUserBoundariesIncludeMidnight() {
+        fixtures.update("INSERT INTO orders(number,status,user_id,pay_status,amount,order_time) VALUES"
+                + "('paid-done',5,11,1,20.00,'2026-10-22 08:00:00'),"
+                + "('unpaid-done',5,11,0,30.00,'2026-10-22 09:00:00'),"
+                + "('paid-open',2,11,1,40.00,'2026-10-22 10:00:00')");
+        // 用户注册时间正好落在 00:00:00 边界上，统计口径必须包含该时刻
+        fixtures.update("INSERT INTO user(id,name,phone,create_time) VALUES(77,'Midnight','13800000077','2026-10-22 00:00:00')");
+        com.sky.vo.BusinessDataVO data = workspace.getBusinessData(
+                java.time.LocalDateTime.of(2026,10,22,0,0,0), java.time.LocalDateTime.of(2026,10,22,23,59,59));
+        assertEquals(20.0, data.getTurnover());
+        assertEquals(1, data.getValidOrderCount());
+        assertEquals(1, data.getNewUsers());
+        com.sky.vo.UserReportVO users = reports.getUserStatistics(java.time.LocalDate.of(2026,10,22), java.time.LocalDate.of(2026,10,22));
+        assertEquals("1", users.getNewUserList());
+        assertEquals("1", users.getTotalUserList());
     }
 
     @Test void groupStatisticsUsesLiteralActivityCountsAndExcludesCancelledReceipts() {
