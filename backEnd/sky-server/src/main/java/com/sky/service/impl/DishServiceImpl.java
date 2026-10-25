@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,9 +79,37 @@ public class DishServiceImpl implements DishService {
     }
 
     /**
-     * 商品创建/修改的统一校验：必填字段、非负库存与拼团参数。
+     * 商品创建的统一校验：必填字段、非负库存与拼团参数。
      */
     private void validateProduct(DishDTO dishDTO) {
+        validateCommon(dishDTO);
+        if (Integer.valueOf(1).equals(dishDTO.getIsGroupon())) {
+            // 新建即进入拼团模式：三个团参数在载荷里必须齐全合法
+            validateGrouponMode(dishDTO.getGrouponPrice(), dishDTO.getGrouponSize(), dishDTO.getGrouponValidHours());
+        } else {
+            validateGrouponScalars(dishDTO);
+        }
+    }
+
+    /**
+     * 商品修改的统一校验。MyBatis update 对 null 保留原值，所以部分更新必须按
+     * 「载荷值优先、库中原值兜底」的合并结果校验，否则省略 isGroupon 就能绕过团参数检查。
+     */
+    private void validateProductUpdate(DishDTO dishDTO, Dish existing) {
+        validateCommon(dishDTO);
+        Integer effectiveGroupon = dishDTO.getIsGroupon() != null ? dishDTO.getIsGroupon() : existing.getIsGroupon();
+        if (Integer.valueOf(1).equals(effectiveGroupon)) {
+            BigDecimal price = dishDTO.getGrouponPrice() != null ? dishDTO.getGrouponPrice() : existing.getGrouponPrice();
+            Integer size = dishDTO.getGrouponSize() != null ? dishDTO.getGrouponSize() : existing.getGrouponSize();
+            Integer hours = dishDTO.getGrouponValidHours() != null ? dishDTO.getGrouponValidHours() : existing.getGrouponValidHours();
+            validateGrouponMode(price, size, hours);
+        } else {
+            validateGrouponScalars(dishDTO);
+        }
+    }
+
+    /** 名称/分类/价格必填且合法，库存若提供则非负。 */
+    private void validateCommon(DishDTO dishDTO) {
         if (dishDTO == null || dishDTO.getName() == null || dishDTO.getName().trim().isEmpty()) {
             throw new ProductBusinessException(MessageConstant.DISH_NAME_REQUIRED);
         }
@@ -93,16 +122,34 @@ public class DishServiceImpl implements DishService {
         if (dishDTO.getStock() != null && dishDTO.getStock() < 0) {
             throw new ProductBusinessException(MessageConstant.DISH_STOCK_INVALID);
         }
-        if (Integer.valueOf(1).equals(dishDTO.getIsGroupon())) {
-            if (dishDTO.getGrouponPrice() == null || dishDTO.getGrouponPrice().signum() <= 0) {
-                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_PRICE_INVALID);
-            }
-            if (dishDTO.getGrouponSize() == null || dishDTO.getGrouponSize() < 2) {
-                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_SIZE_INVALID);
-            }
-            if (dishDTO.getGrouponValidHours() == null || dishDTO.getGrouponValidHours() <= 0) {
-                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_HOURS_INVALID);
-            }
+    }
+
+    /** 拼团参数一旦在载荷中出现就必须合法，与是否处于拼团模式无关，垃圾值不得入库。 */
+    private void validateGrouponScalars(DishDTO dishDTO) {
+        if (dishDTO.getGrouponPrice() != null && dishDTO.getGrouponPrice().signum() <= 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_PRICE_INVALID);
+        }
+        if (dishDTO.getGrouponSize() != null && dishDTO.getGrouponSize() < 2) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_SIZE_INVALID);
+        }
+        if (dishDTO.getGrouponValidHours() != null && dishDTO.getGrouponValidHours() <= 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_HOURS_INVALID);
+        }
+    }
+
+    /**
+     * 拼团模式下的最终参数校验。部分更新允许由库中原值补齐载荷省略的参数，
+     * 但合并结果缺失或非法即拒绝——不能让「isGroupon=1 却没有成团人数」这类半截状态落库。
+     */
+    private void validateGrouponMode(BigDecimal price, Integer size, Integer hours) {
+        if (price == null || price.signum() <= 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_PRICE_INVALID);
+        }
+        if (size == null || size < 2) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_SIZE_INVALID);
+        }
+        if (hours == null || hours <= 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_GROUPON_HOURS_INVALID);
         }
     }
 
@@ -206,16 +253,21 @@ public class DishServiceImpl implements DishService {
     @Override
     @Transactional
     public void updateWithFlavor(DishDTO dishDTO) {
-        if (dishDTO == null || dishDTO.getId() == null || dishMapper.getById(dishDTO.getId()) == null) {
+        Dish existing = dishDTO == null || dishDTO.getId() == null ? null : dishMapper.getById(dishDTO.getId());
+        if (existing == null) {
             throw new ProductBusinessException(MessageConstant.DISH_NOT_FOUND);
         }
-        validateProduct(dishDTO);
+        validateProductUpdate(dishDTO, existing);
 
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
 
         // 修改菜品表基本信息
         dishMapper.update(dish);
+        // 退出拼团模式时清空陈旧团参数，避免 isGroupon=0 的商品残留半截拼团配置
+        if (!Integer.valueOf(1).equals(dishDTO.getIsGroupon() != null ? dishDTO.getIsGroupon() : existing.getIsGroupon())) {
+            dishMapper.clearGroupon(dish.getId());
+        }
 
         // 删除原有口味数据
         dishFlavorMapper.deleteByDishId(dish.getId());

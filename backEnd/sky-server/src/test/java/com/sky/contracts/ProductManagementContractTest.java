@@ -122,6 +122,64 @@ class ProductManagementContractTest {
         assertThrows(com.sky.exception.BaseException.class, () -> products.deleteBatch(new Long[]{999L}));
     }
 
+    @Test void aPartialUpdateIsValidatedAgainstTheMergedFinalStateNotJustThePayload() {
+        products.saveWithFlavor(grouponProduct("Merged groupon"));
+        Long id = find("Merged groupon").getId();
+        BigDecimal grouponPrice = new BigDecimal("5.00");
+
+        // 省略 isGroupon（MyBatis 对 null 保留原值 1）时，合并后的最终状态仍必须合法
+        DishDTO negativePrice = baseUpdate(id, "Merged groupon");
+        negativePrice.setGrouponPrice(new BigDecimal("-1"));
+        assertThrows(com.sky.exception.BaseException.class, () -> products.updateWithFlavor(negativePrice));
+        DishDTO tinyGroup = baseUpdate(id, "Merged groupon"); tinyGroup.setGrouponSize(1);
+        assertThrows(com.sky.exception.BaseException.class, () -> products.updateWithFlavor(tinyGroup));
+        DishDTO instantExpiry = baseUpdate(id, "Merged groupon"); instantExpiry.setGrouponValidHours(0);
+        assertThrows(com.sky.exception.BaseException.class, () -> products.updateWithFlavor(instantExpiry));
+
+        DishVO after = products.getByIdWithFlavor(id);
+        assertEquals(grouponPrice, after.getGrouponPrice(), "A rejected groupon price must not be persisted");
+        assertEquals(2, after.getGrouponSize(), "A rejected groupon size must not be persisted");
+        assertEquals(24, after.getGrouponValidHours(), "A rejected groupon duration must not be persisted");
+        assertEquals(1, after.getIsGroupon(), "An omitted flag keeps the stored groupon mode");
+        assertEquals(new BigDecimal("7.25"), after.getPrice());
+
+        // 合法部分更新：省略 isGroupon 与全部团参数，原有拼团状态保持不变
+        products.updateWithFlavor(baseUpdate(id, "Merged groupon renamed"));
+        DishVO afterLegal = products.getByIdWithFlavor(id);
+        assertEquals(1, afterLegal.getIsGroupon());
+        assertEquals(grouponPrice, afterLegal.getGrouponPrice());
+        assertEquals("Merged groupon renamed", afterLegal.getName());
+
+        // 合法降级：显式 isGroupon=0 退出拼团模式，省略的团参数不再保留陈旧值
+        DishDTO downgrade = baseUpdate(id, "Merged groupon renamed"); downgrade.setIsGroupon(0);
+        products.updateWithFlavor(downgrade);
+        DishVO afterDowngrade = products.getByIdWithFlavor(id);
+        assertEquals(0, afterDowngrade.getIsGroupon());
+        assertNull(afterDowngrade.getGrouponPrice(), "Leaving groupon mode must not carry a stale price");
+
+        // 提供的非法团参数即使退出拼团模式也拒绝，不让垃圾值入库
+        DishDTO downgradeWithGarbage = baseUpdate(id, "Merged groupon renamed");
+        downgradeWithGarbage.setIsGroupon(0); downgradeWithGarbage.setGrouponPrice(new BigDecimal("-1"));
+        assertThrows(com.sky.exception.BaseException.class, () -> products.updateWithFlavor(downgradeWithGarbage));
+    }
+
+    /** 一份保存时合法、但更新载荷带非法拼团字段的现有拼团商品。 */
+    private DishDTO grouponProduct(String name) {
+        DishDTO request = product(name);
+        request.setIsGroupon(1);
+        request.setGrouponPrice(new BigDecimal("5.00"));
+        request.setGrouponSize(2);
+        request.setGrouponValidHours(24);
+        return request;
+    }
+
+    /** 保留必填字段、省略可选字段的最小更新载荷（isGroupon/groupon* 均为 null）。 */
+    private DishDTO baseUpdate(Long id, String name) {
+        DishDTO request = product(name);
+        request.setId(id);
+        return request;
+    }
+
     @Test void aProductStillReservedByActiveOrdersCannotBeDeleted() {
         products.saveWithFlavor(product("Reserved apple"));
         Long id = find("Reserved apple").getId();

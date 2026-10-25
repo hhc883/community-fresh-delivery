@@ -124,10 +124,13 @@ public class OrderServiceImpl implements OrderService {
      */
     @Transactional(rollbackFor = Exception.class)
     public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
-        requireOwnedOrder(orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber()));
+        Orders initial = requireOwnedOrder(orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber()));
         paySuccess(ordersPaymentDTO.getOrderNumber());
-        Orders paid = orderMapper.getByNumber(ordersPaymentDTO.getOrderNumber());
-        return OrderPaymentVO.builder().mock(true).pickupCode(paid.getPickupCode()).build();
+        // 当前读回查：并发重复支付时本事务快照可能早于先到事务的提交，
+        // 普通一致性读会拿到 pickupCode 为空的旧版本；FOR UPDATE 保证读到已提交的最新码。
+        // paySuccess 的所有路径都已按 group→order 顺序持有订单行锁，此处不引入新的锁顺序。
+        Orders paid = orderMapper.getByIdForUpdate(initial.getId());
+        return OrderPaymentVO.builder().mock(true).pickupCode(paid == null ? null : paid.getPickupCode()).build();
     }
 
     /**

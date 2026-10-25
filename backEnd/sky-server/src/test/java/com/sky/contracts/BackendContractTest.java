@@ -357,6 +357,37 @@ class BackendContractTest {
     }
 
     @Test
+    void legacyPaymentReturnsThePersistedPickupCodeOnEveryIdempotentRetry() throws Exception {
+        checkoutFixtures(3);
+        String id = checkout("legacy-pay-1", 2, 200);
+        String orderNumber = orderNumber(id);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            String dbg = mvc.perform(put("/user/order/payment").header("Authorization", userToken(11L))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"orderNumber\":\"" + orderNumber + "\",\"payMethod\":1}"))
+                    .andExpect(jsonPath("$.code").value(1))
+                    .andReturn().getResponse().getContentAsString();
+            System.out.println("DBG-PAYMENT-BODY=" + dbg);
+            org.junit.jupiter.api.Assertions.assertEquals(storedPickupCode(id),
+                    com.jayway.jsonpath.JsonPath.read(dbg, "$.data.pickupCode"));
+        }
+        // 新入口同一契约：重复支付返回同一持久化码（data 直接是码），终态不回退
+        mvc.perform(post("/api/pay/" + id + "/mock-pay").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data").value(storedPickupCode(id)));
+        mvc.perform(get("/api/orders/" + id).header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(2))
+                .andExpect(jsonPath("$.data.payStatus").value(1));
+    }
+
+    private String orderNumber(String id) {
+        return fixtures.queryForObject("select number from orders where id = " + id, String.class);
+    }
+
+    private String storedPickupCode(String id) {
+        return fixtures.queryForObject("select pickup_code from orders where id = " + id, String.class);
+    }
+
+    @Test
     void previousAuthenticatedRequestCannotAuthorizeAnonymousPasswordChange() throws Exception {
         fixtures.update("INSERT INTO user (id,phone,password) VALUES (11,'13800000011','unchanged')");
         mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
