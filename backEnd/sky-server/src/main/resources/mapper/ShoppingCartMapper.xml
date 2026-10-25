@@ -6,9 +6,7 @@
     <select id="list" resultType="com.sky.entity.ShoppingCart">
         select * from shopping_cart
         <where>
-            <if test="userId != null">
-                and user_id = #{userId}
-            </if>
+            user_id = #{userId}
             <if test="setmealId != null">
                 and setmeal_id = #{setmealId}
             </if>
@@ -19,6 +17,19 @@
                 and dish_flavor = #{dishFlavor}
             </if>
         </where>
+    </select>
+
+    <select id="findOwnedItem" resultType="com.sky.entity.ShoppingCart">
+        select * from shopping_cart where user_id = #{userId}
+        <choose>
+            <when test="dishId != null">and dish_id = #{dishId} and setmeal_id is null</when>
+            <otherwise>and setmeal_id = #{setmealId} and dish_id is null</otherwise>
+        </choose>
+        <choose>
+            <when test="dishFlavor != null">and dish_flavor = #{dishFlavor}</when>
+            <otherwise>and (dish_flavor is null or dish_flavor = '')</otherwise>
+        </choose>
+        order by id limit 1
     </select>
 
     <insert id="insertBatch" parameterType="list">
