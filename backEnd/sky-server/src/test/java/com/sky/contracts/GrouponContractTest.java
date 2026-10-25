@@ -206,6 +206,22 @@ class GrouponContractTest {
         assertEquals(4,service.getDetail(group.getId()).getStatus());
     }
 
+    @Test void eachExpiredGroupCommitsIndependentlyOfALaterInvalidLegacyOrder() {
+        fixtures.update("INSERT INTO dish(id,name,price,status,is_groupon,groupon_price,groupon_size,groupon_valid_hours,stock) VALUES(2,'Pears',6.00,1,1,5.00,2,24,10)");
+        BaseContext.setCurrentId(11L);
+        Groupon first = service.openGroupon(request(11,1));
+        BaseContext.setCurrentId(22L);
+        GrouponJoinDTO secondRequest = request(22,1); secondRequest.setDishId(2L);
+        Groupon second = service.openGroupon(secondRequest);
+        fixtures.update("UPDATE groupon SET expire_time='2000-01-01 00:00:00'");
+        fixtures.update("UPDATE orders SET status=3,pay_status=1 WHERE id=?",second.getOrderId());
+        assertThrows(GrouponBusinessException.class, service::closeExpired);
+        assertEquals(4,service.getDetail(first.getId()).getStatus());
+        assertEquals(1,service.getDetail(second.getId()).getStatus());
+        assertEquals(10,service.listGrouponDish(null).stream().filter(d -> d.getId().equals(1L)).findFirst().get().getStock());
+        assertEquals(9,service.listGrouponDish(null).stream().filter(d -> d.getId().equals(2L)).findFirst().get().getStock());
+    }
+
     @Test void emptyAndSingleDayReportsHaveDefinedResultsAndReversedDatesAreRejected() {
         java.time.LocalDate day = java.time.LocalDate.of(2026,10,22);
         assertEquals("2026-10-22",reports.getTurnoverReport(day,day).getDateList());

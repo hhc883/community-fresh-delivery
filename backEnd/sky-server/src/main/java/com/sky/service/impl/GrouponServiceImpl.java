@@ -98,6 +98,9 @@ public class GrouponServiceImpl implements GrouponService {
     @Autowired
     private WebSocketServer webSocketServer;
 
+    @Autowired
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
     /**
      * 拼团商品列表
      */
@@ -356,16 +359,22 @@ public class GrouponServiceImpl implements GrouponService {
      * 关闭超时未成团的拼团
      */
     @Override
-    @Transactional
     public int closeExpired() {
+        org.springframework.transaction.support.TransactionTemplate perGroup =
+                new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        perGroup.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         int count = 0;
         for (Groupon candidate : grouponMapper.listExpired(now())) {
-            Groupon locked = grouponMapper.getByIdForUpdate(candidate.getId());
-            if (locked != null && Groupon.IN_PROGRESS.equals(locked.getStatus())
-                    && locked.getExpireTime() != null && !locked.getExpireTime().isAfter(now())) {
+            // Release each group's order/inventory locks before processing the next group.
+            // Otherwise group ID order can hold dish 2 then wait for dish 1, opposite to checkout.
+            Boolean closed = perGroup.execute(transaction -> {
+                Groupon locked = grouponMapper.getByIdForUpdate(candidate.getId());
+                if (locked == null || !Groupon.IN_PROGRESS.equals(locked.getStatus())
+                        || locked.getExpireTime() == null || locked.getExpireTime().isAfter(now())) return false;
                 closeGroup(locked, Groupon.EXPIRED, "拼团超时未成团，自动取消");
-                count++;
-            }
+                return true;
+            });
+            if (Boolean.TRUE.equals(closed)) count++;
         }
         return count;
     }
