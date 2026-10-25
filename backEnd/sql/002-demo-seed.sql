@@ -26,3 +26,4 @@ INSERT IGNORE INTO order_detail (id,name,order_id,dish_id,number,amount)
 VALUES (2,'演示苹果',2,1,1,10.00);
 INSERT IGNORE INTO groupon_member (id,groupon_id,user_id,order_id,is_leader,number,amount,create_time)
 VALUES (1,1,1,2,1,1,10.00,'2001-01-01 12:00:00');
+INSERT IGNORE INTO order_stock (order_id,dish_id,number) VALUES (2,1,1);

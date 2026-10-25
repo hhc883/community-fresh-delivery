@@ -19,7 +19,8 @@
 set -uo pipefail
 
 : "${VERIFY_DEFAULTS_FILE:?必须提供 VERIFY_DEFAULTS_FILE（指向应用账号 [client] 段的 defaults 文件；口令不在命令行）}"
-DB_NAME="${DB_NAME:-fresh_db}"
+DB_NAME="${DB_NAME:?Set an isolated cfd_acceptance_* database}"
+[[ "$DB_NAME" =~ ^cfd_acceptance_[A-Za-z0-9_]+$ ]] || { echo 'Refusing permission probe outside an isolated acceptance database.' >&2; exit 2; }
 SEED="${DB_NAME}.seed_probe"
 PROBE_TAG="leastpriv_probe_$$_$(date +%s)"        # 可识别的探针行标记，便于插入/更新/删除
 

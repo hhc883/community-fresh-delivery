@@ -13,7 +13,7 @@
 --   mysql -u root -p sky_take_out < m21-pickup-verify-migration.sql
 -- ============================================================
 
-USE sky_take_out;
+-- Target database must be selected explicitly by the migration runner.
 
 -- ------------------------------------------------------------
 -- 1) orders：提货码 / 自提时段 / 提货人快照 / 核销状态
@@ -117,15 +117,7 @@ SET @ddl = IF(
 PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
 
 -- ------------------------------------------------------------
--- 4) 回填：给现有 3 个自提点补经纬度（北京朝阳区一带，便于小程序地图直接出图）
---    仅回填 NULL 行，不覆盖运营后续手工维护的坐标
--- ------------------------------------------------------------
-UPDATE `pickup_point` SET `latitude` = 39.908700, `longitude` = 116.397500
-  WHERE `id` = 1 AND `latitude` IS NULL;
-UPDATE `pickup_point` SET `latitude` = 39.918200, `longitude` = 116.405300
-  WHERE `id` = 2 AND `latitude` IS NULL;
-UPDATE `pickup_point` SET `latitude` = 39.899400, `longitude` = 116.412100
-  WHERE `id` = 3 AND `latitude` IS NULL;
+-- 4) No demo data backfill: fictional coordinates are supplied only by the demo seed.
 
 -- ------------------------------------------------------------
 -- 5) 自证：打印改造后的列，便于执行后肉眼核对
