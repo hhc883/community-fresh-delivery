@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 
 @Data
 public class OrdersSubmitDTO implements Serializable {
+    private String clientRequestId;
+    // 1 送货上门，2 社区自提；旧客户端省略时按唯一履约 ID 推断。
+    private Integer deliveryType;
     //地址簿id
     private Long addressBookId;
     //付款方式

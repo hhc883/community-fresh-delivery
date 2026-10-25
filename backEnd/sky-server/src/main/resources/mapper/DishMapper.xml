@@ -118,6 +118,7 @@
         where id = #{id}
           and stock is not null
           and stock &gt;= #{number}
+          and status = 1
     </update>
 
     <!-- 原子归还库存 -->

@@ -39,6 +39,10 @@ public class Orders implements Serializable {
 
     private Long id;
 
+    // 用户一次结算意图的幂等键与服务端规范化请求摘要。
+    private String clientRequestId;
+    private String requestHash;
+
     //订单号
     private String number;
 

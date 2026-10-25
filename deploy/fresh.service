@@ -1,108 +1,21 @@
-# ============================================================================
-# 生鲜配送后端 systemd 服务单元（M3-T-10 部署产出物，未实际部署）
-# 功能：Spring Boot 后端注册为系统服务，崩溃/异常退出自动重启拉起（Restart=always），
-#       开机自启（enable）。
-#
-# 安装步骤：
-#   1. 打包：mvn -f backEnd/pom.xml clean package -DskipTests
-#      产物：backEnd/target/fresh-server-1.0.0.jar
-#   2. 部署目录：mkdir -p /data/fresh/backEnd /data/fresh/logs
-#      cp backEnd/target/fresh-server-1.0.0.jar /data/fresh/backEnd/
-#   3. 生产账号（推荐）：useradd -r -s /sbin/nologin fresh
-#      chown -R fresh:fresh /data/fresh   （并把下方 User=root 改为 User=fresh）
-#   4. 环境变量：修改下方 Environment= 占位值（DB_PASSWORD / JWT_SECRET / ADMIN_KEY）。
-#      应用实际读第四个变量 DICT_API_KEY（字典上游密钥），本 unit 故意不给占位值，见下方说明；
-#      还有第五枚 DICT_BASE_URL 是**可选**的域名覆盖（不设就用 application.yml 里的默认域名），
-#      为什么"不确定就别设"见下面同一段说明；
-#      也可改用 EnvironmentFile=/data/fresh/backEnd/fresh.env 集中管理（权限 600）
-#   5. cp deploy/fresh.service /etc/systemd/system/fresh.service
-#      systemctl daemon-reload
-#      systemctl enable --now fresh        # 开机自启 + 立即启动
-#
-# 运维命令：
-#   systemctl status fresh               # 查看状态
-#   journalctl -u fresh -f               # 跟踪 stdout/stderr（logback 文件日志在 /data/fresh/logs/fresh.log）
-#   systemctl restart fresh              # 重启（更换 jar 后执行）
-# ============================================================================
-
 [Unit]
-Description=Fresh Server (Spring Boot 3, 生鲜配送后端)
-Documentation=https://spring.io/projects/spring-boot
-# MySQL 服务名按发行版可能是 mysqld.service，按需调整
-After=network.target mysql.service
-Wants=network.target
+Description=Community fresh delivery (Spring Boot 2.7.3)
+After=network.target mysql.service redis.service
 
 [Service]
 Type=simple
-# 生产建议改专用低权限账号运行（见安装步骤 3）
-User=root
-WorkingDirectory=/data/fresh/backEnd
-
-# ---- 环境变量（占位值必须替换！与 application-prod.yml 的 ${DB_PASSWORD}/${JWT_SECRET} 对应）----
-# prod 未配置 JWT_SECRET 时启动即失败（M2 防呆设计），属预期行为
-#
-# ---- 上线前三件事（务必逐条确认，只靠防呆代码挡不住部署侧的疏漏）----
-# 1) 本仓库的密钥守卫 AdminKeyProdGuard 是 @Profile("prod")，只在 profile 精确等于 prod 时注册。
-#    部署命令行必须带 --spring.profiles.active=prod（见下方 ExecStart）；写成 production、拼错，
-#    或压根没带该参数，守卫都静默不注册，而 admin-dev-key 这个默认值依旧在字节码里可用。
-#    fail-fast 的强度取决于 profile 纪律，不取决于代码。
-# 2) 下面三个占位值（replace-with-admin-key / replace-with-real-db-password /
-#    replace-with-strong-random-secret）上线前必须全部替换成真实值，照抄 unit 文件等于裸奔：
-#    ADMIN_KEY 的占位值已被启动守卫直接拒起（连同短于 8 位的弱值），
-#    DB_PASSWORD / JWT_SECRET 两个占位串同样必须换成真实值——JWT_SECRET 留公开默认串意味着
-#    任何人可离线伪造全量用户 token。
-# 3) 生产密钥建议改由 EnvironmentFile=/data/fresh/backEnd/fresh.env（权限 600）注入，
-#    不要写进本 unit 文件：unit 文件随仓库公开可读，把真实值写进来等于把密钥提交进版本库。
-Environment=DB_PASSWORD=replace-with-real-db-password
-Environment=JWT_SECRET=replace-with-strong-random-secret
-Environment=ADMIN_KEY=replace-with-admin-key
-
-# ---- 第四个变量 DICT_API_KEY（字典上游密钥）：本 unit 故意不给占位值，因为漏了它没有任何启动期信号 ----
-# 前三个漏了会怎样见上面（守卫拒起 / token 可伪造 / 连不上库）。DICT_API_KEY 不一样：application.yml 的
-# dict.api-key: ${DICT_API_KEY:} 有默认值（空串），注入照常完成、进程健康、页面不白屏（前端降级到内置
-# FALLBACK 词表），只是后台维护的词条（dish_category / coupon_template / kingkong_entry / service_tags）
-# 在线上永远拿不到 —— 表现等同于「字典功能没做」，而没人会报错。
-# 写法二选一：Environment=DICT_API_KEY=<真实密钥>，或写进 EnvironmentFile=/data/fresh/backEnd/fresh.env。
-#   若走 EnvironmentFile，上面三行同名 Environment= 占位值必须一并删净——同名键 Environment= 与
-#   EnvironmentFile= 谁覆盖谁取决于 systemd 版本语义，留着占位行有「文件注入被占位值盖掉」的风险。
-# 部署后自证只能看这一条（别看页面，页面在失败时也一样正常）：
-#   curl -s 'http://127.0.0.1:3001/api/dict?group=dish_category'
-#   code=0 且 data 非空 = 通了。code=400 + message="字典服务暂时不可用，请稍后重试" = 没通，
-#   但它**不区分成因**——三种成因对外是同一个响应，必须按日志里的 err= 分诊（每失败请求一行，
-#   DictServiceImpl 只打异常类名，不透出 key/URL）：
-#     grep '字典上游拉取失败' /data/fresh/logs/fresh.log | tail -1
-#     err=ResourceAccessException  → 网络/域名不通，与 key 无关（本仓 dev 实测当前即此支）
-#     err=HttpClientErrorException → 连上了但被上游拒（4xx，多为 key 没注入或不对）
-#     err=IllegalStateException    → 上游通了，但返回结构异常或词条为空
-#   注意该端点限流 10 次/分钟/IP，连测别超，否则 429 会被误读成「还是没通」。
-#
-# ---- 上面这条 curl 自证的第二个成因，F-53 ① 起有了一枚对应的旋钮：域名（本段仍全是注释，生效行一条没加）----
-# application.yml 的 dict.base-url 自 F-53 ① 起写成 ${DICT_BASE_URL:<仓里那个默认域名>}，默认值逐字未动，
-# 所以**默认值够用就别设这一枚**——不注入时与改动前行为完全相同。它唯一的用途是让「上游换域名」从一次发版
-# （改代码 → 重新打包 → 重启）降级成一次配置改动：Environment=DICT_BASE_URL=<新域名> 或写进 fresh.env，
-# 再 systemctl daemon-reload && systemctl restart fresh。
-# 反过来，设错它比不设更容易误诊：域名写错 → 连不上上游 → 对外仍是那句 code=400「字典服务暂时不可用」，
-# 上面 err= 分诊里落在 ResourceAccessException 那一支，看着完全像「上游挂了」，真凶却是本机这行配置
-# （而日志侧帮不上忙：DictServiceImpl 只打异常类名、不透出 URL，见上面那一句）。所以结论是：不确定就别设。
-# 本文件同样**不给生效的 Environment=DICT_BASE_URL= 行**，理由与上面同名键那条一致：
-# Environment= 与 EnvironmentFile= 谁覆盖谁取决于 systemd 版本语义，留一行占位反而可能盖掉文件里注入的真值。
-#
-
-# java -jar 方式启动（推荐）：显式 prod profile；日志目录通过 --log.path 传给 logback-spring.xml
-ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /data/fresh/backEnd/fresh-server-1.0.0.jar --spring.profiles.active=prod --log.path=/data/fresh/logs
-# mvn 方式启动（备选，不推荐生产：需安装 maven 与源码）：
-# ExecStart=/usr/bin/mvn -f /data/fresh/backEnd/pom.xml spring-boot:run -Dspring-boot.run.profiles=prod
-
-# ---- 自愈与退出处理 ----
-# 进程异常退出/被杀 5 秒后自动拉起
-Restart=always
+User=fresh
+Group=fresh
+WorkingDirectory=/opt/community-fresh-delivery
+EnvironmentFile=/etc/community-fresh-delivery.env
+ExecStart=/usr/bin/java -Duser.timezone=Asia/Shanghai -Xms256m -Xmx512m -jar /opt/community-fresh-delivery/sky-server-1.0-SNAPSHOT.jar --spring.profiles.active=prod
+Restart=on-failure
 RestartSec=5
-# 143 = SIGTERM 正常停机退出码（systemctl stop/restart 时不标记失败）
 SuccessExitStatus=143
-
-# 基础加固
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target

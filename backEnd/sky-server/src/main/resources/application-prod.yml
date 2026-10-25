@@ -1,0 +1,27 @@
+# Required credentials have no deployment defaults.
+sky:
+  auth:
+    mock-login: false
+    dev-code: disabled
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: ${DB_HOST}
+    port: ${DB_PORT:3306}
+    database: ${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jwt:
+    admin-secret-key: ${JWT_ADMIN_SECRET}
+    user-secret-key: ${JWT_USER_SECRET}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+  alioss:
+    endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET:}
+  wechat:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+    mock-login: false
