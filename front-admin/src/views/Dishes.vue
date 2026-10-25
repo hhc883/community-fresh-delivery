@@ -20,9 +20,10 @@
             :class="{ active: filter.categoryId === cat.id }"
             @click="onPickCategory(cat.id)"
           >
-            <span class="cat-name">{{ cat.name }}</span>
+            <span class="cat-name">{{ cat.name }}{{ Number(cat.status) === 1 ? '' : '（禁用）' }}</span>
             <span class="cat-actions">
               <el-button link size="small" @click.stop="openCategoryDialog(cat)">编辑</el-button>
+              <el-button link size="small" @click.stop="toggleCategory(cat)">{{ Number(cat.status) === 1 ? '禁用' : '启用' }}</el-button>
               <el-button link size="small" type="danger" @click.stop="onDeleteCategory(cat)">删除</el-button>
             </span>
           </li>
@@ -163,6 +164,9 @@
         <el-form-item label="产地">
           <el-input v-model="dishDialog.origin" maxlength="64" placeholder="如 云南" style="width: 220px" />
         </el-form-item>
+        <el-form-item label="生鲜商品">
+          <el-switch v-model="dishDialog.isFresh" :active-value="1" :inactive-value="0" />
+        </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="dishDialog.description" type="textarea" maxlength="255" :rows="2" />
         </el-form-item>
@@ -200,7 +204,7 @@
 // 写操作成功与否一律以服务端返回为准：成功后重拉当前页核对，不本地改行。
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryList, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
+import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryPage, setCategoryStatus, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
 
 const viewState = ref('loading')
 const errorText = ref('')
@@ -222,8 +226,24 @@ function resolveImage(image) {
 }
 
 async function loadCategories() {
-  const res = await getCategoryList(1)
-  categories.value = res.data || []
+  const list = []
+  let categoryPage = 1
+  let res
+  do {
+    res = await getCategoryPage({ type: 1, page: categoryPage++, pageSize: 100 })
+    const records = res.data?.records || []
+    list.push(...records)
+    if (!records.length) break
+  } while (list.length < Number(res.data?.total || 0))
+  categories.value = list
+}
+
+async function toggleCategory(cat) {
+  try {
+    await setCategoryStatus(cat.id, Number(cat.status) === 1 ? 0 : 1)
+    await loadCategories()
+    ElMessage.success('分类状态已更新')
+  } catch (err) { ElMessage.error(err.message || '分类状态更新失败') }
 }
 
 async function loadDishes() {
@@ -277,6 +297,7 @@ function openCategoryDialog(cat) {
 }
 
 async function saveCategory() {
+  if (categoryDialog.saving) return
   if (!categoryDialog.name.trim()) {
     ElMessage.warning('请填写分类名称')
     return
@@ -323,7 +344,7 @@ async function onDeleteCategory(cat) {
 // ---- 商品 ----
 const dishDialog = reactive({
   visible: false, id: null, name: '', categoryId: null, price: null,
-  stock: 0, unit: '', origin: '', description: '', image: '',
+  stock: 0, unit: '', origin: '', description: '', image: '', flavors: [], isFresh: 1,
   isGroupon: 0, grouponPrice: null, grouponSize: 2, grouponValidHours: 24,
   saving: false
 })
@@ -337,7 +358,7 @@ async function openDishDialog(row) {
         visible: true, id: d.id, name: d.name, categoryId: d.categoryId,
         price: d.price == null ? null : Number(d.price), stock: d.stock || 0,
         unit: d.unit || '', origin: d.origin || '',
-        description: d.description || '', image: d.image || '',
+        description: d.description || '', image: d.image || '', flavors: d.flavors || [], isFresh: Number(d.isFresh) === 1 ? 1 : 0,
         isGroupon: d.isGroupon || 0,
         grouponPrice: d.grouponPrice == null ? null : Number(d.grouponPrice),
         grouponSize: d.grouponSize || 2, grouponValidHours: d.grouponValidHours || 24
@@ -348,13 +369,14 @@ async function openDishDialog(row) {
   } else {
     Object.assign(dishDialog, {
       visible: true, id: null, name: '', categoryId: filter.categoryId, price: null,
-      stock: 0, unit: '', origin: '', description: '', image: '',
+      stock: 0, unit: '', origin: '', description: '', image: '', flavors: [], isFresh: 1,
       isGroupon: 0, grouponPrice: null, grouponSize: 2, grouponValidHours: 24
     })
   }
 }
 
 async function saveDish() {
+  if (dishDialog.saving) return
   if (!dishDialog.name.trim()) return ElMessage.warning('请填写商品名称')
   if (!dishDialog.categoryId) return ElMessage.warning('请选择分类')
   if (!dishDialog.price || dishDialog.price <= 0) return ElMessage.warning('请填写正确价格')
@@ -369,6 +391,8 @@ async function saveDish() {
       categoryId: dishDialog.categoryId,
       price: dishDialog.price,
       stock: dishDialog.stock,
+      isFresh: dishDialog.isFresh,
+      flavors: dishDialog.flavors,
       unit: dishDialog.unit || undefined,
       origin: dishDialog.origin || undefined,
       description: dishDialog.description || undefined,
@@ -458,6 +482,7 @@ onMounted(async () => {
     await loadCategories()
   } catch (e) {
     // 分类读取失败不阻塞商品列表：商品表仍可查询
+    ElMessage.error(e.message || '分类读取失败，请刷新重试')
   }
   loadDishes()
 })

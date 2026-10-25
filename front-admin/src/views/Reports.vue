@@ -204,6 +204,7 @@ async function loadAll() {
     const od = o.data || {}
     orderReport.value = {
       ...toTrend(splitList(od.dateList), toNumbers(od.validOrderCountList)),
+      validCounts: toNumbers(od.validOrderCountList),
       counts: toNumbers(od.orderCountList),
       totalOrderCount: od.totalOrderCount ?? '-',
       validOrderCount: od.validOrderCount ?? '-',

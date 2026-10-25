@@ -8,7 +8,7 @@
 //   失败  HTTP 200 + {code:0, msg/message}（GlobalExceptionHandler 统一返回，不抛非 200）
 //   登录失效  HTTP 401 + {code:401, message:"请先登录"}（JwtTokenAdminInterceptor 直写）
 // 前端只认 code===1 为成功；401 清登录态跳登录页；其余一律按失败透出后端 message。
-export const BASE_URL = 'http://localhost:8080'
+export const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
 // 分层超时：查询类 10s；提交类 20s（登录走 PBKDF2 验密，属提交档）。
 const TIMEOUT_QUERY = 10000
@@ -213,6 +213,9 @@ export const getDishOverview = () => request({ url: '/admin/workspace/overviewDi
 
 export function getCategoryList(type) {
   return request({ url: '/admin/category/list', params: { type } })
+}
+export function getCategoryPage(params) {
+  return request({ url: '/admin/category/page', params })
 }
 export function createCategory(data) {
   return request({ url: '/admin/category', method: 'POST', data })

@@ -1,6 +1,8 @@
 <template>
   <view class="address-container">
-    <view class="address-list" v-if="addressList.length > 0">
+    <view v-if="error" class="error" @tap="loadAddresses">{{ error }} · 点击重试</view>
+    <view v-if="loading" class="empty">读取地址中…</view>
+    <view class="address-list" v-if="!loading && !error && addressList.length > 0">
       <view
         class="address-card"
         v-for="item in addressList"
@@ -38,7 +40,7 @@
     </view>
 
     <!-- 空状态 -->
-    <view class="empty-state" v-else-if="!loading">
+    <view class="empty-state" v-else-if="!loading && !error">
       <image class="empty-img" src="/static/images/dish-1.svg" mode="aspectFit" />
       <text class="empty-title">暂无收货地址</text>
       <text class="empty-desc">添加收货地址，下单更便捷</text>
@@ -62,6 +64,7 @@ export default {
     return {
       addressList: [],
       loading: true,
+      error: '',
       fromOrder: false
     }
   },
@@ -85,10 +88,12 @@ export default {
     },
     async loadAddresses() {
       this.loading = true
+      this.error = ''
       try {
         const res = await getAddressList()
         this.addressList = Array.isArray(res.data) ? res.data : (res.data && res.data.records) || []
       } catch (err) {
+        this.error = err.message || '加载地址失败'
         uni.showToast({ title: err.message || '加载地址失败', icon: 'none' })
       } finally {
         this.loading = false

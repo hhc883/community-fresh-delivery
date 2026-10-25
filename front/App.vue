@@ -81,6 +81,7 @@ export default {
 </script>
 
 <style>
+@import './styles/core.css';
 /* 全局样式 */
 page {
 	background-color: #F5F5F5;

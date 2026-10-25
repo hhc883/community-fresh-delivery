@@ -41,14 +41,12 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationStyle": "custom",
         "navigationBarTitleText": "生鲜自提商城"
       }
     },
     {
       "path": "pages/category/category",
       "style": {
-        "navigationStyle": "custom",
         "navigationBarTitleText": "商品分类"
       }
     },
@@ -63,7 +61,6 @@
     {
       "path": "pages/mine/mine",
       "style": {
-        "navigationStyle": "custom",
         "navigationBarTitleText": "个人中心"
       }
     },
@@ -100,14 +97,6 @@
       }
     },
     {
-      "path": "pages/order/person",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "添加提货人"
-      }
-    },
-    {
       "path": "pages/order/order",
       "style": {
         "navigationBarBackgroundColor": "#FFFFFF",
@@ -116,96 +105,15 @@
       }
     },
     {
-      "path": "pages/pickup/pickup",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "切换自提点"
-      }
-    },
-    {
-      "path": "pages/mine/profile",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "个人资料"
-      }
-    },
-    {
-      "path": "pages/service/service",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "联系客服"
-      }
-    },
-    {
       "path": "pages/search/search",
       "style": {
-        "navigationStyle": "custom",
         "navigationBarTitleText": "搜索商品"
       }
     },
     {
       "path": "pages/login/login",
       "style": {
-        "navigationStyle": "custom",
         "navigationBarTitleText": "登录"
-      }
-    },
-    {
-      "path": "pages/coupons/coupons",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "领券中心"
-      }
-    },
-    {
-      "path": "pages/my-coupons/my-coupons",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "我的优惠券"
-      }
-    },
-    {
-      "path": "pages/review/review",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "商品评价"
-      }
-    },
-    {
-      "path": "pages/my-reviews/my-reviews",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "我的评价"
-      }
-    },
-    {
-      "path": "pages/qualification/qualification",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "企业资质"
-      }
-    },
-    {
-      "path": "pages/free/free",
-      "style": {
-        "navigationStyle": "custom",
-        "navigationBarTitleText": "免费领商品"
-      }
-    },
-    {
-      "path": "pages/invite/cash",
-      "style": {
-        "navigationBarBackgroundColor": "#FFFFFF",
-        "navigationBarTextStyle": "black",
-        "navigationBarTitleText": "邀请赚现金"
       }
     },
     {
