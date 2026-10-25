@@ -154,8 +154,8 @@
         <el-form-item label="价格" required>
           <el-input-number v-model="dishDialog.price" :min="0.01" :precision="2" :step="1" />
         </el-form-item>
-        <el-form-item label="库存">
-          <el-input-number v-model="dishDialog.stock" :min="0" :step="10" />
+        <el-form-item label="库存" required>
+          <el-input-number v-model="dishDialog.stock" :min="0" :precision="0" :step="10" />
           <span class="form-note">直接置值；服务端下单按库存条件扣减</span>
         </el-form-item>
         <el-form-item label="规格单位">
@@ -181,11 +181,11 @@
           <el-form-item label="拼团价" required>
             <el-input-number v-model="dishDialog.grouponPrice" :min="0.01" :precision="2" :step="1" />
           </el-form-item>
-          <el-form-item label="成团人数">
-            <el-input-number v-model="dishDialog.grouponSize" :min="2" :max="99" />
+          <el-form-item label="成团人数" required>
+            <el-input-number v-model="dishDialog.grouponSize" :min="2" :max="99" :precision="0" />
           </el-form-item>
-          <el-form-item label="有效时长">
-            <el-input-number v-model="dishDialog.grouponValidHours" :min="1" :max="720" />
+          <el-form-item label="有效时长" required>
+            <el-input-number v-model="dishDialog.grouponValidHours" :min="1" :max="720" :precision="0" />
             <span class="form-note">小时；超时未成团由服务端关闭并处置订单</span>
           </el-form-item>
         </template>
@@ -356,9 +356,12 @@ async function openDishDialog(row) {
       const d = res.data || row
       Object.assign(dishDialog, {
         visible: true, id: d.id, name: d.name, categoryId: d.categoryId,
-        price: d.price == null ? null : Number(d.price), stock: d.stock || 0,
+        price: d.price == null ? null : Number(d.price),
+        stock: d.stock == null ? 0 : Math.floor(Number(d.stock)),
         unit: d.unit || '', origin: d.origin || '',
-        description: d.description || '', image: d.image || '', flavors: d.flavors || [], isFresh: Number(d.isFresh) === 1 ? 1 : 0,
+        description: d.description || '', image: d.image || '',
+        flavors: d.flavors || [],
+        isFresh: d.isFresh == null ? 1 : (Number(d.isFresh) === 1 ? 1 : 0),
         isGroupon: d.isGroupon || 0,
         grouponPrice: d.grouponPrice == null ? null : Number(d.grouponPrice),
         grouponSize: d.grouponSize || 2, grouponValidHours: d.grouponValidHours || 24
@@ -380,8 +383,22 @@ async function saveDish() {
   if (!dishDialog.name.trim()) return ElMessage.warning('请填写商品名称')
   if (!dishDialog.categoryId) return ElMessage.warning('请选择分类')
   if (!dishDialog.price || dishDialog.price <= 0) return ElMessage.warning('请填写正确价格')
-  if (dishDialog.isGroupon === 1 && (!dishDialog.grouponPrice || dishDialog.grouponPrice <= 0)) {
-    return ElMessage.warning('参与团购必须填写拼团价')
+  if (dishDialog.stock == null || Number(dishDialog.stock) < 0 || !Number.isInteger(Number(dishDialog.stock))) {
+    return ElMessage.warning('商品库存必须为非负整数')
+  }
+  if (dishDialog.isGroupon === 1) {
+    if (!dishDialog.grouponPrice || dishDialog.grouponPrice <= 0) {
+      return ElMessage.warning('参与团购必须填写正确拼团价')
+    }
+    if (dishDialog.grouponPrice >= dishDialog.price) {
+      return ElMessage.warning('拼团价应低于单买原价')
+    }
+    if (!dishDialog.grouponSize || dishDialog.grouponSize < 2) {
+      return ElMessage.warning('成团人数至少为 2 人')
+    }
+    if (!dishDialog.grouponValidHours || dishDialog.grouponValidHours < 1) {
+      return ElMessage.warning('拼团有效时长至少为 1 小时')
+    }
   }
   dishDialog.saving = true
   try {
@@ -390,9 +407,9 @@ async function saveDish() {
       name: dishDialog.name.trim(),
       categoryId: dishDialog.categoryId,
       price: dishDialog.price,
-      stock: dishDialog.stock,
-      isFresh: dishDialog.isFresh,
-      flavors: dishDialog.flavors,
+      stock: Math.floor(Number(dishDialog.stock)),
+      isFresh: dishDialog.isFresh != null ? Number(dishDialog.isFresh) : 1,
+      flavors: dishDialog.flavors || [],
       unit: dishDialog.unit || undefined,
       origin: dishDialog.origin || undefined,
       description: dishDialog.description || undefined,
