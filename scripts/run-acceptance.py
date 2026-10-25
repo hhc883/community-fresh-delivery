@@ -38,7 +38,8 @@ def main():
             parser.error("HTTP port is occupied; refusing to write to an existing server")
     database = "cfd_acceptance_" + datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:6]
     env = dict(os.environ, DB_NAME=database, SERVER_PORT=str(args.port), SERVER_ADDRESS="127.0.0.1",
-               AUTH_MOCK_LOGIN="true", WECHAT_MOCK_LOGIN="true", SPRING_PROFILES_ACTIVE="dev")
+               AUTH_MOCK_LOGIN="true", WECHAT_MOCK_LOGIN="true", SPRING_PROFILES_ACTIVE="dev",
+               SKY_SCHEDULING_ENABLED="false")
     args.report.parent.mkdir(parents=True, exist_ok=True)
     for action in ("init", "migrate", "seed"):
         subprocess.run([sys.executable, str(ROOT / "scripts/database.py"), action,
