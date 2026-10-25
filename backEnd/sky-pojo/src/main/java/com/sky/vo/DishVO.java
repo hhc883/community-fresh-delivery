@@ -81,12 +81,12 @@ public class DishVO implements Serializable {
         map.put("soldCount", soldCount);
         map.put("sold", soldCount);
         map.put("promoTag", promoTag);
-        map.put("tag", promoTag != null ? promoTag : "限时直降");
+        map.put("tag", promoTag);
         map.put("seckill", seckill);
         map.put("seckillPrice", seckillPrice);
         map.put("tags", tags);
         map.put("limitBuy", limitBuy);
-        map.put("goodRate", goodRate != null ? goodRate : "99%");
+        map.put("goodRate", goodRate);
         map.put("category", category);
         map.put("flavors", flavors);
         return map;

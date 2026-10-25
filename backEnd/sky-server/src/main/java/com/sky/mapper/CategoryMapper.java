@@ -46,6 +46,14 @@ public interface CategoryMapper {
     void update(Category category);
 
     /**
+     * 根据id查询分类
+     * @param id
+     * @return
+     */
+    @org.apache.ibatis.annotations.Select("select * from category where id = #{id}")
+    Category getById(Long id);
+
+    /**
      * 根据类型查询分类
      * @param type
      * @return

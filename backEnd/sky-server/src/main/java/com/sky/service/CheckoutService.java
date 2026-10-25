@@ -91,7 +91,7 @@ public class CheckoutService {
         }
         order.setUserId(userId);
         order.setNumber(UUID.randomUUID().toString().replace("-", ""));
-        order.setOrderTime(LocalDateTime.now());
+        order.setOrderTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
         order.setStatus(Orders.PENDING_PAYMENT);
         order.setPayStatus(Orders.UN_PAID);
         order.setPayMethod(1);
@@ -188,7 +188,7 @@ public class CheckoutService {
         Map<String, Object> intent = new TreeMap<>();
         intent.put("operation", "ordinary-checkout");
         intent.put("address", request.getAddressBookId()); intent.put("pickup", request.getPickupPointId());
-        intent.put("deliveryType", request.getPickupPointId() == null ? 1 : 2);
+        intent.put("deliveryType", request.getDeliveryType() != null ? request.getDeliveryType() : (request.getPickupPointId() == null ? 1 : 2));
         intent.put("recipient", request.getPickupPersonName()); intent.put("phone", request.getPickupPersonPhone());
         intent.put("slot", request.getPickupTimeSlot()); intent.put("remark", request.getRemark());
         intent.put("estimatedDeliveryTime", request.getEstimatedDeliveryTime() == null ? null : request.getEstimatedDeliveryTime().toString());

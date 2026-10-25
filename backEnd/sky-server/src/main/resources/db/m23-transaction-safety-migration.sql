@@ -1,5 +1,9 @@
 -- Incremental migration. Back up first; execute with the target database selected.
 -- Duplicate historical order numbers/codes must be reviewed; no data is deleted here.
+-- Remove invented metadata defaults for new rows; preserve all existing operator data.
+ALTER TABLE dish ALTER COLUMN good_rate SET DEFAULT NULL;
+ALTER TABLE pickup_point ALTER COLUMN distance SET DEFAULT NULL;
+ALTER TABLE pickup_point ALTER COLUMN service_tags SET DEFAULT NULL;
 SET @ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='orders' AND column_name='client_request_id')=0,
  'ALTER TABLE orders ADD COLUMN client_request_id VARCHAR(64) NULL', 'DO 0');
 PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;

@@ -9,8 +9,11 @@ import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.exception.ProductBusinessException;
+import com.sky.mapper.CategoryMapper;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
+import com.sky.mapper.OrderStockMapper;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
@@ -36,6 +39,10 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private CategoryMapper categoryMapper;
+    @Autowired
+    private OrderStockMapper orderStockMapper;
 
     /**
      * 新增菜品以及保存口味
@@ -43,9 +50,16 @@ public class DishServiceImpl implements DishService {
      * @param dishDTO
      */
     @Override
+    @Transactional
     public void saveWithFlavor(DishDTO dishDTO) {
+        validateProduct(dishDTO);
+
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
+        if (dish.getStatus() == null) dish.setStatus(StatusConstant.DISABLE);
+        if (dish.getStock() == null) dish.setStock(0);
+        if (dish.getIsFresh() == null) dish.setIsFresh(1);
+        if (dish.getIsGroupon() == null) dish.setIsGroupon(0);
 
         // 向菜品表插入一条记录
         dishMapper.insert(dish);
@@ -60,6 +74,35 @@ public class DishServiceImpl implements DishService {
                 flavor.setDishId(dishId);
             }
             dishFlavorMapper.insertBatch(flavors);
+        }
+    }
+
+    /**
+     * 商品创建/修改的统一校验：必填字段、非负库存与拼团参数。
+     */
+    private void validateProduct(DishDTO dishDTO) {
+        if (dishDTO == null || dishDTO.getName() == null || dishDTO.getName().trim().isEmpty()) {
+            throw new ProductBusinessException(MessageConstant.DISH_NAME_REQUIRED);
+        }
+        if (dishDTO.getCategoryId() == null || categoryMapper.getById(dishDTO.getCategoryId()) == null) {
+            throw new ProductBusinessException(MessageConstant.DISH_CATEGORY_INVALID);
+        }
+        if (dishDTO.getPrice() == null || dishDTO.getPrice().signum() <= 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_PRICE_INVALID);
+        }
+        if (dishDTO.getStock() != null && dishDTO.getStock() < 0) {
+            throw new ProductBusinessException(MessageConstant.DISH_STOCK_INVALID);
+        }
+        if (Integer.valueOf(1).equals(dishDTO.getIsGroupon())) {
+            if (dishDTO.getGrouponPrice() == null || dishDTO.getGrouponPrice().signum() <= 0) {
+                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_PRICE_INVALID);
+            }
+            if (dishDTO.getGrouponSize() == null || dishDTO.getGrouponSize() < 2) {
+                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_SIZE_INVALID);
+            }
+            if (dishDTO.getGrouponValidHours() == null || dishDTO.getGrouponValidHours() <= 0) {
+                throw new ProductBusinessException(MessageConstant.DISH_GROUPON_HOURS_INVALID);
+            }
         }
     }
 
@@ -103,12 +146,18 @@ public class DishServiceImpl implements DishService {
     // 事务一致性
     @Transactional
     public void deleteBatch(Long[] ids) {
-        // 判断菜品是否被套餐关联
+        // 判断菜品是否存在、是否在售、是否仍被进行中订单预留库存
         for (Long id: ids) {
             Dish dish = dishMapper.getById(id);
+            if (dish == null) {
+                throw new DeletionNotAllowedException(MessageConstant.DISH_NOT_FOUND);
+            }
             if (Objects.equals(dish.getStatus(), StatusConstant.ENABLE)) {
                 // 正在销售的菜品不能删除
                 throw new DeletionNotAllowedException(MessageConstant.DISH_ON_SALE);
+            }
+            if (orderStockMapper.countActiveReservations(id) > 0) {
+                throw new DeletionNotAllowedException(MessageConstant.DISH_RESERVED_BY_ACTIVE_ORDER);
             }
         }
 
@@ -155,7 +204,13 @@ public class DishServiceImpl implements DishService {
      * @param dishDTO
      */
     @Override
+    @Transactional
     public void updateWithFlavor(DishDTO dishDTO) {
+        if (dishDTO == null || dishDTO.getId() == null || dishMapper.getById(dishDTO.getId()) == null) {
+            throw new ProductBusinessException(MessageConstant.DISH_NOT_FOUND);
+        }
+        validateProduct(dishDTO);
+
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
 

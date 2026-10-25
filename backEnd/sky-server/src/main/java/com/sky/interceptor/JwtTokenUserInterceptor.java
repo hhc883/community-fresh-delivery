@@ -43,7 +43,9 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         // 商品只读接口允许匿名浏览，评价写入仍必须鉴权。
         String path = request.getRequestURI().substring(request.getContextPath().length());
         if ("GET".equals(request.getMethod())
-                && ("/api/dishes".equals(path) || path.startsWith("/api/dishes/"))) {
+                && ("/api/dishes".equals(path) || path.startsWith("/api/dishes/")
+                    || path.startsWith("/api/stores")
+                    || "/user/category/list".equals(path))) {
             return true;
         }
 

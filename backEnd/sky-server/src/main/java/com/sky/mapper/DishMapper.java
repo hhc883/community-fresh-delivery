@@ -83,6 +83,10 @@ public interface DishMapper {
      */
     List<Dish> list(Dish dish);
 
+    /** Public catalog: only available dishes belonging to an enabled category. */
+    List<Dish> listAvailable(@Param("id") Long id, @Param("categoryId") Long categoryId,
+                             @Param("keyword") String keyword);
+
     /**
      * 根据套餐id查询菜品
      * @param setmealId

@@ -67,6 +67,8 @@ class BackendContractTest {
     @Autowired private WebApplicationContext context;
     @Autowired private DataSource dataSource;
     @Autowired private JwtProperties jwtProperties;
+    @Autowired private com.sky.service.GrouponService groups;
+    @Autowired private com.sky.service.OrderService orderService;
     private MockMvc mvc;
     private JdbcTemplate fixtures;
 
@@ -75,7 +77,7 @@ class BackendContractTest {
         BaseContext.removeCurrentId();
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
         fixtures = new JdbcTemplate(dataSource);
-        for (String table : new String[]{"order_stock", "order_detail", "orders", "shopping_cart", "address_book", "pickup_point", "user", "dish", "setmeal", "setmeal_dish"}) {
+        for (String table : new String[]{"groupon_member", "groupon", "order_stock", "order_detail", "orders", "shopping_cart", "address_book", "pickup_point", "user", "dish", "setmeal", "setmeal_dish"}) {
             fixtures.update("DELETE FROM " + table);
         }
     }
@@ -161,6 +163,126 @@ class BackendContractTest {
         checkout("rollback-2", 1, 200);
         mvc.perform(get("/api/orders").header("Authorization", userToken(11L)))
                 .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,0", "6,1", "5,1", "2,0"})
+    void administratorCannotAcceptUnpaidOrTerminalOrders(int orderStatus, int payStatus) throws Exception {
+        seedOrder(11L, orderStatus, payStatus, null);
+        mvc.perform(put("/admin/order/confirm").header("Authorization", adminToken(1L))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"id\":101}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(orderStatus));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"6,1", "5,1", "4,1", "1,1", "2,0"})
+    void pickupVerificationRejectsInvalidOrderAndPaymentStates(int orderStatus, int payStatus) throws Exception {
+        seedOrder(11L, orderStatus, payStatus, "12345678");
+        mvc.perform(post("/admin/order/verify").header("Authorization", adminToken(1L))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pickupCode\":\"12345678\",\"pickupPointId\":1}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(orderStatus))
+                .andExpect(jsonPath("$.data.verifyStatus").value(0));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"/admin/order/delivery/101,3,1,1", "/admin/order/delivery/101,3,0,0",
+            "/admin/order/complete/101,4,0,0", "/admin/order/cancel,5,1,0"})
+    void administratorCannotSkipFulfillmentAndCancellationRules(String path, int orderStatus, int payStatus, int pickup) throws Exception {
+        seedOrder(11L, orderStatus, payStatus, null);
+        if (pickup == 0) fixtures.update("UPDATE orders SET pickup_point_id=NULL WHERE id=101");
+        mvc.perform(put(path).header("Authorization", adminToken(1L))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"id\":101,\"cancelReason\":\"测试取消\"}"))
+                .andExpect(jsonPath("$.code").value(0));
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(orderStatus));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"/admin/order/cancel", "/admin/order/rejection"})
+    void administratorCancellationRecordsMockRefundAndReleasesStockOnce(String path) throws Exception {
+        checkoutFixtures(3);
+        String id = checkout("admin-cancel-1", 2, 200);
+        mvc.perform(post("/api/pay/" + id + "/mock-pay").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(200));
+        String body = "{\"id\":" + id + ",\"cancelReason\":\"测试取消\",\"rejectionReason\":\"测试拒单\"}";
+        mvc.perform(put(path).header("Authorization", adminToken(1L)).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.code").value(1));
+        mvc.perform(get("/api/orders/" + id).header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(6))
+                .andExpect(jsonPath("$.data.payStatus").value(2));
+        mvc.perform(put(path).header("Authorization", adminToken(1L)).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.code").value(1));
+        checkout("admin-cancel-2", 3, 200);
+        checkout("admin-cancel-3", 1, 400);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,200,3,6", "2,400,2,2"})
+    void userCancellationRespectsTheGroupLifecycle(int groupStatus, int expectedCode, int expectedGroupStatus, int expectedOrderStatus) throws Exception {
+        checkoutFixtures(1);
+        fixtures.update("INSERT INTO groupon(id,dish_id,leader_user_id,groupon_price,required_size,current_size,status,expire_time,create_time) "
+                + "VALUES(100,1,11,10.00,2,1,?,DATEADD('DAY',1,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP)", groupStatus);
+        seedOrder(11L, 2, 1, "12345678");
+        fixtures.update("UPDATE orders SET is_groupon=1,groupon_id=100 WHERE id=101");
+        fixtures.update("INSERT INTO groupon_member(groupon_id,user_id,order_id,is_leader,number,amount,create_time) VALUES(100,11,101,1,2,20.00,CURRENT_TIMESTAMP)");
+        fixtures.update("INSERT INTO order_stock(order_id,dish_id,number) VALUES(101,1,2)");
+        mvc.perform(post("/api/orders/101/cancel").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+        assertEquals(expectedGroupStatus, groups.getDetail(100L).getStatus());
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(expectedOrderStatus));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    void expiredUnpaidOrdersCannotBePaidBeforeTheExpiryWorkerRuns(boolean groupOrder) throws Exception {
+        seedOrder(11L, 1, 0, null);
+        if (groupOrder) {
+            fixtures.update("INSERT INTO groupon(id,dish_id,leader_user_id,groupon_price,required_size,current_size,status,expire_time,create_time) "
+                    + "VALUES(100,1,11,10.00,2,1,1,'2000-01-01 00:00:00','2000-01-01 00:00:00')");
+            fixtures.update("UPDATE orders SET is_groupon=1,groupon_id=100 WHERE id=101");
+        } else fixtures.update("UPDATE orders SET order_time='2000-01-01 00:00:00' WHERE id=101");
+        mvc.perform(post("/api/pay/101/mock-pay").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(400));
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(1))
+                .andExpect(jsonPath("$.data.payStatus").value(0))
+                .andExpect(jsonPath("$.data.pickupCode").isEmpty());
+    }
+
+    @Test
+    void deliveryPaymentDoesNotIssueAPickupCredential() throws Exception {
+        seedOrder(11L, 1, 0, null);
+        fixtures.update("UPDATE orders SET pickup_point_id=NULL WHERE id=101");
+        mvc.perform(post("/api/pay/101/mock-pay").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isEmpty());
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(2))
+                .andExpect(jsonPath("$.data.payStatus").value(1))
+                .andExpect(jsonPath("$.data.pickupCode").isEmpty());
+    }
+
+    @Test
+    void expiryReleasesAnUnpaidOrdersReservationOnceAndPreservesPaidOrders() throws Exception {
+        checkoutFixtures(1);
+        seedOrder(11L, 1, 0, null);
+        fixtures.update("UPDATE orders SET order_time='2000-01-01 00:00:00' WHERE id=101");
+        fixtures.update("INSERT INTO order_stock(order_id,dish_id,number) VALUES(101,1,2)");
+        fixtures.update("INSERT INTO orders(id,number,user_id,status,pay_status,amount,order_time) VALUES(102,'paid-order',11,2,1,12.50,'2000-01-01 00:00:00')");
+        org.junit.jupiter.api.Assertions.assertTrue(orderService.expireUnpaidOrder(101L));
+        org.junit.jupiter.api.Assertions.assertFalse(orderService.expireUnpaidOrder(101L));
+        org.junit.jupiter.api.Assertions.assertFalse(orderService.expireUnpaidOrder(102L));
+        mvc.perform(get("/api/orders/101").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(6));
+        mvc.perform(get("/api/orders/102").header("Authorization", userToken(11L)))
+                .andExpect(jsonPath("$.data.status").value(2)).andExpect(jsonPath("$.data.payStatus").value(1));
+        checkout("after-expiry-1", 3, 200);
+        checkout("after-expiry-2", 1, 400);
     }
 
     private void checkoutFixtures(int stock) {
@@ -484,7 +606,7 @@ class BackendContractTest {
     @Import({WebMvcConfiguration.class, JwtTokenUserInterceptor.class, JwtTokenAdminInterceptor.class,
             ApiOrderController.class, ApiPayController.class, ApiAuthController.class,
             AddressBookController.class, com.sky.controller.user.OrderController.class,
-            com.sky.controller.admin.OrderController.class, OrderServiceImpl.class, com.sky.service.CheckoutService.class,
+            com.sky.controller.admin.OrderController.class, OrderServiceImpl.class, com.sky.service.CheckoutService.class, com.sky.service.impl.GrouponServiceImpl.class,
             AddressBookServiceImpl.class, GlobalExceptionHandler.class, ResultResponseAdvice.class,
             WebSocketServer.class})
     static class TestConfiguration {
@@ -493,7 +615,7 @@ class BackendContractTest {
             return new EmbeddedDatabaseBuilder().setType(EmbeddedDatabaseType.H2)
                     .setName("contracts-" + java.util.UUID.randomUUID()
                             + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE;NON_KEYWORDS=USER")
-                    .addScript("classpath:contracts-schema.sql").build();
+                    .addScript("classpath:contracts-schema.sql").addScript("classpath:groupon-contracts-schema.sql").build();
         }
 
         @Bean
