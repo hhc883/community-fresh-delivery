@@ -37,15 +37,15 @@
 | 密码登录 | `POST /api/auth/login-password` | `{phone,password}` → token | 已有；旧密码兼容待整理，Codex |
 | 设置密码 | `POST /api/auth/set-password` | `{password}`；必须用户鉴权 | 本批修复放行规则，Codex |
 | 管理员登录 | `POST /admin/employee/login` | `{username,password}` → `{id,token,...}` | 路由已有，GLM 适配 |
-| 商品 | `GET /api/dishes`、`GET /api/dishes/{id}` | 分类、keyword、categoryId；商品 VO | 已有；假商品兜底待清理，Codex |
-| 自提点 | `GET /api/stores`、`GET /user/pickupPoint/list` | 使用数据库自提点 ID | 已有，Gemini 对接 |
+| 商品 | `GET /api/dishes`、`GET /api/dishes/{id}` | 分类、keyword、categoryId；商品 VO | 2026-10-25 已收尾：仅返回启用商品且分类启用；不存在/停售/禁用分类明确 400；VO 无销量/评分/促销/距离假值；评价与秒杀 501，ZCode |
+| 自提点 | `GET /api/stores`、`GET /api/stores/{id}`、`GET /user/pickupPoint/list` | 使用数据库自提点 ID | 2026-10-25 已收尾：仅返回启用真实自提点，distance/service 只回数据库真实值，无兜底假门店；详情不存在或停用明确 400，ZCode |
 | 地址列表/新增/编辑 | `GET /user/addressBook/list`、`POST/PUT /user/addressBook` | 地址字段、字符串 id | 已有；归属校验本批修复，Codex；页面 Gemini |
 | 地址详情/删除/默认 | `GET /user/addressBook/{id}`、`DELETE /user/addressBook?id=...`、`PUT/GET /user/addressBook/default` | 设置默认传 `{id}` | 已有；归属校验本批修复 |
 | 下单 | `POST /api/orders` 或 `POST /user/order/submit` | DTO 见下；返回 OrderSubmitVO | 两入口统一服务待实现，Codex |
 | 用户订单列表 | `GET /api/orders?pageNum=1&pageSize=10&status=...` | `{total,records:[OrderVO]}` | 本批移除示例订单 |
 | 用户订单详情 | `GET /api/orders/{id}`、`GET /user/order/orderDetail/{id}` | OrderVO，须本人订单 | 本批修复归属与缺失行为 |
 | 用户取消 | `POST /api/orders/{id}/cancel`、`PUT /user/order/cancel/{id}` | 未付款/待接单可取消；完成、配送中拒绝 | 本批统一真实失败和归属；库存回补后续 |
-| 模拟支付 | `POST /api/pay/{id}/mock-pay`、`POST /user/order/{id}/mock-pay` | data 为提货码；配送单不应依赖提货码 | 本批禁止不存在/他人/已取消订单；并发状态后续 |
+| 模拟支付 | `POST /api/pay/{id}/mock-pay`、`POST /user/order/{id}/mock-pay` | data 为提货码；配送单不应依赖提货码 | 2026-10-25 并发幂等已验证：八并发支付返回同一提货码，回查用当前读防旧快照，ZCode |
 | 旧模拟支付 | `PUT /user/order/payment` | `{orderNumber,payMethod}` | 必须校验归属，与模拟支付共用服务 |
 | 拼团商品/可加入团 | `GET /user/groupon/dish/list`、`GET /user/groupon/joinable/{dishId}` | Dish/GrouponVO 列表 | 已有；仅商品列表允许匿名 |
 | 开团/参团 | `POST /user/groupon/open`、`POST /user/groupon/join` | GrouponJoinDTO；返回 Groupon | 已有；事务、库存和到期回收待验证 |
@@ -53,7 +53,10 @@
 | 后台订单/详情 | `GET /admin/order/conditionSearch`、`GET /admin/order/details/{id}` | OrdersPageQueryDTO/OrderVO | 已有，管理员鉴权，GLM 对接 |
 | 接单/配送/完成 | `PUT /admin/order/confirm`、`PUT /admin/order/delivery/{id}`、`PUT /admin/order/complete/{id}` | confirm body `{id}` | 已有；完整条件更新后续 |
 | 核销 | `POST /admin/order/verify` | `{pickupCode,pickupPointId?}` → OrderVO | 已有原子更新；支付/终态条件需补强 |
-| 商品维护 | `/admin/dish`、`/admin/category` | 具体方法见路由全表 | 已有，GLM 适配已有接口 |
+| 商品维护 | `/admin/dish`、`/admin/category` | 具体方法见路由全表 | 2026-10-25 已收尾：创建/修改校验必填名称/有效分类/正价格/非负库存/拼团参数，与口味同事务；删除校验不存在与活跃订单库存预留；分页不再强制 100000；`isFresh` 保留，ZCode |
+| 用户中心 | `GET /api/user/me`、`POST /api/user/avatar` | 本人数据；订单计数为真实查询 | 2026-10-25 已收尾：未持久化用户 400；计数只查本人订单；头像只更新本人 avatar 字段，ZCode |
+| 大盘与报表口径 | `/admin/workspace/businessData`、`/admin/report/*` | 营业额/有效订单只计已付款完成订单；用户统计边界含当日 00:00 | 2026-10-25 已对齐，ZCode |
+| 未实现的扩展 | 评价 `/api/dishes/{id}/reviews`、秒杀 `/api/seckill/current`、优惠券 `/api/coupons*`、邀请 `/api/invite/*`、免费团 `/api/free/current`、换绑 `POST /api/user/change-phone` | — | 2026-10-25 起明确 HTTP 501 `{code:501}`，不做假成功；接入前不得改口，ZCode |
 | 报表 | `GET /admin/report/turnoverStatistics`、`ordersStatistics`、`userStatistics`、`top10` | `begin`、`end` 日期 | 已有；含 GLM 新增团购统计，统计口径待对账 |
 
 `/api/admin/**`、`/api/merchant/**`、`/api/partner/**` 当前没有对应控制器。前端不得视为已实现；GLM 优先改接 `/admin/**`，确需薄适配层时由 Codex 按本契约追加。
