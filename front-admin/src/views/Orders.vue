@@ -44,7 +44,7 @@
         </el-table-column>
         <el-table-column label="方式" width="90">
           <template #default="{ row }">
-            <el-tag v-if="row.pickupPointName || row.pickupCode" type="success" size="small">自提</el-tag>
+            <el-tag v-if="row.pickupPointId" type="success" size="small">自提</el-tag>
             <el-tag v-else type="primary" size="small">配送</el-tag>
           </template>
         </el-table-column>
@@ -68,8 +68,8 @@
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button v-if="row.status === 2" link type="success" @click="onConfirm(row)">接单</el-button>
             <el-button v-if="row.status === 2" link type="danger" @click="onReject(row)">拒单</el-button>
-            <el-button v-if="row.status === 3" link type="primary" @click="onDelivery(row)">派送</el-button>
-            <el-button v-if="row.status === 4 && !(row.pickupPointName || row.pickupCode)" link type="success" @click="onComplete(row)">完成</el-button>
+            <el-button v-if="row.status === 3 && !row.pickupPointId" link type="primary" @click="onDelivery(row)">派送</el-button>
+            <el-button v-if="row.status === 4 && !row.pickupPointId" link type="success" @click="onComplete(row)">完成</el-button>
             <el-button v-if="row.status === 2 || row.status === 3" link type="warning" @click="onCancel(row)">取消</el-button>
           </template>
         </el-table-column>
@@ -105,7 +105,7 @@
           <el-descriptions-item v-if="detail.data.pickupPointName" label="自提点">
             {{ detail.data.pickupPointName }}（{{ detail.data.pickupPointAddress || '-' }}）
           </el-descriptions-item>
-          <el-descriptions-item v-if="detail.data.pickupCode" label="提货码">
+          <el-descriptions-item v-if="detail.data.pickupPointId && detail.data.pickupCode" label="提货码">
             <span class="pickup-code">{{ detail.data.pickupCode }}</span>
           </el-descriptions-item>
           <el-descriptions-item v-if="detail.data.remark" label="备注">{{ detail.data.remark }}</el-descriptions-item>
@@ -151,9 +151,9 @@ import {
   rejectOrder, verifyOrder
 } from '../api'
 
-const STATUS_LABELS = { 1: '待付款', 2: '待接单', 3: '已接单', 4: '派送中', 5: '已完成', 6: '已取消', 7: '已退款' }
-const STATUS_TAG_TYPES = { 1: 'warning', 2: 'warning', 3: 'primary', 4: 'primary', 5: 'success', 6: 'info', 7: 'danger' }
-const PAY_LABELS = { 0: '未支付', 1: '已支付', 2: '已退款' }
+const STATUS_LABELS = { 1: '待付款', 2: '待接单', 3: '已接单', 4: '派送中', 5: '已完成', 6: '已取消' }
+const STATUS_TAG_TYPES = { 1: 'warning', 2: 'warning', 3: 'primary', 4: 'primary', 5: 'success', 6: 'info' }
+const PAY_LABELS = { 0: '未支付', 1: '已模拟支付', 2: '已模拟退款' }
 
 const viewState = ref('loading')
 const errorText = ref('')

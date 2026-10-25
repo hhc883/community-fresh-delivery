@@ -53,7 +53,7 @@
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="showMembers(row)">成员</el-button>
+            <el-button v-if="Array.isArray(row.members)" link type="primary" @click="showMembers(row)">成员</el-button>
             <el-button v-if="row.status === 1" link type="success" @click="onComplete(row)">校验成团</el-button>
           </template>
         </el-table-column>
@@ -206,8 +206,9 @@ function showMembers(row) {
   members.grouponId = row.id
   members.status = row.status
   members.lack = Math.max((row.requiredSize || 0) - (row.currentSize || 0), 0)
-  members.list = []
+  members.list = row.members || []
 }
+onMounted(loadPage)
 </script>
 
 <style scoped>
