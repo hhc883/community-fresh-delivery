@@ -4,6 +4,8 @@
 
 [部署与启动手册](deploy/RUNBOOK.md) · [API 契约](docs/contracts/api-v1.md) · [状态机](docs/contracts/state-machine.md) · [需求对应](docs/qa/requirements-mapping.md) · [验收报告](docs/qa/acceptance-report.md) · [论文与答辩素材](docs/thesis/implementation-facts.md)
 
+2026-10-25 已整合验收通过的后端 `1116f99` 与前端 `33c210b`。本轮按用户要求不重新执行测试，完整整合版由用户手工确认；运行步骤和交付边界见 [核心版本交接](docs/delivery/2026-10-25-handoff.md)。
+
 ## 快速开始
 
 安装 JDK 17、Maven 3.9.x、Node 22、MySQL 8 和 Redis。配置从环境读取，不复制历史个人设置。
@@ -58,6 +60,6 @@ python scripts/run-acceptance.py
 | `tests/acceptance/`、`docs/qa/`、`docs/thesis/` | 外部验收及交付事实材料 |
 | `front-merchant/`、`front-partner/` | 历史扩展端，未作为核心已交付功能 |
 
-真实短信、微信资金交易、独立商家/自提点权限、骑手端和复杂营销不包含在核心演示。原四 Agent 负责人名称只保留为历史分工；当前由 Codex 按用户后续授权接手未完成工作。原课题文档联系方式不上传。
+真实短信、微信资金交易、独立商家/自提点权限、骑手端和复杂营销不包含在核心演示。原四 Agent 负责人名称只保留为历史分工；本批后端由 ZCode、前端由 Antigravity 实现，Codex 负责验收与整合。原课题文档联系方式不上传。
 
 遵循 [LICENSE](LICENSE)。

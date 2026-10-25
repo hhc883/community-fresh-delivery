@@ -1,5 +1,7 @@
 # 核心收尾真实验证记录（ZCode，2026-10-25）
 
+最新复验以 `1116f99` 为准：R1旧支付并发回包、R2部分更新拼团校验已修复；Codex独立干净重建126项测试、14项HTTP与2项缺陷探针全部通过。前端 `33c210b` 的6项测试和三个构建通过。下面124项为修复前一轮的历史记录。最新交付和手工确认范围见 [交接记录](../delivery/2026-10-25-handoff.md)。
+
 工作树 `community-fresh-delivery-zcode`，分支 `feat/zcode-core-finish`。接手三个原工作树的 26 个暂停文件
 （`handoff-manifest.json` 全部 SHA 校验通过，dirty 内容保留并在此基础上继续），在本批完成收尾。
 

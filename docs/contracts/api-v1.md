@@ -41,17 +41,17 @@
 | 自提点 | `GET /api/stores`、`GET /api/stores/{id}`、`GET /user/pickupPoint/list` | 使用数据库自提点 ID | 2026-10-25 已收尾：仅返回启用真实自提点，distance/service 只回数据库真实值，无兜底假门店；详情不存在或停用明确 400，ZCode |
 | 地址列表/新增/编辑 | `GET /user/addressBook/list`、`POST/PUT /user/addressBook` | 地址字段、字符串 id | 已有；归属校验本批修复，Codex；页面 Gemini |
 | 地址详情/删除/默认 | `GET /user/addressBook/{id}`、`DELETE /user/addressBook?id=...`、`PUT/GET /user/addressBook/default` | 设置默认传 `{id}` | 已有；归属校验本批修复 |
-| 下单 | `POST /api/orders` 或 `POST /user/order/submit` | DTO 见下；返回 OrderSubmitVO | 两入口统一服务待实现，Codex |
+| 下单 | `POST /api/orders` 或 `POST /user/order/submit` | DTO 见下；返回 OrderSubmitVO | 两入口已统一结算服务；服务端价格、库存与幂等已有公开接口回归 |
 | 用户订单列表 | `GET /api/orders?pageNum=1&pageSize=10&status=...` | `{total,records:[OrderVO]}` | 本批移除示例订单 |
 | 用户订单详情 | `GET /api/orders/{id}`、`GET /user/order/orderDetail/{id}` | OrderVO，须本人订单 | 本批修复归属与缺失行为 |
-| 用户取消 | `POST /api/orders/{id}/cancel`、`PUT /user/order/cancel/{id}` | 未付款/待接单可取消；完成、配送中拒绝 | 本批统一真实失败和归属；库存回补后续 |
+| 用户取消 | `POST /api/orders/{id}/cancel`、`PUT /user/order/cancel/{id}` | 未付款/待接单可取消；完成、配送中拒绝 | 本人隔离、首次库存回补、重复取消幂等及模拟退款已有验证 |
 | 模拟支付 | `POST /api/pay/{id}/mock-pay`、`POST /user/order/{id}/mock-pay` | data 为提货码；配送单不应依赖提货码 | 2026-10-25 并发幂等已验证：八并发支付返回同一提货码，回查用当前读防旧快照，ZCode |
-| 旧模拟支付 | `PUT /user/order/payment` | `{orderNumber,payMethod}` | 必须校验归属，与模拟支付共用服务 |
+| 旧模拟支付 | `PUT /user/order/payment` | `{orderNumber,payMethod}` | 本人鉴权并复用状态校验；1116f99当前读回查，5轮×8并发回包一致 |
 | 拼团商品/可加入团 | `GET /user/groupon/dish/list`、`GET /user/groupon/joinable/{dishId}` | Dish/GrouponVO 列表 | 已有；仅商品列表允许匿名 |
 | 开团/参团 | `POST /user/groupon/open`、`POST /user/groupon/join` | GrouponJoinDTO；返回 Groupon | 已有；事务、库存和到期回收待验证 |
 | 团详情/我的团 | `GET /user/groupon/detail/{id}`、`GET /user/groupon/mine` | GrouponVO | 已有；成员敏感信息需核验 |
 | 后台订单/详情 | `GET /admin/order/conditionSearch`、`GET /admin/order/details/{id}` | OrdersPageQueryDTO/OrderVO | 已有，管理员鉴权，GLM 对接 |
-| 接单/配送/完成 | `PUT /admin/order/confirm`、`PUT /admin/order/delivery/{id}`、`PUT /admin/order/complete/{id}` | confirm body `{id}` | 已有；完整条件更新后续 |
+| 接单/配送/完成 | `PUT /admin/order/confirm`、`PUT /admin/order/delivery/{id}`、`PUT /admin/order/complete/{id}` | confirm body `{id}` | 校验付款、当前状态及团购履约条件；配送推进与终态拒绝已有HTTP验证 |
 | 核销 | `POST /admin/order/verify` | `{pickupCode,pickupPointId?}` → OrderVO | 已有原子更新；支付/终态条件需补强 |
 | 商品维护 | `/admin/dish`、`/admin/category` | 具体方法见路由全表 | 2026-10-25 已收尾：创建/修改校验必填名称/有效分类/正价格/非负库存/拼团参数，与口味同事务；删除校验不存在与活跃订单库存预留；分页不再强制 100000；`isFresh` 保留，ZCode |
 | 用户中心 | `GET /api/user/me`、`POST /api/user/avatar` | 本人数据；订单计数为真实查询 | 2026-10-25 已收尾：未持久化用户 400；计数只查本人订单；头像只更新本人 avatar 字段，ZCode |
@@ -74,7 +74,7 @@
 - 空订单列表：`total:0,records:[]`，不得返回样例。
 - 不存在或非本人订单：失败信封，不生成提货码、不写库、不吞异常。
 - 已取消订单：禁止支付；已完成订单：禁止取消；重复模拟支付：沿用原状态和提货码。
-- 库存不足/负数量/失效团购：失败并回滚；相关完整业务验证列入后续任务。
+- 库存不足/负数量/失效团购：失败并回滚；已有公开接口和隔离MySQL HTTP回归，完整整合版用户流程留给手工确认。
 - 重复核销：业务失败且不发生第二次履约。
 - 真实短信、真实支付退款、评价和营销扩展未完成时明确标为未实现；模拟支付不能表述成真实交易。
 
@@ -140,10 +140,12 @@
 
 上述管理端补充来自 GLM 的既有契约，Codex 在整合时保留端点与字段。新增的 `/admin/groupon/page` 和 `/admin/report/grouponStatistics` 已有实现，当前完整业务和真实数据库对账仍未执行。团购统计按活动 create_time 统计活动与成员，按订单 order_time 统计订单与已付款金额；`begin/end` 为空时取全部历史，非空为包含边界的日期区间。
 
-整合澄清：报表入参是 `begin/end`；订单退款表示为 `status=6,payStatus=2`，不新增未实现的订单状态 7；核销终态与团购条件仍是后续待修复项，不能把目标契约称作全部已验证。
+整合澄清：报表入参是 `begin/end`；订单模拟退款表示为 `status=6,payStatus=2`，不新增订单状态7；核销终态与团购条件已实现，实际验证范围和设备限制见验收报告。
 
 
 ## 2026-10-25 核心补全契约
+
+商品编辑仍要求名称、分类、价格；可选字段省略按既有值保留。拼团参数必须按更新后的最终状态校验，省略isGroupon不能绕过负价、人数与有效时长检查；显式退出拼团清理陈旧团参数。该修复在1116f99通过服务契约及实际HTTP复验。
 
 普通下单 `/api/orders` 与 `/user/order/submit` 统一进入同一个结算服务。`clientRequestId` 必填，为 1–64 位字母、数字、下划线或短横线，建议 UUID。一次结算意图的网络重试必须沿用原键；成功后或修改商品、数量、履约信息后使用新键。相同键和相同意图返回原订单，包括已付款或已取消订单；相同键提交不同意图明确失败。服务端不把客户端金额、商品名称或价格纳入成交依据。
 
