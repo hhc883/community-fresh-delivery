@@ -40,3 +40,7 @@ python scripts/serve-frontends.py --directory front-admin-sky/dist --extensions 
 - 保留实际截图于本机 `.local/ui-restoration/green-home.png`、`sky-dashboard.png`。
 - 按用户要求，未重跑交易回归、并发、微信真机及完整手工业务流程；源码构建不代表这些验证完成。原版旧 TypeScript 项目本轮采用转译构建，未完成完整类型检查。CI加入新管理端构建配置，未声称远端CI已执行。
 - 本轮没有自动push或merge。
+
+## 微信开发者工具样式编译修复
+
+用户随后反馈 `app.wxss(1:539): error at token '*'`。微信开发者工具自带 `wcsc.exe` 对旧产物复现相同错误并退出1；源码未使用 `.stack`，删除公共样式中遗留的 `.stack > *` 规则。重新生成 mp-weixin 后，原生编译器单独编译 app.wxss 及批量编译全部10个WXSS文件均退出0。uni-app打包成功不能替代微信原生样式编译，本次未声称完成微信真机或业务流程测试。
