@@ -178,5 +178,64 @@ body {
   color: #303133;
 }
 </style>
-
-<style>.embedded .app-main{padding:16px}.embedded .page{max-width:none}.embedded .el-button--primary{--el-button-bg-color:#ffc200;--el-button-border-color:#ffc200;--el-button-text-color:#333}.embedded .el-tag{border-radius:3px}</style>
+<style>
+.embedded .app-main {
+  padding: 16px 20px;
+}
+.embedded .page {
+  max-width: none;
+}
+.embedded .el-button--primary {
+  --el-button-bg-color: #ffc200;
+  --el-button-border-color: #ffc200;
+  --el-button-text-color: #333333;
+  --el-button-hover-bg-color: #ffd033;
+  --el-button-hover-border-color: #ffd033;
+  --el-button-hover-text-color: #333333;
+  font-weight: 500;
+}
+.embedded .el-tag {
+  border-radius: 4px;
+}
+/* 嵌入苍穹外卖管理端主视觉：增强表格、筛选栏与卡片层次 */
+.embedded .el-table {
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.embedded .el-table th.el-table__cell {
+  background-color: #f8f9fb !important;
+  color: #303133;
+  font-weight: 600;
+  padding: 10px 0;
+}
+.embedded .el-table td.el-table__cell {
+  padding: 10px 0;
+}
+.embedded .toolbar {
+  background: #ffffff;
+  padding: 14px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.embedded .card,
+.embedded .block {
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+.embedded .el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.embedded .el-pagination.is-background .el-pager li.is-active {
+  background-color: #ffc200 !important;
+  color: #333333 !important;
+  font-weight: 600;
+}
+</style>

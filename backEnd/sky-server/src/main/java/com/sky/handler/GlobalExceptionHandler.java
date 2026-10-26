@@ -18,6 +18,10 @@ import java.sql.SQLIntegrityConstraintViolationException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public Result uploadTooLarge(Exception ex) {
+        return Result.error("图片不能超过2MB");
+    }
 
     /**
      * 捕获业务异常

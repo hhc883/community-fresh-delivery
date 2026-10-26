@@ -2,6 +2,10 @@
 
 技术基线：JDK 17、Maven 3.9.x、Spring Boot 2.7.3、MySQL 8、Redis、Node 22。默认后端为 `127.0.0.1:8080`。用户前端和后台独立构建；真实微信支付、短信、商家及自提点独立端不在核心演示范围。
 
+Windows本机已有便携依赖时，构建后运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -Database cfd_demo`，停止使用 `scripts/stop-local.ps1`。脚本参数支持 `-RuntimeRoot`、`-PythonBin`、`-JavaBin`；默认识别同级便携依赖目录，Python需3.10以上。现有演示数据请明确使用原库名 `cfd_demo_manual_20261026`，脚本会保留已有表，不重复初始化或种子。
+
+本地上传默认写入应用工作目录 `.local/uploads`，可通过 `APP_UPLOAD_DIR` 指定持久目录。后台只接受不超过2MB的PNG/JPEG，返回 `/uploads/` 地址；前端代理和Nginx需保留该路径。备份时同时保留数据库与图片目录。无需配置云存储账号即可完成商品图片上传。
+
 ## 构建
 
 ```powershell

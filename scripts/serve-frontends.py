@@ -14,9 +14,15 @@ class Handler(SimpleHTTPRequestHandler):
     extensions = None
     backend = None
     spa = False
+    static_directory = Path(__file__).resolve().parents[1] / 'front' / 'static'
 
     def translate_path(self, path):
         url_path = unquote(urlsplit(path).path)
+        if url_path.startswith('/static/'):
+            target = (self.static_directory / url_path[len('/static/'):]).resolve()
+            if not target.is_relative_to(self.static_directory.resolve()):
+                return str(self.static_directory / '__invalid_path__')
+            return str(target)
         if self.extensions and (url_path == '/extensions' or url_path.startswith('/extensions/')):
             relative = url_path.removeprefix('/extensions').lstrip('/')
             target = (self.extensions / relative).resolve()
@@ -31,7 +37,7 @@ class Handler(SimpleHTTPRequestHandler):
         return target
 
     def proxy(self):
-        if not self.backend or not urlsplit(self.path).path.startswith(('/admin/', '/common/')):
+        if not self.backend or not urlsplit(self.path).path.startswith(('/admin/', '/common/', '/api/', '/user/', '/uploads/')):
             return False
         connection = http.client.HTTPConnection(self.backend.hostname, self.backend.port or 8080, timeout=25)
         try:

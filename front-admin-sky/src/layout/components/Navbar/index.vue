@@ -159,7 +159,7 @@ export default class extends Vue {
     this.getStatus()
   }
   created() {
-    this.webSocket()
+    if (process.env.VUE_APP_SOCKET_URL) this.webSocket()
   }
   onload() {
   }

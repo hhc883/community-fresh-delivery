@@ -76,7 +76,6 @@
               <template #default="{ row }">￥{{ row.price }}</template>
             </el-table-column>
             <el-table-column prop="stock" label="库存" width="80" />
-            <el-table-column prop="soldCount" label="销量" width="80" />
             <el-table-column label="团购" width="140">
               <template #default="{ row }">
                 <el-tag v-if="row.isGroupon === 1" type="success" size="small">
@@ -172,6 +171,9 @@
         </el-form-item>
         <el-form-item label="图片地址">
           <el-input v-model="dishDialog.image" placeholder="图片 URL 或上传后的地址" />
+          <el-upload accept="image/png,image/jpeg" :show-file-list="false" :http-request="uploadImage" :disabled="imageUploading">
+            <el-button :loading="imageUploading">上传本地图片</el-button>
+          </el-upload>
         </el-form-item>
         <el-divider>团购设置</el-divider>
         <el-form-item label="参与团购">
@@ -205,6 +207,26 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryPage, setCategoryStatus, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
+import { uploadProductImage } from '../api'
+
+const imageUploading = ref(false)
+async function uploadImage(options) {
+  if (options.file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过2MB')
+    options.onError(new Error('图片不能超过2MB'))
+    return
+  }
+  imageUploading.value = true
+  try {
+    const response = await uploadProductImage(options.file)
+    dishDialog.image = response.data
+    options.onSuccess(response)
+    ElMessage.success('图片已上传')
+  } catch (error) {
+    ElMessage.error(error.message || '图片上传失败')
+    options.onError(error)
+  } finally { imageUploading.value = false }
+}
 
 const viewState = ref('loading')
 const errorText = ref('')

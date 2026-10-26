@@ -149,6 +149,7 @@ export function decorateDish(d) {
   const rushText = soldCount >= 10000 ? '正在疯抢' : '即将抢光'
   return {
     ...d,
+    image: typeof d.image === 'string' && d.image.startsWith('/uploads/') ? BASE_URL + d.image : d.image,
     seckill,
     seckillPrice,
     cutText,
@@ -618,7 +619,9 @@ export function deleteAddress(id) {
 // ==================== 社区拼团接口 ====================
 
 export function getGrouponDishList() {
-  return request({ url: '/user/groupon/dish/list', method: 'GET' })
+  return request({ url: '/user/groupon/dish/list', method: 'GET' }).then(res => ({
+    ...res, data: Array.isArray(res.data) ? res.data.map(decorateDish) : []
+  }))
 }
 
 export function getGrouponDetail(id) {

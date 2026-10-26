@@ -52,6 +52,7 @@
         @tap="cancel"
       >
         取消订单</button
+      ><button v-if="order.grouponId && String(order.grouponId) !== '0'" class="secondary" @tap="group">查看拼团进度</button
       ><button class="secondary" @tap="load">刷新状态</button></template
     ></view
   >
@@ -92,6 +93,9 @@ export default {
     this.load();
   },
   methods: {
+    group() {
+      uni.navigateTo({ url: '/pages/groupon/detail?id=' + encodeURIComponent(this.order.grouponId) });
+    },
     async load() {
       this.loading = true;
       this.error = "";

@@ -15,8 +15,10 @@ export default defineConfig({
   server: {
     // 端口钉死 5173 + strictPort：5173 是 README 登记的 C 端地址，
     // 且已登记进 backEnd CorsConfig 的 allowedOrigins（5173~5177）。
-    // 不配 proxy：后端 CORS 已放行，前端直连 BASE_URL（见 api/config.js），
-    // 配了 proxy 就等于同一份后端地址存在两处真值。
+    // H5 uses same-origin requests; mini-programs use api/config.js.
+    proxy: Object.fromEntries(['/api', '/user'].map(prefix => [prefix, {
+      target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:8080'
+    }])),
     port: 5173,
     strictPort: true,
     watch: {

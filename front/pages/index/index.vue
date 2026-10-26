@@ -226,7 +226,7 @@ export default {
   },
 };
 </script>
-<style lang="scss" scoped>
+<style scoped>
 .home-page {
   min-height: 100vh;
   background-color: #f7f8fa;
@@ -235,10 +235,11 @@ export default {
 
 /* 顶部绿色头部（一体化沉浸式，包含状态栏占位，圆弧过渡） */
 .green-header {
-  background-color: #25b873;
-  padding: 16rpx 24rpx 24rpx;
-  border-radius: 0 0 28rpx 28rpx;
+  background: linear-gradient(180deg, #25b873 0%, #1ea062 100%);
+  padding: 16rpx 24rpx 28rpx;
+  border-radius: 0 0 32rpx 32rpx;
   box-sizing: border-box;
+  box-shadow: 0 4rpx 20rpx rgba(37, 184, 115, 0.2);
 }
 
 .search-row {
@@ -506,7 +507,7 @@ export default {
   position: absolute;
   left: 12rpx;
   top: 12rpx;
-  background: linear-gradient(90deg, #7c3aed 0%, #6d28d9 100%);
+  background: linear-gradient(90deg, #ff6b35 0%, #ff2442 100%);
   color: #ffffff;
   font-size: 18rpx;
   font-weight: 700;
@@ -548,13 +549,13 @@ export default {
 
 .gc-symbol {
   font-size: 22rpx;
-  color: #25b873;
+  color: #ff5e1e;
   font-weight: 700;
 }
 
 .gc-price {
   font-size: 34rpx;
-  color: #25b873;
+  color: #ff5e1e;
   font-weight: 800;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -580,10 +581,11 @@ export default {
 
 /* 底部防 TabBar 遮挡留白 */
 .tabbar-safe-placeholder {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
-/* 悬浮拼团按钮 */
+/* 悬浮拼团按钮（平铺常规类选择器，符合微信WXSS） */
 .floating-groupon {
   position: fixed;
   right: 28rpx;
@@ -598,49 +600,46 @@ export default {
   justify-content: center;
   box-shadow: 0 8rpx 20rpx rgba(255, 36, 66, 0.38);
   z-index: 998;
-  transition: transform 0.2s ease;
-
-  &:active {
-    transform: scale(0.92);
-  }
-
-  .fg-badge {
-    position: absolute;
-    top: -8rpx;
-    right: -4rpx;
-    background: #ffd21e;
-    color: #9e1000;
-    font-size: 16rpx;
-    font-weight: 800;
-    padding: 2rpx 8rpx;
-    border-radius: 12rpx;
-    border: 2rpx solid #ffffff;
-    line-height: 1.2;
-  }
-
-  .fg-icon {
-    font-size: 32rpx;
-    line-height: 1;
-  }
-
-  .fg-text {
-    font-size: 20rpx;
-    color: #ffffff;
-    font-weight: 700;
-    margin-top: 2rpx;
-    line-height: 1;
-  }
 }
-</style>
-<style scoped>
+
+.floating-groupon .fg-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -4rpx;
+  background: #ffd21e;
+  color: #9e1000;
+  font-size: 16rpx;
+  font-weight: 800;
+  padding: 2rpx 8rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid #ffffff;
+  line-height: 1.2;
+}
+
+.floating-groupon .fg-icon {
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.floating-groupon .fg-text {
+  font-size: 20rpx;
+  color: #ffffff;
+  font-weight: 700;
+  margin-top: 2rpx;
+  line-height: 1;
+}
+
 .green-cart-float {
   position: fixed;
   bottom: 150rpx;
   left: 28rpx;
-  background: #25b873;
-  color: white;
+  background-color: #25b873;
+  color: #ffffff;
   border-radius: 50rpx;
-  padding: 22rpx;
-  z-index: 20;
+  padding: 20rpx 28rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  box-shadow: 0 6rpx 18rpx rgba(37, 184, 115, 0.35);
+  z-index: 998;
 }
 </style>

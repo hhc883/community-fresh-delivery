@@ -1349,19 +1349,23 @@ export default {
   box-sizing: border-box;
 }
 </style>
-
 <style scoped>
 .add-button {
   margin: 0;
   padding: 0 20rpx;
   border-radius: 50%;
-  background: #25b873;
-  color: white;
+  background-color: #25b873;
+  color: #ffffff;
+  border: none;
 }
 .rank-price,
-.rank-symbol,
+.rank-symbol {
+  color: #ff5e1e;
+  font-weight: 700;
+}
 .nav-search-go-text {
   color: #25b873;
+  font-weight: 600;
 }
 .nav-search-icon {
   border-color: #25b873;

@@ -202,7 +202,7 @@ export default {
   },
 };
 </script>
-<style lang="scss" scoped>
+<style scoped>
 .cat-page {
   display: flex;
   flex-direction: column;
@@ -213,15 +213,17 @@ export default {
 .top-search-wrap {
   padding: 16rpx 24rpx;
   background-color: #ffffff;
+  border-bottom: 1rpx solid #edf1ee;
 }
 
 .search-pill {
   display: flex;
   align-items: center;
   height: 68rpx;
-  background-color: #f7f8fa;
+  background-color: #f4f7f5;
   border-radius: 34rpx;
   padding: 0 24rpx;
+  border: 1rpx solid #e3e9e5;
 }
 
 .search-icon {
@@ -418,27 +420,31 @@ export default {
 
 .price-symbol {
   font-size: 22rpx;
-  color: #25b873;
+  color: #ff5e1e;
   font-weight: 700;
 }
 
 .price-num {
   font-size: 32rpx;
-  color: #25b873;
+  color: #ff5e1e;
   font-weight: 800;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .cart-btn {
-  width: 48rpx;
-  height: 48rpx;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background-color: #25b873;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4rpx 10rpx rgba(37, 184, 115, 0.3);
 }
 
 .cart-icon {
-  font-size: 36rpx;
-  color: #25b873;
+  font-size: 28rpx;
+  color: #ffffff;
+  line-height: 1;
 }
 </style>

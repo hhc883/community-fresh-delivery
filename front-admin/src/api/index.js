@@ -8,7 +8,7 @@
 //   失败  HTTP 200 + {code:0, msg/message}（GlobalExceptionHandler 统一返回，不抛非 200）
 //   登录失效  HTTP 401 + {code:401, message:"请先登录"}（JwtTokenAdminInterceptor 直写）
 // 前端只认 code===1 为成功；401 清登录态跳登录页；其余一律按失败透出后端 message。
-export const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? 'http://localhost:8080'
+export const BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? ''
 
 // 分层超时：查询类 10s；提交类 20s（登录走 PBKDF2 验密，属提交档）。
 const TIMEOUT_QUERY = 10000
@@ -122,7 +122,7 @@ function request(options) {
   const isSubmit = method !== 'GET'
   const timeoutMs = isSubmit ? TIMEOUT_SUBMIT : TIMEOUT_QUERY
 
-  const headers = { 'Content-Type': 'application/json' }
+  const headers = options.formData ? {} : { 'Content-Type': 'application/json' }
   if (!loginRequest) {
     const token = getStoredToken()
     if (token) headers.Authorization = 'Bearer ' + token
@@ -137,7 +137,7 @@ function request(options) {
     fetch(BASE_URL + buildUrl(options.url, options.params), {
       method,
       headers,
-      body: options.data !== undefined && method !== 'GET' ? JSON.stringify(options.data) : undefined,
+      body: options.formData || (options.data !== undefined && method !== 'GET' ? JSON.stringify(options.data) : undefined),
       signal: controller.signal
     })
       .then((res) => res.json().then(
@@ -208,6 +208,12 @@ export const getBusinessData = () => request({ url: '/admin/workspace/businessDa
 export const getOrderOverview = () => request({ url: '/admin/workspace/overviewOrders' })
 // 起售/停售商品计数
 export const getDishOverview = () => request({ url: '/admin/workspace/overviewDishes' })
+
+export function uploadProductImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({ url: '/admin/common/upload', method: 'POST', formData })
+}
 
 // ==================== 分类（/admin/category） ====================
 

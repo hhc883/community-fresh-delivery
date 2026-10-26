@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import shutil
 import subprocess
 import sys
 import time
@@ -48,7 +49,10 @@ def main():
     subprocess.run([sys.executable, str(ROOT / "scripts/database.py"), "migrate",
                     "--confirm-database", database], env=env, check=True)
     java = os.environ.get("JAVA_BIN", "java")
-    command = [java, "-Duser.timezone=Asia/Shanghai", "-jar", str(args.jar.resolve()), "--spring.profiles.active=dev"]
+    # Windows locks running JAR files. Keep Maven's output rebuildable during acceptance.
+    runtime_jar = args.report.with_name(args.report.stem + '-' + uuid.uuid4().hex[:8] + '.jar').resolve()
+    shutil.copy2(args.jar, runtime_jar)
+    command = [java, "-Duser.timezone=Asia/Shanghai", "-jar", str(runtime_jar), "--spring.profiles.active=dev"]
     base_url = "http://127.0.0.1:" + str(args.port)
     log = args.report.with_suffix(".server.log").open("w", encoding="utf-8")
     process = None
@@ -79,7 +83,7 @@ def main():
 
     report = {"createdAt": datetime.now(timezone.utc).isoformat(), "database": database, "baseUrl": base_url,
               "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-              "jarSha256": hashlib.sha256(args.jar.read_bytes()).hexdigest(),
+              "jarSha256": hashlib.sha256(args.jar.read_bytes()).hexdigest(), "runtimeJar": str(runtime_jar),
               "workingTreeChanges": subprocess.check_output(["git", "status", "--short"], cwd=ROOT, text=True).strip(),
               "results": []}
     try:
@@ -99,6 +103,8 @@ def main():
     finally:
         if process and not args.keep_running:
             stop(process)
+        if not args.keep_running:
+            runtime_jar.unlink(missing_ok=True)
         log.close()
         args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     passed = report["results"] and all(item["status"] == "PASS" for item in report["results"])

@@ -199,11 +199,12 @@ export default {
   },
 };
 </script>
-<style lang="scss" scoped>
+<style scoped>
 .cart-page {
   min-height: 100vh;
   background-color: #f7f8fa;
-  padding-bottom: 140rpx;
+  padding-bottom: calc(160rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -471,14 +472,19 @@ export default {
   /* #ifdef H5 */
   bottom: 50px;
   /* #endif */
-  height: 104rpx;
+  height: calc(104rpx + constant(safe-area-inset-bottom));
+  height: calc(104rpx + env(safe-area-inset-bottom));
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
   background-color: #ffffff;
-  border-top: 1rpx solid #f2f4f7;
+  border-top: 1rpx solid #edf1ee;
   display: flex;
   align-items: center;
-  padding: 0 24rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
   z-index: 99;
   box-sizing: border-box;
+  box-shadow: 0 -4rpx 16rpx rgba(31, 35, 41, 0.05);
 }
 
 .bar-left {
@@ -538,10 +544,18 @@ export default {
   height: 76rpx;
   line-height: 76rpx;
   padding: 0 44rpx;
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(37, 184, 115, 0.3);
+}
+
+.btn-checkout::after {
+  border: none;
 }
 
 .btn-checkout[disabled] {
-  background-color: #c9cdd4;
-  color: #ffffff;
+  background-color: #c9cdd4 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  opacity: 0.7;
 }
 </style>

@@ -327,7 +327,8 @@ export default {
   align-items: center;
   height: 92rpx;
   margin-bottom: 24rpx;
-  background-color: #f5f5f5;
+  background-color: #f4f7f5;
+  border: 1rpx solid #e3e9e5;
   border-radius: 999rpx;
   padding: 0 12rpx 0 36rpx;
   box-sizing: border-box;
@@ -338,7 +339,7 @@ export default {
   height: 92rpx;
   line-height: 92rpx;
   font-size: 30rpx;
-  color: #333333;
+  color: #1f2329;
 }
 .btn-send-code {
   flex-shrink: 0;
@@ -346,73 +347,83 @@ export default {
   padding: 0 28rpx;
   height: 68rpx;
   line-height: 68rpx;
-  background-color: #e02020;
-  color: #ffffff;
+  background-color: #e8f7f0;
+  color: #25b873;
+  border: 1rpx solid #c9ebd8;
   font-size: 24rpx;
   font-weight: 600;
-  border: none;
   border-radius: 999rpx;
 }
-.btn-send-code.btn-send-disabled {
-  background-color: #cccccc;
-  color: rgba(255, 255, 255, 0.9);
+.btn-send-code.btn-send-disabled,
+.btn-send-code[disabled] {
+  background-color: #f2f5f3;
+  color: #a0b3a7;
+  border-color: #e2e8e4;
+  opacity: 0.7;
 }
 .form-hint {
   display: block;
   margin: 0 24rpx;
   font-size: 22rpx;
-  color: #999999;
+  color: #86909c;
   line-height: 1.5;
 }
 /* 密码 tab 的提示位于登录按钮下方，与上方拉开间距 */
 .form-hint-loose {
   margin-top: 24rpx;
 }
-/* uni-button 默认圆角与 line-height 必须显式覆盖（本项目前科坑） */
 .btn-main {
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
   margin-top: 40rpx;
   padding: 0;
-  background-color: #e02020;
+  background-color: #25b873;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 700;
   border: none;
   border-radius: 999rpx;
+  box-shadow: 0 6rpx 16rpx rgba(37, 184, 115, 0.25);
 }
-/* 提交飞行中禁用态：置灰提示"登录中…/设置中…"，防重复提交（对照首页 .btn-confirm-disabled） */
-.btn-main.btn-main-disabled {
-  background-color: #f5b5b0;
-  color: rgba(255, 255, 255, 0.9);
+.btn-main::after {
+  border: none;
+}
+.btn-main.btn-main-disabled,
+.btn-main[disabled] {
+  background-color: #b5e4cc !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  opacity: 0.75;
 }
 
 /* ==================== 5. 设置密码卡区 ==================== */
 .set-pwd-card {
   margin-top: 48rpx;
   padding: 36rpx 32rpx;
-  background-color: #fff7f6;
-  border-radius: 32rpx;
+  background-color: #ffffff;
+  border: 1rpx solid #edf1ee;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.04);
 }
 .set-pwd-title {
   display: block;
   font-size: 30rpx;
   font-weight: 700;
-  color: #333333;
+  color: #1f2329;
   line-height: 1;
 }
 .set-pwd-desc {
   display: block;
   margin-top: 14rpx;
-  font-size: 22rpx;
-  color: #999999;
+  font-size: 24rpx;
+  color: #86909c;
   line-height: 1.5;
 }
 .set-pwd-card .input-capsule {
   margin-top: 24rpx;
   margin-bottom: 0;
-  background-color: #ffffff;
+  background-color: #f4f7f5;
 }
 .set-pwd-card .btn-main {
   margin-top: 32rpx;
@@ -420,12 +431,12 @@ export default {
 .set-pwd-skip {
   display: block;
   margin-top: 24rpx;
-  font-size: 24rpx;
-  color: #e02020;
+  font-size: 26rpx;
+  color: #25b873;
+  font-weight: 500;
   text-align: center;
 }
 </style>
-
 <style scoped>
 .btn-main,
 .tab-underline {
