@@ -72,6 +72,10 @@ export default {
       return Boolean(this.$store.state.user?.token);
     },
   },
+  onLoad(options) {
+    const status = Number(options.status);
+    if ([1, 2, 5, 6].includes(status)) this.status = status;
+  },
   onShow() {
     if (this.loggedIn) {
       this.load();

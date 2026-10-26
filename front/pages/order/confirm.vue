@@ -173,6 +173,9 @@ export default {
           this.stores = (
             Array.isArray(data) ? data : data?.records || []
           ).filter((p) => p.status === "open" || Number(p.status) === 1);
+          const selectedStoreId = this.$store.state.pickupPoint?.id;
+          const selectedIndex = this.stores.findIndex(p => String(p.id) === String(selectedStoreId));
+          if (selectedIndex >= 0) this.storeIndex = selectedIndex;
         } else this.error = s.reason.message;
         if (a.status === "fulfilled") {
           const list = a.value.data || [];

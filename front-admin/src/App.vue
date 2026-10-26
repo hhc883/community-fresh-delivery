@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div :class="['app-shell', { embedded: route.query.embedded === '1' }]">
     <!-- 顶栏只在登录后出现：登录页自己已有标题，未登录时挂一个「退出登录」是死路 -->
     <header v-if="showChrome" class="app-header">
       <div class="brand">
@@ -34,7 +34,7 @@ import { useRoute } from 'vue-router'
 import { logout } from './api'
 
 const route = useRoute()
-const showChrome = computed(() => route.path !== '/login')
+const showChrome = computed(() => route.path !== '/login' && route.query.embedded !== '1')
 const isActive = (path) => route.path === path
 const onLogout = () => logout()
 </script>
@@ -178,3 +178,5 @@ body {
   color: #303133;
 }
 </style>
+
+<style>.embedded .app-main{padding:16px}.embedded .page{max-width:none}.embedded .el-button--primary{--el-button-bg-color:#ffc200;--el-button-border-color:#ffc200;--el-button-text-color:#333}.embedded .el-tag{border-radius:3px}</style>

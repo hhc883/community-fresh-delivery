@@ -163,6 +163,12 @@
         "navigationBarTextStyle": "black",
         "navigationBarTitleText": "我的拼团"
       }
+    },
+    {
+      "path": "pages/pickup/pickup",
+      "style": {
+        "navigationBarTitleText": "选择自提点"
+      }
     }
   ]
 }

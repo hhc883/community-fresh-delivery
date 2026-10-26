@@ -13,10 +13,15 @@ npm run build:mp-weixin
 cd ../front-admin
 npm ci
 npm run build
+cd ../front-admin-sky
+npm ci --legacy-peer-deps --ignore-scripts
+npm run build
 cd ..
 ```
 
-后端可执行文件是 `backEnd/sky-server/target/sky-server-1.0-SNAPSHOT.jar`。H5 产物位于 `front/dist/build/h5`（以构建日志为准），微信产物位于 `front/dist/build/mp-weixin`，管理端位于 `front-admin/dist`。微信构建成功仅证明源码编译，不代替开发者工具和真机验证。
+后端可执行文件是 `backEnd/sky-server/target/sky-server-1.0-SNAPSHOT.jar`。H5 产物位于 `front/dist/build/h5`，微信产物位于 `front/dist/build/mp-weixin`，苍穹管理端位于 `front-admin-sky/dist`，业务扩展位于 `front-admin/dist`。微信构建成功仅证明源码编译，不代替开发者工具和真机验证。
+
+本机预览后台：`python scripts/serve-frontends.py --directory front-admin-sky/dist --extensions front-admin/dist --backend http://127.0.0.1:8080 --port 5177 --spa`。访问 `http://127.0.0.1:5177`，由苍穹侧栏进入拼团、库存、自提核销和团购报表。两个管理端构建必须同时部署在同一个域名下。
 
 ## 数据库：初始化、迁移、种子分别执行
 
@@ -72,7 +77,7 @@ python scripts/run-acceptance.py
 2. 由 DBA 使用 `deploy/grant-fresh-app.sh` 创建新的应用账号，只授予该库 CRUD。脚本不会 DROP USER；已有账号须由 DBA 单独审核。
 3. `/etc/community-fresh-delivery.env` 仅允许服务账号和管理员读取。至少设置 `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`、`REDIS_HOST/REDIS_PORT`、`JWT_ADMIN_SECRET/JWT_USER_SECRET`；两个 JWT 密钥应随机生成且不同。Redis 需要密码时另设 `REDIS_PASSWORD`。
 4. `deploy/fresh.service` 使用 `prod`，该 profile 禁用手机模拟和微信模拟，缺少 DB/JWT 配置时启动失败。真实短信未接入时不能使用短信登录。需要微信登录/OSS 时再配置相应环境变量。
-5. 将用户 H5 和后台产物分别放入 `user/`、`admin/`，前端 API 基址配置为真实后端或同源代理。`deploy/nginx-fresh.conf` 给出两个域名的根路径托管示例；替换域名并配置真实 TLS 后，先 `nginx -t` 再加载。
+5. 将用户 H5 放入 `user/`、苍穹管理端 `front-admin-sky/dist` 放入 `admin/`、扩展模块 `front-admin/dist` 放入 `admin/extensions/`。用户前端 API 基址配置为真实后端或同源代理；苍穹管理端使用同源 `/admin`，扩展模块生产构建设置 `VITE_API_BASE_URL` 为空字符串以使用同源接口。`deploy/nginx-fresh.conf` 给出两个域名的托管示例；替换域名并配置真实 TLS 后，先 `nginx -t` 再加载。
 6. 安装 systemd unit，`systemctl daemon-reload`、`systemctl enable --now fresh`，通过日志与真实 API 检查连接和权限。systemd/Nginx 为部署模板，本机 Windows 没有执行这些 Linux 命令。
 
 `deploy/backup.sh` 需要显式 DB 和备份目录，生成唯一时间戳备份并检查 gzip；不自动删除备份。恢复必须先在新隔离数据库演练，禁止把演示初始化覆盖到已有业务库。

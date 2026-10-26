@@ -63,6 +63,8 @@ jobs:
             script: build:mp-weixin
           - directory: front-admin
             script: build
+          - directory: front-admin-sky
+            script: build
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,6 +73,10 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.directory }}/package-lock.json
       - run: npm ci
+        if: matrix.directory != 'front-admin-sky'
+        working-directory: ${{ matrix.directory }}
+      - run: npm ci --legacy-peer-deps --ignore-scripts
+        if: matrix.directory == 'front-admin-sky'
         working-directory: ${{ matrix.directory }}
       - run: npm run ${{ matrix.script }}
         working-directory: ${{ matrix.directory }}

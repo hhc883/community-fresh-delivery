@@ -2,10 +2,10 @@
   max-width: 960px;
   margin: auto;
   padding: 28rpx 28rpx 120rpx;
-  color: #183c2c;
+  color: #1f2329;
 }
 .hero {
-  background: #153f30;
+  background: #25b873;
   color: #fff;
   border-radius: 24rpx;
   padding: 42rpx 32rpx;
@@ -31,7 +31,7 @@
   border-radius: 20rpx;
   padding: 26rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 16rpx #183c2c08;
+  box-shadow: 0 4rpx 16rpx #1f232908;
 }
 .row {
   display: flex;
@@ -44,12 +44,12 @@
   margin-bottom: 14rpx;
 }
 .price {
-  color: #d56830;
+  color: #f65b42;
   font-size: 36rpx;
   font-weight: 700;
 }
 .primary {
-  background: #226444;
+  background: #25b873;
   color: white;
   border-radius: 14rpx;
   margin: 20rpx 0;
@@ -57,7 +57,7 @@
 }
 .secondary {
   background: #e7f0e9;
-  color: #225a3d;
+  color: #238852;
   border-radius: 12rpx;
   margin: 12rpx 0;
   font-size: 26rpx;
@@ -125,7 +125,7 @@ textarea.field, uni-textarea.field {
   border: 1px solid #d8e6d9;
 }
 .chip.active {
-  background: #226444;
+  background: #25b873;
   color: white;
 }
 .line {
@@ -141,8 +141,10 @@ textarea.field, uni-textarea.field {
   font-size: 50rpx;
   font-weight: 700;
   letter-spacing: 8rpx;
-  color: #226444;
+  color: #25b873;
 }
 button[disabled] {
   opacity: 0.5;
 }
+
+.core{max-width:750px;min-height:100vh;box-sizing:border-box;background:#f7f8fa}.hero{border-radius:0 0 28rpx 28rpx;margin:-28rpx -28rpx 28rpx;padding-top:44rpx}.hero .sub{color:#eafff2}.primary{border-radius:40rpx}.card{box-shadow:0 4rpx 16rpx rgba(0,0,0,.035)}

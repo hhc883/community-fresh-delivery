@@ -1,78 +1,100 @@
 <template>
-  <view class="core"
-    ><view class="hero"
-      ><text class="title">欢迎来到社区鲜选</text
-      ><text class="sub">登录后管理地址、下单与参与拼团</text></view
-    ><view v-if="error" class="error">{{ error }}</view
-    ><view v-if="!loggedIn" class="card"
-      ><view class="chips"
-        ><text
-          :class="['chip', mode === 'code' ? 'active' : '']"
-          @tap="mode = 'code'"
-          >验证码登录</text
-        ><text
-          :class="['chip', mode === 'password' ? 'active' : '']"
-          @tap="mode = 'password'"
-          >密码登录</text
-        ></view
-      ><input
-        class="field"
-        type="number"
-        v-model="phone"
-        maxlength="11"
-        placeholder="手机号"
-      /><view v-if="mode === 'code'"
-        ><input
-          class="field"
-          type="number"
-          v-model="code"
-          maxlength="6"
-          placeholder="验证码"
-        /><button
-          class="secondary"
-          :disabled="sending || countdown > 0"
-          @tap="send"
+  <view class="login-page">
+    <view class="brand-area"
+      ><text class="brand-emoji">🛒</text
+      ><text class="brand-title">生鲜自提商城</text
+      ><text class="brand-sub">新鲜生活，从这里开始</text></view
+    >
+    <view v-if="error" class="error">{{ error }}</view>
+    <template v-if="!loggedIn"
+      ><view class="tabs"
+        ><view class="tab-item" @tap="mode = 'code'"
+          ><text :class="['tab-text', { 'tab-text-active': mode === 'code' }]"
+            >验证码登录</text
+          ><view v-if="mode === 'code'" class="tab-underline" /></view
+        ><view class="tab-item" @tap="mode = 'password'"
+          ><text
+            :class="['tab-text', { 'tab-text-active': mode === 'password' }]"
+            >密码登录</text
+          ><view v-if="mode === 'password'" class="tab-underline" /></view
+      ></view>
+      <view class="login-form"
+        ><view class="input-capsule"
+          ><input
+            class="capsule-input"
+            type="number"
+            v-model="phone"
+            maxlength="11"
+            placeholder="请输入手机号码"
+        /></view>
+        <view v-if="mode === 'code'" class="input-capsule"
+          ><input
+            class="capsule-input"
+            v-model="code"
+            type="number"
+            maxlength="6"
+            placeholder="请输入验证码"
+          /><button
+            class="btn-send-code"
+            :disabled="sending || countdown > 0"
+            @tap="send"
+          >
+            {{
+              sending
+                ? "发送中…"
+                : countdown > 0
+                  ? countdown + "秒后重试"
+                  : "获取验证码"
+            }}
+          </button></view
         >
-          {{ countdown > 0 ? countdown + " 秒后重试" : "获取验证码" }}</button
-        ><text class="sub"
-          >当前仅支持开发验证码模式，具体验证码由后端开发环境配置。未接入真实短信。</text
+        <view v-else class="input-capsule"
+          ><input
+            class="capsule-input"
+            v-model="password"
+            :password="true"
+            placeholder="请输入登录密码"
+        /></view>
+        <button
+          class="btn-main"
+          :loading="working"
+          :disabled="working"
+          @tap="login"
+        >
+          登录 / 注册</button
+        ><text class="form-hint">未注册手机号验证通过后将自动注册</text
+        ><text v-if="mode === 'code'" class="form-hint form-hint-loose"
+          >当前为开发验证码模式，尚未接入真实短信。</text
         ></view
-      ><input
-        v-else
-        class="field"
-        v-model="password"
-        :password="true"
-        placeholder="登录密码"
-      /><button
-        class="primary"
-        :loading="working"
-        :disabled="working"
-        @tap="login"
-      >
-        登录 / 注册
-      </button></view
-    ><view v-else class="card"
-      ><text class="product-name">设置登录密码</text
-      ><input
-        class="field"
-        v-model="newPassword"
-        :password="true"
-        placeholder="新密码（6—20 位）"
-      /><input
-        class="field"
-        v-model="confirmPassword"
-        :password="true"
-        placeholder="再次输入新密码"
-      /><button
-        class="primary"
+      ></template
+    >
+    <view v-else class="set-pwd-card"
+      ><text class="set-pwd-title">设置登录密码</text
+      ><text class="set-pwd-desc">设置后可使用密码登录</text
+      ><view class="input-capsule card-input"
+        ><input
+          class="capsule-input"
+          v-model="newPassword"
+          :password="true"
+          maxlength="20"
+          placeholder="新密码（6—20位）" /></view
+      ><view class="input-capsule card-input"
+        ><input
+          class="capsule-input"
+          v-model="confirmPassword"
+          :password="true"
+          maxlength="20"
+          placeholder="再次输入密码" /></view
+      ><button
+        class="btn-main"
         :loading="working"
         :disabled="working"
         @tap="savePassword"
       >
         保存密码</button
-      ><button class="secondary" @tap="back">返回继续选购</button></view
-    ></view
-  >
+      ><text class="set-pwd-skip" @tap="back">返回继续选购</text></view
+    >
+  </view>
 </template>
 <script>
 import {
@@ -193,3 +215,233 @@ export default {
   },
 };
 </script>
+<style scoped>
+/* 多多买菜风格：白底 + 主红 #E02020 + 圆角胶囊输入框 */
+.login-page {
+  min-height: 100vh;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  padding: 0 56rpx 60rpx;
+}
+
+/* ==================== 1. 顶部品牌区 ==================== */
+.brand-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 140rpx;
+}
+.brand-emoji {
+  font-size: 108rpx;
+  line-height: 1;
+}
+.brand-title {
+  margin-top: 24rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1;
+}
+.brand-sub {
+  margin-top: 18rpx;
+  font-size: 26rpx;
+  color: #999999;
+  line-height: 1;
+}
+
+/* ==================== 0. 邀请横幅（橙红渐变卡，缩品牌区留白避免页面过高） ==================== */
+.invite-banner {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: -56rpx;
+  background: linear-gradient(90deg, #ff6600, #e02020);
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+}
+.invite-banner-icon {
+  flex-shrink: 0;
+  font-size: 52rpx;
+  line-height: 1;
+}
+.invite-banner-texts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.invite-banner-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+.invite-banner-sub {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+}
+
+/* ==================== 2. tab 切换（红色下划线激活态） ==================== */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 96rpx;
+  margin-top: 72rpx;
+}
+.tab-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 160rpx;
+  padding-bottom: 18rpx;
+}
+.tab-text {
+  font-size: 30rpx;
+  color: #666666;
+  line-height: 1;
+}
+.tab-text-active {
+  color: #e02020;
+  font-weight: 700;
+}
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 6rpx;
+  border-radius: 6rpx;
+  background-color: #e02020;
+}
+
+/* ==================== 3/4. 登录表单（圆角胶囊输入框） ==================== */
+.login-form {
+  margin-top: 56rpx;
+}
+.input-capsule {
+  display: flex;
+  align-items: center;
+  height: 92rpx;
+  margin-bottom: 24rpx;
+  background-color: #f5f5f5;
+  border-radius: 999rpx;
+  padding: 0 12rpx 0 36rpx;
+  box-sizing: border-box;
+}
+.capsule-input {
+  flex: 1;
+  min-width: 0;
+  height: 92rpx;
+  line-height: 92rpx;
+  font-size: 30rpx;
+  color: #333333;
+}
+.btn-send-code {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 28rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  background-color: #e02020;
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 600;
+  border: none;
+  border-radius: 999rpx;
+}
+.btn-send-code.btn-send-disabled {
+  background-color: #cccccc;
+  color: rgba(255, 255, 255, 0.9);
+}
+.form-hint {
+  display: block;
+  margin: 0 24rpx;
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.5;
+}
+/* 密码 tab 的提示位于登录按钮下方，与上方拉开间距 */
+.form-hint-loose {
+  margin-top: 24rpx;
+}
+/* uni-button 默认圆角与 line-height 必须显式覆盖（本项目前科坑） */
+.btn-main {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  margin-top: 40rpx;
+  padding: 0;
+  background-color: #e02020;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 700;
+  border: none;
+  border-radius: 999rpx;
+}
+/* 提交飞行中禁用态：置灰提示"登录中…/设置中…"，防重复提交（对照首页 .btn-confirm-disabled） */
+.btn-main.btn-main-disabled {
+  background-color: #f5b5b0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ==================== 5. 设置密码卡区 ==================== */
+.set-pwd-card {
+  margin-top: 48rpx;
+  padding: 36rpx 32rpx;
+  background-color: #fff7f6;
+  border-radius: 32rpx;
+}
+.set-pwd-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1;
+}
+.set-pwd-desc {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.5;
+}
+.set-pwd-card .input-capsule {
+  margin-top: 24rpx;
+  margin-bottom: 0;
+  background-color: #ffffff;
+}
+.set-pwd-card .btn-main {
+  margin-top: 32rpx;
+}
+.set-pwd-skip {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: #e02020;
+  text-align: center;
+}
+</style>
+
+<style scoped>
+.btn-main,
+.tab-underline {
+  background: #25b873;
+}
+.tab-text-active,
+.btn-send-code {
+  color: #25b873;
+}
+.brand-sub {
+  color: #86909c;
+}
+.login-page {
+  background: #f7f8fa;
+}
+.error {
+  margin: 24rpx;
+}
+</style>
