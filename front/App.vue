@@ -92,4 +92,63 @@ page {
 button::after {
 	border: none;
 }
+
+/* #ifdef H5 */
+/* H5 宽屏居中限宽 480px 手机视口容器，外部浅灰底色 #F0F2F0 */
+body {
+	background-color: #f0f2f0;
+}
+
+uni-app {
+	max-width: 480px;
+	margin: 0 auto;
+	min-height: 100vh;
+	box-shadow: 0 0 24px rgba(0, 0, 0, 0.08);
+	position: relative;
+	background-color: #f6f8f5;
+}
+
+/* 顶部原生导航栏在 H5 宽屏居中限宽 */
+uni-page-head,
+.uni-page-head {
+	max-width: 480px;
+	left: 0;
+	right: 0;
+	margin: 0 auto;
+}
+
+/* 底部原生 tabBar 在 H5 宽屏居中限宽 */
+uni-tabbar,
+.uni-tabbar {
+	max-width: 480px;
+	left: 0;
+	right: 0;
+	margin: 0 auto;
+}
+
+/* 页面内容区在 H5 居中限宽 */
+uni-page-body {
+	max-width: 480px;
+	margin: 0 auto;
+}
+
+/* 全局断网提示条在 H5 居中限宽 */
+#global-network-bar {
+	max-width: 480px;
+	margin: 0 auto;
+	left: 0;
+	right: 0;
+}
+
+/* 页面固定底栏/顶栏在 H5 居中限宽 */
+.bottom-bar,
+.bottom-action-bar,
+.nav-bar {
+	max-width: 480px;
+	margin-left: auto;
+	margin-right: auto;
+	left: 0;
+	right: 0;
+}
+/* #endif */
 </style>

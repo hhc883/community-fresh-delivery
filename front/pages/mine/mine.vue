@@ -1,63 +1,146 @@
 <template>
   <view class="mine-page">
-    <view class="profile-header"
-      ><view class="user-row" @tap="go('/pages/login/login')"
-        ><view class="avatar-box"
-          ><image
-            class="avatar-img"
-            src="/static/images/default-avatar.png" /></view
-        ><view class="user-info"
-          ><view class="name-line"
-            ><text class="user-name">{{
+    <!-- 顶部生鲜绿意个人头部 -->
+    <view class="profile-header">
+      <view class="user-row" @tap="go('/pages/login/login')">
+        <view class="avatar-box">
+          <image class="avatar-img" src="/static/images/default-avatar.png" />
+        </view>
+        <view class="user-info">
+          <view class="name-line">
+            <text class="user-name">{{
               user.token ? "我的生鲜生活" : "点击登录 / 注册"
-            }}</text></view
-          ><text class="user-id">{{
-            user.token ? maskedPhone : "欢迎来到生鲜自提商城"
-          }}</text></view
-        ></view
-      ></view
-    >
-    <view class="menu-card order-card"
-      ><view class="card-head" @tap="go('/pages/order/order')"
-        ><text class="ch-title">我的订单</text
-        ><text class="ch-all">查看全部 ›</text></view
-      ><view class="order-grid"
-        ><view
+            }}</text>
+          </view>
+          <text class="user-id">{{
+            user.token ? maskedPhone : "欢迎来到社区生鲜自提商城"
+          }}</text>
+        </view>
+        <image
+          class="header-arrow"
+          src="/static/icons/lucide/chevron-right-white.png"
+          mode="aspectFit"
+        />
+      </view>
+    </view>
+
+    <!-- 订单履约中心卡片 -->
+    <view class="menu-card order-card">
+      <view class="card-head" @tap="go('/pages/order/order')">
+        <text class="ch-title">我的订单</text>
+        <view class="ch-all-box">
+          <text class="ch-all">全部订单</text>
+          <image
+            class="all-arrow"
+            src="/static/icons/lucide/chevron-right-muted.png"
+            mode="aspectFit"
+          />
+        </view>
+      </view>
+      <view class="order-grid">
+        <view
           class="grid-item"
           v-for="tab in orderTabs"
           :key="tab.name"
           @tap="go('/pages/order/order?status=' + tab.status)"
-          ><view class="icon-wrap"
-            ><text class="pink-icon">{{ tab.icon }}</text></view
-          ><text class="grid-label">{{ tab.name }}</text></view
-        ></view
-      ></view
-    >
-    <view class="vip-banner-card" @tap="go('/pages/groupon/list')"
-      ><view class="vbc-text"
-        ><text class="vbc-title">邻里好物，一起拼团</text></view
-      ><button class="vbc-btn">去逛逛</button></view
-    >
-    <view class="menu-card list-menu-card"
-      ><view
+        >
+          <view class="icon-wrap">
+            <image
+              v-if="tab.status === 1"
+              class="tab-svg"
+              src="/static/icons/lucide/clock.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else-if="tab.status === 2"
+              class="tab-svg"
+              src="/static/icons/lucide/package.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else-if="tab.status === 5"
+              class="tab-svg"
+              src="/static/icons/lucide/check.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else
+              class="tab-svg"
+              src="/static/icons/lucide/chevron-left-muted.png"
+              mode="aspectFit"
+            />
+          </view>
+          <text class="grid-label">{{ tab.name }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 拼团推荐卡 -->
+    <view class="vip-banner-card" @tap="go('/pages/groupon/list')">
+      <view class="vbc-text">
+        <text class="vbc-title">邻里生鲜好物，一起拼团更划算</text>
+        <text class="vbc-sub">查看拼团商品与当前成团进度</text>
+      </view>
+      <button class="vbc-btn">去拼团</button>
+    </view>
+
+    <!-- 常用服务菜单卡片 -->
+    <view class="menu-card list-menu-card">
+      <view
         class="list-item"
         v-for="item in menus"
         :key="item.name"
         @tap="go(item.url)"
-        ><view class="li-left"
-          ><text class="li-icon">{{ item.icon }}</text
-          ><text class="li-title">{{ item.name }}</text></view
-        ><text class="li-arrow">›</text></view
-      ></view
-    >
-    <view v-if="user.token" class="menu-card list-menu-card"
-      ><view class="list-item" @tap="logout"
-        ><text class="li-title">退出登录</text
-        ><text class="li-arrow">›</text></view
-      ></view
-    >
+      >
+        <view class="li-left">
+          <image
+            v-if="item.name === '我的收货地址'"
+            class="menu-svg"
+            src="/static/icons/lucide/map-pin.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="item.name === '我的社区拼团'"
+            class="menu-svg"
+            src="/static/icons/lucide/users.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="item.name === '切换自提门店'"
+            class="menu-svg"
+            src="/static/icons/lucide/store.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else
+            class="menu-svg"
+            src="/static/icons/lucide/clock.png"
+            mode="aspectFit"
+          />
+          <text class="li-title">{{ item.name }}</text>
+        </view>
+        <image
+          class="li-arrow-img"
+          src="/static/icons/lucide/chevron-right-muted.png"
+          mode="aspectFit"
+        />
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view v-if="user.token" class="menu-card list-menu-card">
+      <view class="list-item" @tap="logout">
+        <text class="li-title logout-text">退出当前登录</text>
+        <image
+          class="li-arrow-img"
+          src="/static/icons/lucide/chevron-right-muted.png"
+          mode="aspectFit"
+        />
+      </view>
+    </view>
   </view>
 </template>
+
 <script>
 export default {
   data: () => ({
@@ -94,23 +177,23 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 .mine-page {
   min-height: 100vh;
-  background-color: #f7f8fa;
+  background-color: #f6f8f5;
   padding-bottom: calc(60rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
-/* 顶部绿色生鲜沉浸式个人头部 */
+/* 顶部绿色生鲜头部 */
 .profile-header {
   position: relative;
-  height: 320rpx;
-  background: linear-gradient(135deg, #25b873 0%, #1ea062 100%);
-  padding: 60rpx 36rpx 0;
+  height: 300rpx;
+  background: linear-gradient(135deg, #27744d 0%, #1c5838 100%);
+  padding: 50rpx 36rpx 0;
   box-sizing: border-box;
-  box-shadow: 0 4rpx 20rpx rgba(37, 184, 115, 0.2);
 }
 
 .user-row {
@@ -119,13 +202,12 @@ export default {
 }
 
 .avatar-box {
-  width: 120rpx;
-  height: 120rpx;
+  width: 110rpx;
+  height: 110rpx;
   border-radius: 50%;
-  border: 4rpx solid #ffffff;
+  border: 4rpx solid rgba(255, 255, 255, 0.85);
   overflow: hidden;
-  background-color: #e8f7f0;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  background-color: #eaf5ee;
   flex-shrink: 0;
 }
 
@@ -142,55 +224,68 @@ export default {
 .name-line {
   display: flex;
   align-items: center;
-  margin-bottom: 10rpx;
+  margin-bottom: 8rpx;
 }
 
 .user-name {
-  font-size: 36rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: #ffffff;
-  margin-right: 14rpx;
 }
 
 .user-id {
   font-size: 24rpx;
-  color: #e5f7ed;
+  color: #d8eee1;
 }
 
-/* 通用白底卡片 */
+.header-arrow {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+/* 卡片 */
 .menu-card {
   background-color: #ffffff;
-  border-radius: 20rpx;
+  border-radius: 18rpx;
   margin: 0 24rpx 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(31, 35, 41, 0.04);
-  border: 1rpx solid #edf1ee;
+  border: 1rpx solid #e5ebe6;
   box-sizing: border-box;
 }
 
-/* 订单卡片：向上悬浮覆盖部分绿色背景 */
 .order-card {
   position: relative;
   z-index: 10;
-  margin-top: -40rpx;
-  padding: 28rpx;
+  margin-top: -36rpx;
+  padding: 26rpx;
 }
 
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24rpx;
+  margin-bottom: 22rpx;
 }
 
 .ch-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: #1f2329;
+  color: #19241d;
+}
+
+.ch-all-box {
+  display: flex;
+  align-items: center;
 }
 
 .ch-all {
   font-size: 24rpx;
-  color: #86909c;
+  color: #778579;
+}
+
+.all-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 4rpx;
 }
 
 .order-grid {
@@ -207,67 +302,74 @@ export default {
 }
 
 .icon-wrap {
-  width: 64rpx;
-  height: 64rpx;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  background-color: #eaf5ee;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.pink-icon {
-  font-size: 44rpx;
-  color: #25b873;
-  line-height: 1;
+.tab-svg {
+  width: 34rpx;
+  height: 34rpx;
 }
 
 .grid-label {
   font-size: 24rpx;
-  color: #1f2329;
+  color: #19241d;
   margin-top: 10rpx;
 }
 
-/* 拼团推广卡 */
+/* 拼团横幅 */
 .vip-banner-card {
   margin: 0 24rpx 20rpx;
-  background-color: #e8f7f0;
-  border: 1rpx solid #c9ebd8;
-  border-radius: 20rpx;
+  background-color: #eaf5ee;
+  border: 1rpx solid #cce8d6;
+  border-radius: 18rpx;
   padding: 24rpx 28rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2rpx 12rpx rgba(37, 184, 115, 0.08);
 }
 
 .vbc-text {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .vbc-title {
   font-size: 26rpx;
-  font-weight: 600;
-  color: #1f7d4b;
+  font-weight: 700;
+  color: #1e5e3a;
+  margin-bottom: 4rpx;
+}
+
+.vbc-sub {
+  font-size: 20rpx;
+  color: #55725e;
 }
 
 .vbc-btn {
-  height: 60rpx;
-  line-height: 60rpx;
-  background-color: #25b873;
+  height: 56rpx;
+  line-height: 56rpx;
+  background-color: #27744d;
   color: #ffffff;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
-  border-radius: 30rpx;
-  padding: 0 32rpx;
-  margin: 0;
+  border-radius: 28rpx;
+  padding: 0 30rpx;
+  margin: 0 0 0 16rpx;
   border: none;
-  box-shadow: 0 4rpx 10rpx rgba(37, 184, 115, 0.25);
 }
 
 .vbc-btn::after {
   border: none;
 }
 
-/* 菜单列表卡片 */
+/* 列表卡片 */
 .list-menu-card {
   padding: 0 28rpx;
 }
@@ -276,8 +378,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100rpx;
-  border-bottom: 1rpx solid #f2f5f3;
+  height: 96rpx;
+  border-bottom: 1rpx solid #eef2ef;
 }
 
 .list-item:last-child {
@@ -289,19 +391,24 @@ export default {
   align-items: center;
 }
 
-.li-icon {
-  font-size: 34rpx;
+.menu-svg {
+  width: 34rpx;
+  height: 34rpx;
   margin-right: 18rpx;
 }
 
 .li-title {
   font-size: 28rpx;
-  color: #1f2329;
+  color: #19241d;
   font-weight: 500;
 }
 
-.li-arrow {
-  font-size: 32rpx;
-  color: #c9cdd4;
+.logout-text {
+  color: #c93424;
+}
+
+.li-arrow-img {
+  width: 28rpx;
+  height: 28rpx;
 }
 </style>

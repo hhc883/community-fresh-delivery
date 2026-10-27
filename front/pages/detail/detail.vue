@@ -1,100 +1,162 @@
 <template>
-  <view class="detail-page"
-    ><view v-if="loading" class="empty">商品加载中…</view
-    ><view v-else-if="error" class="error" @tap="load"
+  <view class="detail-page">
+    <view v-if="loading" class="empty">商品加载中…</view>
+    <view v-else-if="error" class="error" @tap="load"
       >{{ error }} · 点击重试</view
-    ><template v-else-if="dish">
-      <scroll-view scroll-y class="detail-scroll"
-        ><view class="hero-swiper"
-          ><image
+    >
+    <template v-else-if="dish">
+      <scroll-view scroll-y class="detail-scroll">
+        <!-- 顶部商品实物大图 -->
+        <view class="hero-swiper">
+          <image
             v-if="dish.image"
             style="width: 100%; height: 680rpx"
             :src="dish.image"
             mode="aspectFill"
-          /><view v-else class="empty">暂无商品图片</view></view
-        >
-        <view class="promo-banner"
-          ><view class="pb-left"
-            ><text class="pb-tag">商品价格</text
-            ><view class="pb-price-row"
-              ><text class="pb-symbol">¥</text
-              ><text class="pb-price">{{ $fmtMoney(dish.price) }}</text></view
-            ></view
-          ><view class="pb-right"
-            ><text class="pb-title">新鲜好物</text
-            ><text class="pb-sub"
+          />
+          <view v-else class="empty">暂无生鲜实物图</view>
+        </view>
+
+        <!-- 价格与库存看板 -->
+        <view class="promo-banner">
+          <view class="pb-left">
+            <text class="pb-tag">商品价格</text>
+            <view class="pb-price-row">
+              <text class="pb-symbol">¥</text>
+              <text class="pb-price">{{ $fmtMoney(dish.price) }}</text>
+            </view>
+          </view>
+          <view class="pb-right">
+            <text class="pb-title">新鲜好物</text>
+            <text class="pb-sub"
               >库存 {{ dish.stock }} {{ dish.unit || "份" }}</text
-            ></view
-          ></view
-        >
-        <view class="goods-main-card"
-          ><text class="goods-title">{{ dish.name }}</text
-          ><view class="price-sales-row"
-            ><text class="sales-text"
-              >{{ dish.unit || "份"
+            >
+          </view>
+        </view>
+
+        <!-- 商品标题与基本属性 -->
+        <view class="goods-main-card">
+          <text class="goods-title">{{ dish.name }}</text>
+          <view class="price-sales-row">
+            <text class="sales-text"
+              >计量规格：{{ dish.unit || "份"
               }}<text v-if="dish.origin"> · 产地 {{ dish.origin }}</text></text
-            ></view
-          ></view
-        >
-        <view class="section-card"
-          ><view class="service-row"
-            ><text class="sr-label">履约方式</text
-            ><text class="service-text">配送到家 / 门店自提</text></view
-          ><view class="divider" /><view class="station-row" @tap="goPickup"
-            ><text class="sr-label">自提网点</text
-            ><view class="station-val"
-              ><text class="station-name">{{
-                pickupPoint.name || "请选择自提点"
-              }}</text
-              ><text class="arrow">›</text></view
-            ></view
-          ><view
+            >
+          </view>
+        </view>
+
+        <!-- 履约保障与自提网点卡片 -->
+        <view class="section-card">
+          <view class="service-row">
+            <text class="sr-label">履约方式</text>
+            <view class="service-val-box">
+              <image
+                class="sr-icon"
+                src="/static/icons/lucide/check.png"
+                mode="aspectFit"
+              />
+              <text class="service-text">配送到家 / 门店自提</text>
+            </view>
+          </view>
+          <view class="divider" />
+          <view class="station-row" @tap="goPickup">
+            <text class="sr-label">提货网点</text>
+            <view class="station-val">
+              <image
+                class="sr-icon"
+                src="/static/icons/lucide/store.png"
+                mode="aspectFit"
+              />
+              <text class="station-name">{{
+                pickupPoint.name || "请选择就近自提网点"
+              }}</text>
+              <image
+                class="arrow-img"
+                src="/static/icons/lucide/chevron-right.png"
+                mode="aspectFit"
+              />
+            </view>
+          </view>
+          <view
             v-if="Number(dish.isGroupon) === 1"
             class="station-row"
             @tap="group"
-            ><text class="sr-label">社区拼团</text
-            ><text class="station-name">查看可参与的团购 ›</text></view
-          ></view
-        >
-        <view class="detail-divider"
-          ><view class="line" /><text class="detail-title">商品详情</text
-          ><view class="line" /></view
-        ><view class="detail-content"
-          ><view class="desc-box"
-            ><text class="desc-text">{{
+          >
+            <text class="sr-label">社区拼团</text>
+            <view class="station-val">
+              <image
+                class="sr-icon"
+                src="/static/icons/lucide/users.png"
+                mode="aspectFit"
+              />
+              <text class="station-name">查看正在拼团的商品详情</text>
+              <image
+                class="arrow-img"
+                src="/static/icons/lucide/chevron-right.png"
+                mode="aspectFit"
+              />
+            </view>
+          </view>
+        </view>
+
+        <!-- 图文详情分割线 -->
+        <view class="detail-divider">
+          <view class="divider-line" />
+          <text class="detail-title">商品图文介绍</text>
+          <view class="divider-line" />
+        </view>
+
+        <view class="detail-content">
+          <view class="desc-box">
+            <text class="desc-text">{{
               dish.description || "暂无商品介绍"
-            }}</text></view
-          ><image
+            }}</text>
+          </view>
+          <image
             v-if="dish.image"
             class="detail-img"
             :src="dish.image"
             mode="widthFix"
-        /></view> </scroll-view
-      ><view class="bottom-action-bar"
-        ><view class="left-icons"
-          ><view class="icon-btn" @tap="goCart"
-            ><text class="ib-icon">🛒</text
-            ><text class="ib-label">购物车 {{ cartCount || "" }}</text></view
-          ></view
-        ><view class="right-buttons"
-          ><button
+          />
+        </view>
+      </scroll-view>
+
+      <!-- 底部固定行动栏 -->
+      <view class="bottom-action-bar">
+        <view class="left-icons">
+          <view class="icon-btn" @tap="goCart">
+            <image
+              class="bottom-cart-img"
+              src="/static/icons/lucide/shopping-cart.png"
+              mode="aspectFit"
+            />
+            <text class="ib-label"
+              >购物车{{ cartCount ? " (" + cartCount + ")" : "" }}</text
+            >
+          </view>
+        </view>
+        <view class="right-buttons">
+          <button
             class="btn-cart-green"
             :disabled="Number(dish.stock) <= 0"
             @tap="add"
           >
-            加入购物车</button
-          ><button
-            class="btn-buy-blue"
+            加入购物车
+          </button>
+          <button
+            class="btn-buy-orange"
             :disabled="Number(dish.stock) <= 0"
             @tap="buy"
           >
             立即购买
-          </button></view
-        ></view
-      > </template
-    ><view v-else class="empty">商品不存在或已下架</view></view
-  >
+          </button>
+        </view>
+      </view>
+    </template>
+    <view v-else class="empty">商品不存在或已下架</view>
+  </view>
 </template>
+
 <script>
 import { getDishDetail } from "../../api/index.js";
 export default {
@@ -150,12 +212,13 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 .detail-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f7f8fa;
+  background-color: #f6f8f5;
 }
 
 .detail-scroll {
@@ -177,10 +240,9 @@ export default {
   align-items: center;
   justify-content: space-between;
   height: 116rpx;
-  background: linear-gradient(135deg, #25b873 0%, #1ea062 100%);
+  background: linear-gradient(135deg, #27744d 0%, #1c5838 100%);
   padding: 0 28rpx;
   color: #ffffff;
-  box-shadow: 0 4rpx 16rpx rgba(37, 184, 115, 0.2);
 }
 
 .pb-left {
@@ -192,7 +254,7 @@ export default {
 .pb-tag {
   font-size: 20rpx;
   line-height: 1;
-  color: #e5f7ed;
+  color: #d8eee1;
   margin-bottom: 6rpx;
 }
 
@@ -209,9 +271,9 @@ export default {
 
 .pb-price {
   font-size: 52rpx;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
 }
 
 .pb-right {
@@ -230,20 +292,20 @@ export default {
 
 .pb-sub {
   font-size: 22rpx;
-  color: #e5f7ed;
+  color: #d8eee1;
 }
 
-/* 标题与产地销量卡片 */
+/* 标题与属性卡片 */
 .goods-main-card {
   background-color: #ffffff;
   padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #edf1ee;
+  border-bottom: 1rpx solid #eef2ef;
 }
 
 .goods-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #1f2329;
+  color: #19241d;
   line-height: 44rpx;
   margin-bottom: 12rpx;
   display: -webkit-box;
@@ -260,7 +322,7 @@ export default {
 
 .sales-text {
   font-size: 24rpx;
-  color: #86909c;
+  color: #778579;
 }
 
 /* 规格、配送与自提卡片 */
@@ -268,13 +330,13 @@ export default {
   margin-top: 18rpx;
   background-color: #ffffff;
   padding: 0 28rpx;
-  border-top: 1rpx solid #edf1ee;
-  border-bottom: 1rpx solid #edf1ee;
+  border-top: 1rpx solid #eef2ef;
+  border-bottom: 1rpx solid #eef2ef;
 }
 
 .divider {
   height: 1rpx;
-  background-color: #f2f5f3;
+  background-color: #eef2ef;
 }
 
 .service-row,
@@ -287,13 +349,25 @@ export default {
 .sr-label {
   width: 140rpx;
   font-size: 26rpx;
-  color: #86909c;
+  color: #778579;
   font-weight: 500;
+}
+
+.service-val-box {
+  display: flex;
+  align-items: center;
+}
+
+.sr-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
 }
 
 .service-text {
   font-size: 26rpx;
-  color: #1f2329;
+  color: #19241d;
   font-weight: 500;
 }
 
@@ -306,14 +380,15 @@ export default {
 
 .station-name {
   font-size: 26rpx;
-  color: #25b873;
+  color: #27744d;
   font-weight: 600;
 }
 
-.arrow {
-  font-size: 30rpx;
-  color: #c9cdd4;
+.arrow-img {
+  width: 24rpx;
+  height: 24rpx;
   margin-left: 8rpx;
+  flex-shrink: 0;
 }
 
 /* 图文详情分割线 */
@@ -324,7 +399,7 @@ export default {
   padding: 36rpx 0 20rpx;
 }
 
-.detail-divider .line {
+.divider-line {
   width: 60rpx;
   height: 1rpx;
   background-color: #d8deda;
@@ -332,7 +407,7 @@ export default {
 
 .detail-title {
   font-size: 26rpx;
-  color: #86909c;
+  color: #778579;
   margin: 0 18rpx;
   font-weight: 500;
 }
@@ -344,16 +419,16 @@ export default {
 }
 
 .desc-box {
-  background-color: #f7f9f8;
+  background-color: #f6f8f5;
   padding: 20rpx 24rpx;
   border-radius: 12rpx;
   margin-bottom: 20rpx;
-  border: 1rpx solid #eef2f0;
+  border: 1rpx solid #e1e8e2;
 }
 
 .desc-text {
   font-size: 26rpx;
-  color: #4e5969;
+  color: #4b5a4f;
   line-height: 40rpx;
 }
 
@@ -374,8 +449,7 @@ export default {
   padding: 0 24rpx constant(safe-area-inset-bottom);
   padding: 0 24rpx env(safe-area-inset-bottom);
   background-color: #ffffff;
-  border-top: 1rpx solid #edf1ee;
-  box-shadow: 0 -4rpx 16rpx rgba(31, 35, 41, 0.05);
+  border-top: 1rpx solid #e5ebe6;
   box-sizing: border-box;
   z-index: 99;
 }
@@ -392,15 +466,15 @@ export default {
   padding: 0 16rpx;
 }
 
-.ib-icon {
-  font-size: 38rpx;
-  line-height: 1;
+.bottom-cart-img {
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .ib-label {
   font-size: 20rpx;
-  color: #4e5969;
-  margin-top: 6rpx;
+  color: #4b5a4f;
+  margin-top: 4rpx;
 }
 
 .right-buttons {
@@ -410,7 +484,7 @@ export default {
 }
 
 .btn-cart-green,
-.btn-buy-blue {
+.btn-buy-orange {
   height: 76rpx;
   line-height: 76rpx;
   border-radius: 38rpx;
@@ -420,24 +494,25 @@ export default {
   padding: 0 34rpx;
   margin: 0;
   border: none;
-  box-shadow: 0 4rpx 12rpx rgba(37, 184, 115, 0.25);
+  box-shadow: 0 4rpx 12rpx rgba(39, 116, 77, 0.2);
 }
 
 .btn-cart-green::after,
-.btn-buy-blue::after {
+.btn-buy-orange::after {
   border: none;
 }
 
 .btn-cart-green {
-  background-color: #25b873;
+  background-color: #27744d;
 }
 
-.btn-buy-blue {
-  background-color: #1ea062;
+.btn-buy-orange {
+  background-color: #ff5722;
+  box-shadow: 0 4rpx 12rpx rgba(255, 87, 34, 0.25);
 }
 
 .btn-cart-green[disabled],
-.btn-buy-blue[disabled] {
+.btn-buy-orange[disabled] {
   background-color: #c9cdd4 !important;
   color: #ffffff !important;
   box-shadow: none !important;

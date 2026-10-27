@@ -2,11 +2,16 @@
   <view class="cat-page">
     <view class="top-search-wrap">
       <view class="search-pill" @click="goSearch">
-        <text class="search-icon">🔍</text>
-        <text class="search-text">搜索商品/自提点/店铺...</text>
+        <image
+          class="cat-search-icon"
+          src="/static/icons/lucide/search-muted.png"
+          mode="aspectFit"
+        />
+        <text class="search-text">搜索生鲜品类/基地蔬菜/时令水果...</text>
       </view>
     </view>
 
+    <!-- 顶部分类快捷切换栏 -->
     <view class="top-icon-strip">
       <view
         class="tis-item"
@@ -15,19 +20,53 @@
         @click="selectTopShortcut(t)"
       >
         <view class="tis-circle" :style="{ backgroundColor: t.bg }">
-          <text class="tis-emoji">{{ t.emoji }}</text>
+          <image
+            v-if="t.key === 'order'"
+            class="tis-svg"
+            src="/static/icons/lucide/package.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'pickup'"
+            class="tis-svg"
+            src="/static/icons/lucide/store.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'group'"
+            class="tis-svg"
+            src="/static/icons/lucide/users.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'fresh'"
+            class="tis-svg"
+            src="/static/icons/lucide/shopping-bag.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else
+            class="tis-svg"
+            src="/static/icons/lucide/store.png"
+            mode="aspectFit"
+          />
         </view>
         <text class="tis-name" :class="{ active: currentTopKey === t.key }">{{
           t.name
         }}</text>
       </view>
       <view class="tis-expand" @click="toggleExpand">
-        <text class="tis-expand-text">分类</text>
-        <text class="tis-expand-icon">∨</text>
+        <text class="tis-expand-text">全部</text>
+        <image
+          class="tis-expand-arrow"
+          src="/static/icons/lucide/chevron-right-muted.png"
+          mode="aspectFit"
+        />
       </view>
     </view>
 
     <view class="cat-main">
+      <!-- 左侧分类导航 -->
       <scroll-view class="cat-sidebar" scroll-y>
         <view
           class="sidebar-item"
@@ -41,6 +80,7 @@
         </view>
       </scroll-view>
 
+      <!-- 右侧商品明细列表 -->
       <view class="cat-content">
         <view class="sort-header">
           <text
@@ -70,12 +110,14 @@
         </view>
 
         <scroll-view class="goods-scroll" scroll-y>
-          <view v-if="loading" class="empty">商品加载中…</view
-          ><view v-else-if="error" class="error" @tap="load"
+          <view v-if="loading" class="empty">商品加载中…</view>
+          <view v-else-if="error" class="error" @tap="load"
             >{{ error }} · 点击重试</view
-          ><view v-else-if="!currentCategoryGoods.length" class="empty"
+          >
+          <view v-else-if="!currentCategoryGoods.length" class="empty"
             >该分类暂无商品</view
-          ><view v-else class="goods-list">
+          >
+          <view v-else class="goods-list">
             <view
               class="goods-row"
               v-for="item in currentCategoryGoods"
@@ -95,7 +137,11 @@
                   </view>
 
                   <view class="cart-btn" @click.stop="addToCart(item)">
-                    <text class="cart-icon">🛒</text>
+                    <image
+                      class="cart-add-icon"
+                      src="/static/icons/lucide/plus-white.png"
+                      mode="aspectFit"
+                    />
                   </view>
                 </view>
               </view>
@@ -120,11 +166,11 @@ export default {
     loading: true,
     error: "",
     topShortcuts: [
-      { name: "全部商品", key: "all", emoji: "🍎", bg: "#FFECE8" },
-      { name: "生鲜选购", key: "fresh", emoji: "🥬", bg: "#E8F3FF" },
-      { name: "我的订单", key: "order", emoji: "📦", bg: "#FFEBF3" },
-      { name: "自提门店", key: "pickup", emoji: "🏪", bg: "#E8F7F0" },
-      { name: "社区拼团", key: "group", emoji: "📢", bg: "#FFF6E8" },
+      { name: "全部商品", key: "all", emoji: "🍎", bg: "#EAF5EE" },
+      { name: "生鲜选购", key: "fresh", emoji: "🥬", bg: "#EAF5EE" },
+      { name: "我的订单", key: "order", emoji: "📦", bg: "#EAF5EE" },
+      { name: "自提门店", key: "pickup", emoji: "🏪", bg: "#EAF5EE" },
+      { name: "社区拼团", key: "group", emoji: "📢", bg: "#FFF2EC" },
     ],
   }),
   computed: {
@@ -202,6 +248,7 @@ export default {
   },
 };
 </script>
+
 <style scoped>
 .cat-page {
   display: flex;
@@ -213,28 +260,29 @@ export default {
 .top-search-wrap {
   padding: 16rpx 24rpx;
   background-color: #ffffff;
-  border-bottom: 1rpx solid #edf1ee;
+  border-bottom: 1rpx solid #eef2ef;
 }
 
 .search-pill {
   display: flex;
   align-items: center;
   height: 68rpx;
-  background-color: #f4f7f5;
+  background-color: #f6f8f5;
   border-radius: 34rpx;
   padding: 0 24rpx;
-  border: 1rpx solid #e3e9e5;
+  border: 1rpx solid #e1e8e2;
 }
 
-.search-icon {
-  font-size: 26rpx;
-  color: #86909c;
-  margin-right: 12rpx;
+.cat-search-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 14rpx;
+  flex-shrink: 0;
 }
 
 .search-text {
   font-size: 26rpx;
-  color: #86909c;
+  color: #778579;
 }
 
 /* 顶部圆形快捷入口栏 */
@@ -242,7 +290,8 @@ export default {
   display: flex;
   align-items: center;
   padding: 12rpx 20rpx 16rpx;
-  border-bottom: 1rpx solid #f2f4f7;
+  border-bottom: 1rpx solid #edf1ee;
+  background-color: #ffffff;
 }
 
 .tis-item {
@@ -253,8 +302,8 @@ export default {
 }
 
 .tis-circle {
-  width: 76rpx;
-  height: 76rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -262,40 +311,41 @@ export default {
   margin-bottom: 6rpx;
 }
 
-.tis-emoji {
-  font-size: 36rpx;
+.tis-svg {
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .tis-name {
-  font-size: 20rpx;
-  color: #4e5969;
+  font-size: 22rpx;
+  color: #556257;
 }
 
 .tis-name.active {
-  color: #25b873;
+  color: #27744d;
   font-weight: 700;
 }
 
 .tis-expand {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 10rpx;
-  border-left: 1rpx solid #f2f4f7;
+  padding: 0 10rpx 0 16rpx;
+  border-left: 1rpx solid #eef2ef;
 }
 
 .tis-expand-text {
-  font-size: 20rpx;
-  color: #86909c;
+  font-size: 22rpx;
+  color: #778579;
 }
 
-.tis-expand-icon {
-  font-size: 20rpx;
-  color: #86909c;
+.tis-expand-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 4rpx;
 }
 
-/* 主体 */
+/* 主体分栏 */
 .cat-main {
   flex: 1;
   display: flex;
@@ -306,7 +356,8 @@ export default {
 .cat-sidebar {
   width: 170rpx;
   height: 100%;
-  background-color: #f7f8fa;
+  background-color: #f6f8f5;
+  border-right: 1rpx solid #eef2ef;
 }
 
 .sidebar-item {
@@ -316,23 +367,28 @@ export default {
   justify-content: center;
   position: relative;
   font-size: 26rpx;
-  color: #4e5969;
+  color: #556257;
 }
 
 .sidebar-item.active {
   background-color: #ffffff;
-  color: #25b873;
+  color: #27744d;
   font-weight: 700;
 }
 
 .active-indicator {
   position: absolute;
   left: 0;
-  top: 26rpx;
-  bottom: 26rpx;
+  top: 24rpx;
+  bottom: 24rpx;
   width: 6rpx;
-  background-color: #25b873;
+  background-color: #27744d;
   border-radius: 0 4rpx 4rpx 0;
+}
+
+.sidebar-text {
+  padding: 0 12rpx;
+  text-align: center;
 }
 
 /* 右侧内容 */
@@ -341,6 +397,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: #ffffff;
 }
 
 .sort-header {
@@ -348,13 +405,13 @@ export default {
   align-items: center;
   justify-content: space-around;
   height: 72rpx;
-  border-bottom: 1rpx solid #f2f4f7;
+  border-bottom: 1rpx solid #eef2ef;
   font-size: 24rpx;
-  color: #86909c;
+  color: #778579;
 }
 
 .sh-tab.active {
-  color: #25b873;
+  color: #27744d;
   font-weight: 700;
 }
 
@@ -370,14 +427,14 @@ export default {
 .goods-row {
   display: flex;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #f7f8fa;
+  border-bottom: 1rpx solid #f2f5f2;
 }
 
 .goods-thumb {
   width: 150rpx;
   height: 150rpx;
   border-radius: 12rpx;
-  background-color: #f7f8fa;
+  background-color: #f1f4f1;
   margin-right: 16rpx;
   flex-shrink: 0;
 }
@@ -392,7 +449,7 @@ export default {
 .goods-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #1f2329;
+  color: #19241d;
   line-height: 36rpx;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -401,8 +458,8 @@ export default {
 }
 
 .goods-spec {
-  font-size: 20rpx;
-  color: #86909c;
+  font-size: 22rpx;
+  color: #778579;
   margin-top: 4rpx;
 }
 
@@ -420,31 +477,29 @@ export default {
 
 .price-symbol {
   font-size: 22rpx;
-  color: #ff5e1e;
+  color: #ff5722;
   font-weight: 700;
 }
 
 .price-num {
   font-size: 32rpx;
-  color: #ff5e1e;
-  font-weight: 800;
-  font-family: Arial, Helvetica, sans-serif;
+  color: #ff5722;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
 }
 
 .cart-btn {
-  width: 52rpx;
-  height: 52rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
-  background-color: #25b873;
+  background-color: #27744d;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 10rpx rgba(37, 184, 115, 0.3);
 }
 
-.cart-icon {
-  font-size: 28rpx;
-  color: #ffffff;
-  line-height: 1;
+.cart-add-icon {
+  width: 24rpx;
+  height: 24rpx;
 }
 </style>

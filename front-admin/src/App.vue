@@ -233,6 +233,9 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
+.embedded .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #ffc200 inset !important;
+}
 .embedded .el-pagination.is-background .el-pager li.is-active {
   background-color: #ffc200 !important;
   color: #333333 !important;

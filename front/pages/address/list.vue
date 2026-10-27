@@ -23,7 +23,12 @@
         <view class="card-actions" @tap.stop>
           <view class="default-check" @tap="handleSetDefault(item)">
             <view :class="['radio-circle', item.isDefault === 1 ? 'checked' : '']">
-              <text v-if="item.isDefault === 1" class="check-icon">✓</text>
+              <image
+                v-if="item.isDefault === 1"
+                class="check-icon-img"
+                src="/static/icons/lucide/check-white.png"
+                mode="aspectFit"
+              />
             </view>
             <text class="default-label">{{ item.isDefault === 1 ? '默认地址' : '设为默认' }}</text>
           </view>
@@ -41,15 +46,15 @@
 
     <!-- 空状态 -->
     <view class="empty-state" v-else-if="!loading && !error">
-      <image class="empty-img" src="/static/images/dish-1.svg" mode="aspectFit" />
+      <image class="empty-img" src="/static/icons/lucide/map-pin-muted.png" mode="aspectFit" />
       <text class="empty-title">暂无收货地址</text>
-      <text class="empty-desc">添加收货地址，下单更便捷</text>
+      <text class="empty-desc">添加收货地址，送货到家更便捷</text>
     </view>
 
     <!-- 底部按钮 -->
     <view class="bottom-bar">
       <button class="add-btn" @tap="handleAdd">
-        <text class="plus-icon">+</text>
+        <image class="plus-icon-img" src="/static/icons/lucide/plus-white.png" mode="aspectFit" />
         <text>新增收货地址</text>
       </button>
     </view>
@@ -143,12 +148,13 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .address-container {
   min-height: 100vh;
-  background-color: #F7F8FA;
+  background-color: #f6f8f5;
   padding: 24rpx;
-  padding-bottom: 160rpx;
+  padding-bottom: calc(160rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -159,33 +165,34 @@ export default {
 }
 
 .address-card {
-  background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 30rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  border-radius: 18rpx;
+  padding: 28rpx;
+  border: 1rpx solid #e5ebe6;
+  box-sizing: border-box;
 }
 
 .card-main {
-  border-bottom: 1rpx solid #F0F2F5;
-  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid #eef2ef;
+  padding-bottom: 20rpx;
 }
 
 .user-row {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin-bottom: 14rpx;
+  margin-bottom: 12rpx;
 }
 
 .name {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
-  color: #1F2329;
+  color: #19241d;
 }
 
 .phone {
-  font-size: 28rpx;
-  color: #646A73;
+  font-size: 26rpx;
+  color: #556257;
 }
 
 .tag {
@@ -196,19 +203,19 @@ export default {
 }
 
 .tag-default {
-  background-color: #E8F8F0;
-  color: #25B873;
-  font-weight: 500;
+  background-color: #eaf5ee;
+  color: #27744d;
+  font-weight: 600;
 }
 
 .tag-label {
-  background-color: #F2F3F5;
-  color: #4E5969;
+  background-color: #f0f4f1;
+  color: #4b5a4f;
 }
 
 .address-text {
   font-size: 26rpx;
-  color: #33383F;
+  color: #333f36;
   line-height: 1.5;
 }
 
@@ -216,41 +223,39 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 20rpx;
+  padding-top: 18rpx;
 }
 
 .default-check {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  cursor: pointer;
 }
 
 .radio-circle {
   width: 32rpx;
   height: 32rpx;
   border-radius: 50%;
-  border: 2rpx solid #C9CDD4;
+  border: 2rpx solid #c0ccc2;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-
-  &.checked {
-    background-color: #25B873;
-    border-color: #25B873;
-  }
+  box-sizing: border-box;
 }
 
-.check-icon {
-  color: #FFFFFF;
-  font-size: 20rpx;
-  font-weight: bold;
+.radio-circle.checked {
+  background-color: #27744d;
+  border-color: #27744d;
+}
+
+.check-icon-img {
+  width: 20rpx;
+  height: 20rpx;
 }
 
 .default-label {
-  font-size: 26rpx;
-  color: #86909C;
+  font-size: 24rpx;
+  color: #778579;
 }
 
 .btn-group {
@@ -260,12 +265,11 @@ export default {
 
 .action-btn {
   font-size: 26rpx;
-  color: #646A73;
-  cursor: pointer;
+  color: #556257;
+}
 
-  &.delete-btn {
-    color: #F53F3F;
-  }
+.action-btn.delete-btn {
+  color: #c93424;
 }
 
 .empty-state {
@@ -277,22 +281,21 @@ export default {
 }
 
 .empty-img {
-  width: 200rpx;
-  height: 200rpx;
-  opacity: 0.6;
+  width: 140rpx;
+  height: 140rpx;
   margin-bottom: 24rpx;
 }
 
 .empty-title {
   font-size: 32rpx;
-  font-weight: 500;
-  color: #1D2129;
-  margin-bottom: 12rpx;
+  font-weight: 600;
+  color: #19241d;
+  margin-bottom: 8rpx;
 }
 
 .empty-desc {
-  font-size: 26rpx;
-  color: #86909C;
+  font-size: 24rpx;
+  color: #778579;
 }
 
 .bottom-bar {
@@ -300,28 +303,35 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #FFFFFF;
-  padding: 20rpx 32rpx env(safe-area-inset-bottom);
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  padding: 20rpx 32rpx calc(20rpx + constant(safe-area-inset-bottom));
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #e5ebe6;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #25B873 0%, #1DA362 100%);
-  color: #FFFFFF;
-  height: 88rpx;
-  border-radius: 44rpx;
-  font-size: 30rpx;
+  background: #27744d;
+  color: #ffffff;
+  height: 84rpx;
+  border-radius: 42rpx;
+  font-size: 28rpx;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  border: none;
+  box-shadow: 0 4rpx 14rpx rgba(39, 116, 77, 0.22);
+}
+
+.add-btn::after {
   border: none;
 }
 
-.plus-icon {
-  font-size: 36rpx;
-  line-height: 1;
+.plus-icon-img {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 10rpx;
 }
 </style>

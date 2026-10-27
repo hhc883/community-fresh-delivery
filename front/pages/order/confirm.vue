@@ -1,94 +1,174 @@
 <template>
-  <view class="core"
-    ><text class="title">{{
-      mode ? (mode === "open" ? "发起拼团" : "参与拼团") : "确认订单"
-    }}</text
-    ><view v-if="!loggedIn" class="card"
-      ><text>请先登录后结算</text
-      ><button class="primary" @tap="login">去登录</button></view
-    ><template v-else
-      ><view v-if="error" class="error">{{ error }}</view
-      ><view v-if="loading" class="empty">读取结算信息…</view
-      ><template v-else
-        ><view class="card"
-          ><view v-for="i in items" :key="i.id" class="line row"
-            ><text>{{ i.name }}</text
-            ><text
-              >×{{ directDishId || mode ? quantity : i.quantity }} · 单价 ¥{{
-                $fmtMoney(mode ? i.grouponPrice : i.price)
-              }}</text
-            ></view
-          ><view v-if="directDishId || mode" class="row"
-            ><text>购买数量</text
-            ><input class="field" type="number" v-model="quantity" /></view
-          ><text class="sub"
-            >预估 ¥{{
-              $fmtMoney(estimate)
-            }}，服务器按当前商品价格生成最终订单。</text
-          ></view
-        ><view class="card"
-          ><text class="product-name">履约方式</text
-          ><view class="chips"
-            ><text
+  <view class="core">
+    <view class="confirm-header">
+      <text class="title">{{
+        mode ? (mode === "open" ? "发起社区拼团" : "参与社区拼团") : "确认订单"
+      }}</text>
+      <text class="sub">选择配送到家或社区自提</text>
+    </view>
+
+    <!-- 未登录提示 -->
+    <view v-if="!loggedIn" class="card">
+      <text class="login-tip-text">请先登录后完成生鲜订单结算</text>
+      <button class="primary" @tap="login">去登录</button>
+    </view>
+
+    <template v-else>
+      <view v-if="error" class="error">{{ error }}</view>
+      <view v-if="loading" class="empty">读取结算与门店信息…</view>
+      <template v-else>
+        <!-- 履约方式切换 -->
+        <view class="card">
+          <text class="product-name">配送履约方式</text>
+          <view class="chips">
+            <view
               :class="['chip', deliveryType === 'pickup' ? 'active' : '']"
               @tap="deliveryType = 'pickup'"
-              >社区自提</text
-            ><text
+            >
+              <image
+                v-if="deliveryType === 'pickup'"
+                class="chip-icon"
+                src="/static/icons/lucide/store-white.png"
+                mode="aspectFit"
+              />
+              <image
+                v-else
+                class="chip-icon"
+                src="/static/icons/lucide/store.png"
+                mode="aspectFit"
+              />
+              <text>社区自提</text>
+            </view>
+            <view
               :class="['chip', deliveryType === 'delivery' ? 'active' : '']"
               @tap="deliveryType = 'delivery'"
-              >配送到家</text
-            ></view
-          ><view v-if="deliveryType === 'pickup'"
-            ><picker
+            >
+              <image
+                v-if="deliveryType === 'delivery'"
+                class="chip-icon"
+                src="/static/icons/lucide/truck-white.png"
+                mode="aspectFit"
+              />
+              <image
+                v-else
+                class="chip-icon"
+                src="/static/icons/lucide/truck.png"
+                mode="aspectFit"
+              />
+              <text>送货到家</text>
+            </view>
+          </view>
+
+          <!-- 门店自提表单 -->
+          <view v-if="deliveryType === 'pickup'">
+            <picker
               :range="stores"
               range-key="name"
               :value="storeIndex"
               @change="storeIndex = Number($event.detail.value)"
-              ><view class="field">{{
-                currentStore ? currentStore.name : "暂无可用自提点"
-              }}</view></picker
-            ><text v-if="currentStore" class="sub">{{
-              currentStore.address
-            }}</text
-            ><input
+            >
+              <view class="field picker-field">
+                <text class="picker-val">{{
+                  currentStore ? currentStore.name : "暂无可用自提点"
+                }}</text>
+                <image
+                  class="picker-arrow"
+                  src="/static/icons/lucide/chevron-right.png"
+                  mode="aspectFit"
+                />
+              </view>
+            </picker>
+            <text v-if="currentStore" class="sub store-addr-sub"
+              >提货地址：{{ currentStore.address }}</text
+            >
+            <input
               class="field"
               v-model="pickupPersonName"
-              placeholder="提货人姓名" /><input
+              placeholder="提货人姓名"
+            />
+            <input
               class="field"
               v-model="pickupPersonPhone"
               type="number"
               maxlength="11"
-              placeholder="提货人手机号" /></view
-          ><view v-else @tap="address"
-            ><view class="field">{{
-              selectedAddress
-                ? selectedAddress.consignee + " " + selectedAddress.phone
-                : "选择收货地址 →"
-            }}</view
-            ><text class="sub" v-if="selectedAddress">{{
+              placeholder="提货人手机号"
+            />
+          </view>
+
+          <!-- 送货到家地址 -->
+          <view v-else @tap="address">
+            <view class="field address-field">
+              <text class="address-text">{{
+                selectedAddress
+                  ? selectedAddress.consignee + " " + selectedAddress.phone
+                  : "选择收货地址"
+              }}</text>
+              <image
+                class="picker-arrow"
+                src="/static/icons/lucide/chevron-right.png"
+                mode="aspectFit"
+              />
+            </view>
+            <text class="sub" v-if="selectedAddress">{{
               formatAddress(selectedAddress)
-            }}</text></view
-          ></view
-        ><view class="card"
-          ><input
+            }}</text>
+          </view>
+        </view>
+
+        <!-- 商品清单 -->
+        <view class="card">
+          <text class="product-name">商品明细</text>
+          <view v-for="i in items" :key="i.id" class="line row">
+            <text class="item-name-text">{{ i.name }}</text>
+            <text class="item-calc-text"
+              >×{{ directDishId || mode ? quantity : i.quantity }} · 单价 ¥{{
+                $fmtMoney(mode ? i.grouponPrice : i.price)
+              }}</text
+            >
+          </view>
+          <view v-if="directDishId || mode" class="row qty-setting-row">
+            <text class="qty-label">购买数量</text>
+            <input class="field qty-input" type="number" v-model="quantity" />
+          </view>
+          <view class="total-estimate-row">
+            <text class="estimate-tip">预估合计金额：</text>
+            <text class="price"
+              ><text class="price-symbol">¥</text
+              >{{ $fmtMoney(estimate) }}</text
+            >
+          </view>
+          <text class="sub"
+            >实际金额以提交后生成的订单为准。</text
+          >
+        </view>
+
+        <!-- 备注 -->
+        <view class="card">
+          <input
             class="field"
             v-model="remark"
             maxlength="200"
-            placeholder="备注（选填）" /></view
-        ><button
+            placeholder="订单备注（如：放置自提架2号层，选填）"
+          />
+        </view>
+
+        <!-- 提交按键 -->
+        <button
           class="primary"
           :loading="submitting"
           :disabled="submitting || submitted || !items.length"
           @tap="submit"
         >
-          提交{{ mode ? "拼团" : "" }}订单</button
-        ><text class="sub"
-          >提交后进入模拟支付；网络中断可重试，同一购买意图复用请求标识。</text
-        ></template
-      ></template
-    ></view
-  >
+          提交{{ mode ? "拼团" : "" }}订单（¥{{ $fmtMoney(estimate) }}）
+        </button>
+        <text class="sub submit-hint"
+          >提交后进入模拟支付流程，网络中断后可重试。</text
+        >
+      </template>
+    </template>
+  </view>
 </template>
+
 <script>
 import { getDishDetail, getStores, getAddressList } from "../../api/index.js";
 import { checkout } from "../../services/checkout.mjs";
@@ -247,3 +327,96 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.confirm-header {
+  margin-bottom: 24rpx;
+}
+
+.login-tip-text {
+  font-size: 28rpx;
+  color: #19241d;
+  display: block;
+  text-align: center;
+  margin: 20rpx 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chip-icon {
+  width: 26rpx;
+  height: 26rpx;
+  margin-right: 8rpx;
+}
+
+.picker-field,
+.address-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picker-val,
+.address-text {
+  flex: 1;
+  color: #19241d;
+}
+
+.picker-arrow {
+  width: 28rpx;
+  height: 28rpx;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.store-addr-sub {
+  margin: 6rpx 0 16rpx 8rpx;
+}
+
+.item-name-text {
+  font-weight: 600;
+  color: #19241d;
+}
+
+.item-calc-text {
+  color: #778579;
+  font-size: 24rpx;
+}
+
+.qty-setting-row {
+  margin: 16rpx 0;
+}
+
+.qty-label {
+  font-size: 26rpx;
+  color: #19241d;
+}
+
+.qty-input {
+  width: 140rpx;
+  text-align: center;
+  margin: 0;
+}
+
+.total-estimate-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  margin-top: 18rpx;
+  margin-bottom: 6rpx;
+}
+
+.estimate-tip {
+  font-size: 26rpx;
+  color: #19241d;
+  font-weight: 500;
+}
+
+.submit-hint {
+  text-align: center;
+  margin-top: 12rpx;
+}
+</style>

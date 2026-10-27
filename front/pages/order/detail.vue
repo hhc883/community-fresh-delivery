@@ -1,62 +1,154 @@
 <template>
-  <view class="core"
-    ><text class="title">订单详情</text
-    ><view v-if="loading" class="empty">读取订单…</view
-    ><view v-if="error" class="error" @tap="load">{{ error }} · 点击重试</view
-    ><template v-if="order"
-      ><view class="hero"
-        ><text class="title">{{ labels[order.status] || "未知状态" }}</text
-        ><text class="sub"
+  <view class="core">
+    <view class="detail-header">
+      <text class="title">订单详情</text>
+      <text class="sub">订单履约凭证与状态实时流转记录</text>
+    </view>
+
+    <view v-if="loading" class="empty">正在读取订单状态…</view>
+    <view v-if="error" class="error" @tap="load">{{ error }} · 点击重试</view>
+
+    <template v-if="order">
+      <!-- 状态横幅看板 -->
+      <view class="hero">
+        <text class="title">{{ labels[order.status] || "未知状态" }}</text>
+        <text class="sub"
           >{{ payLabels[order.payStatus] }} ·
           {{ isPickup ? "社区自提" : "配送到家" }}</text
-        ><text class="sub" v-if="order.grouponId && String(order.grouponId) !== '0'"
-          >团购订单需成团并付款后履约</text
-        ></view
-      ><view class="card stack"
-        ><text>订单号：{{ order.number || order.orderNumber }}</text
-        ><text>下单时间：{{ order.orderTime }}</text
-        ><text class="price">实付 ¥{{ $fmtMoney(order.amount) }}</text
-        ><text v-if="isPickup"
-          >自提点：{{ order.pickupPointName || order.pickupPointAddress || ("自提点 #" + order.pickupPointId) }}</text
-        ><text v-if="isPickup && order.pickupPointAddress && order.pickupPointName">{{
-          order.pickupPointAddress
-        }}</text
-        ><text v-if="!isPickup && order.address">收货地址：{{ order.address }}</text
-        ><text
-          >联系人：{{ order.pickupPersonName || order.consignee || "-" }}
-          {{ order.pickupPersonPhone || order.phone || "" }}</text
-        ><text
+        >
+        <text
+          class="sub groupon-hint-text"
+          v-if="order.grouponId && String(order.grouponId) !== '0'"
+          >社区拼团订单需成团并付款后完成配送履约</text
+        >
+      </view>
+
+      <!-- 提货凭证与履约信息卡片 -->
+      <view class="card stack">
+        <view class="info-row">
+          <text class="info-label">订单编号：</text>
+          <text class="info-val font-mono">{{
+            order.number || order.orderNumber
+          }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">下单时间：</text>
+          <text class="info-val">{{ order.orderTime }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">订单金额：</text>
+          <text class="price"
+            ><text class="price-symbol">¥</text
+            >{{ $fmtMoney(order.amount) }}</text
+          >
+        </view>
+
+        <!-- 自提点信息 -->
+        <view v-if="isPickup" class="station-detail-box">
+          <view class="station-title-row">
+            <image
+              class="box-icon"
+              src="/static/icons/lucide/store.png"
+              mode="aspectFit"
+            />
+            <text class="station-box-name">{{
+              order.pickupPointName ||
+              order.pickupPointAddress ||
+              "自提网点 #" + order.pickupPointId
+            }}</text>
+          </view>
+          <text
+            v-if="
+              isPickup && order.pickupPointAddress && order.pickupPointName
+            "
+            class="sub station-box-addr"
+            >{{ order.pickupPointAddress }}</text
+          >
+        </view>
+
+        <!-- 配送地址 -->
+        <view v-if="!isPickup && order.address" class="delivery-address-box">
+          <image
+            class="box-icon"
+            src="/static/icons/lucide/map-pin.png"
+            mode="aspectFit"
+          />
+          <text class="del-addr-text">收货地址：{{ order.address }}</text>
+        </view>
+
+        <view class="info-row">
+          <text class="info-label">联系人：</text>
+          <text class="info-val"
+            >{{ order.pickupPersonName || order.consignee || "-" }}
+            {{ order.pickupPersonPhone || order.phone || "" }}</text
+          >
+        </view>
+
+        <!-- 提货核销码（仅限自提且已付款） -->
+        <view
           v-if="isPickup && order.pickupCode && Number(order.payStatus) === 1"
-          class="code"
-          >{{ order.pickupCode }}</text
-        ><text v-if="Number(order.verifyStatus) === 1"
-          >已核销 {{ order.verifyTime }}</text
-        ><text v-if="order.cancelReason"
-          >取消原因：{{ order.cancelReason }}</text
-        ></view
-      ><view class="card"
-        ><view
-          class="line row"
+          class="pickup-code-section"
+        >
+          <text class="code-title">门店自提核销凭证码</text>
+          <view class="code">{{ order.pickupCode }}</view>
+          <text class="sub code-hint"
+            >到店请出示此核销码供团长或店员验证取货</text
+          >
+        </view>
+
+        <view v-if="Number(order.verifyStatus) === 1" class="verify-badge">
+          <image
+            class="verify-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text>已于 {{ order.verifyTime }} 完成到店核销提货</text>
+        </view>
+
+        <view v-if="order.cancelReason" class="cancel-reason-box">
+          <text class="cancel-label">取消原因：</text>
+          <text class="cancel-text">{{ order.cancelReason }}</text>
+        </view>
+      </view>
+
+      <!-- 购买商品清单 -->
+      <view class="card">
+        <text class="product-name">商品明细清单</text>
+        <view
+          class="line row item-line"
           v-for="d in order.orderDetailList || []"
           :key="d.id"
-          ><text>{{ d.name }} ×{{ d.number }}</text
-          ><text>¥{{ $fmtMoney(d.amount) }}</text></view
-        ></view
-      ><button v-if="Number(order.status) === 1" class="primary" @tap="pay">
-        去模拟支付</button
-      ><button
+        >
+          <text class="detail-goods-name">{{ d.name }} ×{{ d.number }}</text>
+          <text class="detail-goods-price">¥{{ $fmtMoney(d.amount) }}</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮流 -->
+      <button v-if="Number(order.status) === 1" class="primary" @tap="pay">
+        去模拟支付
+      </button>
+      <button
         v-if="[1, 2].includes(Number(order.status))"
-        class="secondary"
+        class="secondary cancel-btn"
         :loading="cancelling"
         :disabled="cancelling"
         @tap="cancel"
       >
-        取消订单</button
-      ><button v-if="order.grouponId && String(order.grouponId) !== '0'" class="secondary" @tap="group">查看拼团进度</button
-      ><button class="secondary" @tap="load">刷新状态</button></template
-    ></view
-  >
+        取消订单
+      </button>
+      <button
+        v-if="order.grouponId && String(order.grouponId) !== '0'"
+        class="secondary"
+        @tap="group"
+      >
+        查看拼团进度
+      </button>
+      <button class="secondary" @tap="load">刷新状态</button>
+    </template>
+  </view>
 </template>
+
 <script>
 import { getOrderDetail, cancelOrder } from "../../api/index.js";
 export default {
@@ -94,7 +186,10 @@ export default {
   },
   methods: {
     group() {
-      uni.navigateTo({ url: '/pages/groupon/detail?id=' + encodeURIComponent(this.order.grouponId) });
+      uni.navigateTo({
+        url:
+          "/pages/groupon/detail?id=" + encodeURIComponent(this.order.grouponId),
+      });
     },
     async load() {
       this.loading = true;
@@ -136,3 +231,137 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.detail-header {
+  margin-bottom: 20rpx;
+}
+
+.groupon-hint-text {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+  font-size: 26rpx;
+}
+
+.info-label {
+  color: #778579;
+}
+
+.info-val {
+  color: #19241d;
+  font-weight: 500;
+}
+
+.font-mono {
+  font-family: monospace, Arial, sans-serif;
+}
+
+.station-detail-box,
+.delivery-address-box {
+  background-color: #f6f8f5;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin: 12rpx 0;
+  border: 1rpx solid #e1e8e2;
+}
+
+.station-title-row,
+.delivery-address-box {
+  display: flex;
+  align-items: center;
+}
+
+.box-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+.station-box-name,
+.del-addr-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #19241d;
+}
+
+.station-box-addr {
+  margin-top: 6rpx;
+  padding-left: 38rpx;
+}
+
+.pickup-code-section {
+  margin: 16rpx 0;
+  text-align: center;
+}
+
+.code-title {
+  display: block;
+  font-size: 24rpx;
+  color: #27744d;
+  font-weight: 600;
+  margin-bottom: 6rpx;
+}
+
+.code-hint {
+  text-align: center;
+}
+
+.verify-badge {
+  display: flex;
+  align-items: center;
+  background-color: #eaf5ee;
+  padding: 12rpx 20rpx;
+  border-radius: 10rpx;
+  color: #27744d;
+  font-size: 24rpx;
+  font-weight: 500;
+  margin: 10rpx 0;
+}
+
+.verify-icon {
+  width: 24rpx;
+  height: 24rpx;
+  margin-right: 8rpx;
+}
+
+.cancel-reason-box {
+  background-color: #fdf2f1;
+  border: 1rpx solid #fad2ce;
+  border-radius: 10rpx;
+  padding: 12rpx 20rpx;
+  font-size: 24rpx;
+  color: #c93424;
+  margin: 10rpx 0;
+}
+
+.item-line {
+  padding: 16rpx 0;
+}
+
+.detail-goods-name {
+  font-size: 26rpx;
+  color: #19241d;
+  font-weight: 500;
+}
+
+.detail-goods-price {
+  font-size: 26rpx;
+  color: #ff5722;
+  font-weight: 600;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+}
+
+.cancel-btn {
+  color: #c93424;
+  border-color: #fed2ce;
+  background-color: #fff6f5;
+}
+</style>
