@@ -19,7 +19,7 @@
             src="/static/icons/lucide/search-muted.png"
             mode="aspectFit"
           />
-          <text class="search-placeholder">搜索新鲜果蔬/时令水产/自提点...</text>
+          <text class="search-placeholder">搜索商品名称</text>
         </view>
       </view>
 

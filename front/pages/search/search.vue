@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <!-- 顶部常驻搜索导航栏 -->
+    <!-- 搜索栏放在页面流内，避免被 H5 原生标题栏遮挡 -->
     <view class="nav-bar">
       <view class="nav-back" @tap="back">
         <image
@@ -205,17 +205,12 @@ export default {
 
 /* 顶部导航 */
 .nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 90;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 16rpx;
   padding: 16rpx 24rpx;
-  padding-top: calc(16rpx + constant(safe-area-inset-top));
-  padding-top: calc(16rpx + env(safe-area-inset-top));
   background-color: #ffffff;
   border-bottom: 1rpx solid #eef2ef;
   box-sizing: border-box;
@@ -283,8 +278,7 @@ export default {
 }
 
 .page-body {
-  padding-top: calc(112rpx + constant(safe-area-inset-top));
-  padding-top: calc(112rpx + env(safe-area-inset-top));
+  padding-top: 16rpx;
   padding-bottom: 40rpx;
 }
 

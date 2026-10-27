@@ -7,7 +7,7 @@
           src="/static/icons/lucide/search-muted.png"
           mode="aspectFit"
         />
-        <text class="search-text">搜索生鲜品类/基地蔬菜/时令水果...</text>
+        <text class="search-text">搜索商品名称</text>
       </view>
     </view>
 
