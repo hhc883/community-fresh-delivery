@@ -3,9 +3,10 @@
     :key="page"
     class="business-extension"
     :src="src"
-    title="生鲜业务管理"
+    title="社区生鲜业务运营"
   />
 </template>
+
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { getToken } from "@/utils/cookies";
@@ -21,12 +22,13 @@ export default class extends Vue {
   }
 }
 </script>
+
 <style scoped>
 .business-extension {
   display: block;
   width: 100%;
-  height: calc(100vh - 100px);
+  height: 100%;
   border: 0;
-  background: #f5f6f8;
+  background: #F4F6F8;
 }
 </style>

@@ -1,0 +1,160 @@
+/* =========================================================
+   社区鲜选 - 生鲜运营端全局生鲜绿色主题样式 (fresh-theme.scss)
+   使用 #app 后代选择器，安全覆盖历史旧黄色与老旧样式规则
+   ========================================================= */
+
+#app {
+  background-color: #F4F6F8;
+  color: #1A202C;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+
+  // 1. 主要按钮全局覆写
+  .el-button--primary {
+    background-color: #27744D !important;
+    border-color: #27744D !important;
+    color: #FFFFFF !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover,
+    &:focus {
+      background-color: #318a5d !important;
+      border-color: #318a5d !important;
+      color: #FFFFFF !important;
+    }
+
+    &:active {
+      background-color: #1f5f3e !important;
+      border-color: #1f5f3e !important;
+    }
+
+    &.is-plain {
+      background: #E8F5E9 !important;
+      border-color: #A5D6A7 !important;
+      color: #27744D !important;
+
+      &:hover,
+      &:focus {
+        background: #27744D !important;
+        border-color: #27744D !important;
+        color: #FFFFFF !important;
+      }
+    }
+
+    &.is-disabled,
+    &.is-disabled:hover,
+    &.is-disabled:focus {
+      background-color: #A3C9B4 !important;
+      border-color: #A3C9B4 !important;
+      color: #FFFFFF !important;
+      cursor: not-allowed;
+    }
+  }
+
+  // 2. 文字按钮与微交互
+  .blueBug {
+    color: #27744D !important;
+    font-weight: 500;
+    &:hover {
+      color: #318a5d !important;
+    }
+  }
+
+  .delBut {
+    color: #E53E3E !important;
+    &:hover {
+      color: #C53030 !important;
+    }
+  }
+
+  // 3. 表单组件聚焦高亮
+  .el-input.is-active .el-input__inner,
+  .el-input__inner:focus {
+    border-color: #27744D !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(39, 116, 77, 0.15);
+  }
+
+  .el-select .el-input.is-focus .el-input__inner {
+    border-color: #27744D !important;
+  }
+
+  // 4. 单选与多选框
+  .el-radio__input.is-checked .el-radio__inner {
+    border-color: #27744D !important;
+    background: #27744D !important;
+  }
+  .el-radio__input.is-checked + .el-radio__label {
+    color: #27744D !important;
+  }
+  .el-checkbox__input.is-checked .el-checkbox__inner,
+  .el-checkbox__input.is-indeterminate .el-checkbox__inner {
+    background-color: #27744D !important;
+    border-color: #27744D !important;
+  }
+
+  // 5. 分页器样式覆写
+  .el-pagination {
+    .el-pager li.active {
+      background-color: #27744D !important;
+      border-color: #27744D !important;
+      color: #FFFFFF !important;
+      font-weight: 600;
+      border-radius: 4px;
+    }
+    .el-pager li:hover {
+      color: #27744D !important;
+    }
+    &.is-background .el-pager li:not(.disabled).active {
+      background-color: #27744D !important;
+      color: #FFFFFF !important;
+    }
+  }
+
+  // 6. 统一弹框与消息框
+  .el-message-box__wrapper {
+    .el-button--primary {
+      background-color: #27744D !important;
+      border-color: #27744D !important;
+      color: #FFFFFF !important;
+    }
+  }
+
+  // 7. 表格与卡片强化
+  .el-table {
+    th.el-table__cell {
+      background-color: #F8FAF9 !important;
+      color: #2D3748 !important;
+      font-weight: 600;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    td.el-table__cell {
+      border-bottom: 1px solid #EDF2F7;
+    }
+    .el-table__row--striped td.el-table__cell {
+      background-color: #FAFBFB;
+    }
+  }
+
+  // 8. 状态小圆点
+  .tableColumn-status::before {
+    background: #27744D !important;
+  }
+  .tableColumn-status.stop-use::before {
+    background: #CBD5E1 !important;
+  }
+
+  // 9. 移除旧的历史黑色按钮
+  .continue,
+  .normal-btn {
+    border-color: #27744D !important;
+    background: #27744D !important;
+    color: #FFFFFF !important;
+    border-radius: 4px;
+    &:hover {
+      background: #318a5d !important;
+      border-color: #318a5d !important;
+      color: #FFFFFF !important;
+    }
+  }
+}

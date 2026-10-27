@@ -23,5 +23,5 @@ router.beforeEach(async (to: Route, _: Route, next: any) => {
 
 router.afterEach((to: Route) => {
   NProgress.done()
-  document.title = to.meta.title
+  document.title = (to.meta.title || '运营管理') + ' · 社区鲜选'
 })

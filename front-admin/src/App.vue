@@ -1,18 +1,17 @@
 <template>
   <div :class="['app-shell', { embedded: route.query.embedded === '1' }]">
-    <!-- 顶栏只在登录后出现：登录页自己已有标题，未登录时挂一个「退出登录」是死路 -->
+    <!-- 独立运行时展示顶栏：嵌入模式下由外壳统一接管顶栏 -->
     <header v-if="showChrome" class="app-header">
       <div class="brand">
-        <span class="brand-name">生鲜运营端</span>
-        <el-tag type="warning" effect="dark" size="small">运营端</el-tag>
+        <span class="brand-name">社区鲜选</span>
+        <el-tag type="success" effect="dark" size="small">生鲜运营端</el-tag>
       </div>
       <nav class="nav">
-        <router-link to="/overview" class="nav-link" :class="{ active: isActive('/overview') }">大盘</router-link>
-        <router-link to="/dishes" class="nav-link" :class="{ active: isActive('/dishes') }"><span class="nav-dot" title="本页会改数据"></span>商品管理</router-link>
-        <router-link to="/orders" class="nav-link" :class="{ active: isActive('/orders') }"><span class="nav-dot" title="本页会改数据"></span>订单履约</router-link>
-        <router-link to="/groupon" class="nav-link" :class="{ active: isActive('/groupon') }"><span class="nav-dot" title="本页会改数据"></span>拼团管理</router-link>
+        <router-link to="/overview" class="nav-link" :class="{ active: isActive('/overview') }">工作台大盘</router-link>
+        <router-link to="/dishes" class="nav-link" :class="{ active: isActive('/dishes') }">商品管理</router-link>
+        <router-link to="/orders" class="nav-link" :class="{ active: isActive('/orders') }">订单履约</router-link>
+        <router-link to="/groupon" class="nav-link" :class="{ active: isActive('/groupon') }">拼团管理</router-link>
         <router-link to="/reports" class="nav-link" :class="{ active: isActive('/reports') }">统计报表</router-link>
-        <span class="nav-legend" title="橙点入口对应的页面会修改数据，操作前有二次确认">● 会改数据（操作前有二次确认）</span>
       </nav>
       <div class="actions">
         <el-button size="small" @click="onLogout">退出登录</el-button>
@@ -41,8 +40,18 @@ const onLogout = () => logout()
 
 <style>
 :root {
-  --admin-bg: #f5f6f8;
-  --admin-border: #e6e7eb;
+  --admin-bg: #f4f6f8;
+  --admin-border: #e2e8f0;
+  --fresh-green: #27744D;
+  --fresh-green-hover: #318a5d;
+  --fresh-green-light: #e8f5e9;
+  --el-color-primary: #27744d;
+  --el-color-primary-light-3: #689e80;
+  --el-color-primary-light-5: #94baa6;
+  --el-color-primary-light-7: #bfd5c9;
+  --el-color-primary-light-8: #d4e3db;
+  --el-color-primary-light-9: #e9f1ed;
+  --el-color-primary-dark-2: #1f5d3e;
 }
 * {
   box-sizing: border-box;
@@ -50,8 +59,8 @@ const onLogout = () => logout()
 body {
   margin: 0;
   background: var(--admin-bg);
-  font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  color: #303133;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: #1a202c;
 }
 .app-shell {
   min-height: 100vh;
@@ -60,8 +69,6 @@ body {
   display: flex;
   align-items: center;
   gap: 24px;
-  /* F-20.22 顶栏从两条变六条：定高 56px 会在窄屏把导航挤出去，改成 min-height + 可换行，
-     宽屏读数与改动前一致（单行 56px），窄屏则整条 header 自然加高。 */
   min-height: 56px;
   padding: 8px 24px;
   flex-wrap: wrap;
@@ -79,72 +86,61 @@ body {
 .brand-name {
   font-size: 16px;
   font-weight: 600;
+  color: #1a202c;
 }
 .nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
   flex: 1;
   min-width: 0;
 }
 .nav-link {
-  color: #606266;
+  color: #64748b;
   text-decoration: none;
   font-size: 14px;
-  padding: 4px 2px;
+  padding: 6px 4px;
   border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+.nav-link:hover {
+  color: var(--fresh-green);
 }
 .nav-link.active {
-  color: #303133;
+  color: var(--fresh-green);
   font-weight: 600;
-  border-bottom-color: #e6a23c;
+  border-bottom-color: var(--fresh-green);
 }
 .actions {
   margin-left: auto;
 }
 .app-main {
-  padding: 24px;
+  padding: 20px 24px;
 }
 .app-main.with-header {
-  padding-top: 24px;
+  padding-top: 20px;
 }
 .page {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 .page-title {
   font-size: 18px;
   font-weight: 600;
-  margin: 0 0 4px;
+  margin: 0;
+  color: #1a202c;
 }
-/* FE-G6-10（读写可辨）：页眉行（标题 + 读/写徽标）。徽标本体是 el-tag，这里只管排布；
-   写页挂 danger「本页会改数据」、只读页挂 info「本页只读」，常驻 ready 态（原先这类话只在出错态出现）。 */
 .page-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-/* 写侧入口的橙点与图例：六个入口平铺，运营不看说明文就读不出「点了就改库」，
-   四条写侧链接挂橙点 + 一条常驻图例，与各页页眉的「本页会改数据」互相印证。 */
-.nav-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #e6a23c;
-  margin-right: 4px;
-  vertical-align: middle;
-}
-.nav-legend {
-  font-size: 11px;
-  color: #909399;
-  white-space: nowrap;
-  margin-left: 4px;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 .page-note {
-  font-size: 12px;
-  color: #909399;
+  font-size: 13px;
+  color: #64748b;
   line-height: 1.6;
+  margin: 0 0 16px;
 }
 .state-box {
   padding: 40px;
@@ -157,62 +153,97 @@ body {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: #1a202c;
 }
 .state-desc {
   font-size: 13px;
-  color: #606266;
+  color: #64748b;
 }
-/* F-20.22 四个 P0 页写动作的二次确认框（ElMessageBox 挂在 body 下，页面 scoped 样式作用不到，
-   所以这一条只有全局一份；四个页面 customClass 传的是同一个串 'admin-write-confirm'）。
-   为什么要改 white-space：确认文案是「把后果写全」的多行清单（核销/取消/删除/发布门店各自的副作用），
-   默认渲染会把 \n 折成空格、糊成一小块 420px 的单行——运营读不到重点，纪律 2 就只剩形式。
-   这里让换行真的换行、并把框加宽到能读完一行。 */
+
+/* 操作二次确认框：换行支持与清晰排版 */
 .admin-write-confirm {
-  width: 640px;
+  width: 600px;
   max-width: 92vw;
+  border-radius: 8px;
 }
 .admin-write-confirm .el-message-box__message {
   white-space: pre-line;
   line-height: 1.75;
   font-size: 13px;
-  color: #303133;
+  color: #334155;
+}
+.admin-write-confirm .el-button--primary {
+  background-color: var(--fresh-green) !important;
+  border-color: var(--fresh-green) !important;
+  color: #fff !important;
 }
 </style>
+
 <style>
+/* 嵌入外壳管理端的主题统配 */
 .embedded .app-main {
   padding: 16px 20px;
 }
 .embedded .page {
   max-width: none;
 }
-.embedded .el-button--primary {
-  --el-button-bg-color: #ffc200;
-  --el-button-border-color: #ffc200;
-  --el-button-text-color: #333333;
-  --el-button-hover-bg-color: #ffd033;
-  --el-button-hover-border-color: #ffd033;
-  --el-button-hover-text-color: #333333;
+
+/* 主按钮统一定义为鲜选生鲜绿 */
+.embedded .el-button--primary:not(.is-link):not(.is-text):not(.is-plain),
+.el-button--primary:not(.is-link):not(.is-text):not(.is-plain) {
+  --el-button-bg-color: #27744D;
+  --el-button-border-color: #27744D;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #318a5d;
+  --el-button-hover-border-color: #318a5d;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: #1f5f3e;
+  --el-button-active-border-color: #1f5f3e;
   font-weight: 500;
 }
+
+.el-button--primary.is-link,
+.el-button--primary.is-text {
+  --el-button-text-color: #27744d;
+  --el-button-hover-text-color: #1f5d3e;
+  --el-button-active-text-color: #1f5d3e;
+}
+
+.el-button--primary.is-plain {
+  --el-button-text-color: #27744d;
+  --el-button-bg-color: #e9f1ed;
+  --el-button-border-color: #bfd5c9;
+  --el-button-hover-bg-color: #27744d;
+  --el-button-hover-border-color: #27744d;
+  --el-button-hover-text-color: #ffffff;
+}
+
 .embedded .el-tag {
   border-radius: 4px;
 }
-/* 嵌入苍穹外卖管理端主视觉：增强表格、筛选栏与卡片层次 */
-.embedded .el-table {
+
+/* 增强表格、筛选栏与卡片层次 */
+.embedded .el-table,
+.el-table {
   border-radius: 6px;
   overflow: hidden;
   font-size: 13px;
 }
-.embedded .el-table th.el-table__cell {
-  background-color: #f8f9fb !important;
-  color: #303133;
+.embedded .el-table th.el-table__cell,
+.el-table th.el-table__cell {
+  background-color: #f8faf9 !important;
+  color: #1e293b;
   font-weight: 600;
   padding: 10px 0;
+  border-bottom: 1px solid var(--admin-border);
 }
-.embedded .el-table td.el-table__cell {
+.embedded .el-table td.el-table__cell,
+.el-table td.el-table__cell {
   padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
 }
-.embedded .toolbar {
+.embedded .toolbar,
+.toolbar {
   background: #ffffff;
   padding: 14px 16px;
   border-radius: 6px;
@@ -224,21 +255,26 @@ body {
   gap: 12px;
 }
 .embedded .card,
-.embedded .block {
-  border-radius: 6px;
+.embedded .block,
+.card,
+.block {
+  border-radius: 8px;
   border: 1px solid var(--admin-border);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
-.embedded .el-dialog {
+.embedded .el-dialog,
+.el-dialog {
   border-radius: 8px;
   overflow: hidden;
 }
-.embedded .el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 1px #ffc200 inset !important;
+.embedded .el-input__wrapper.is-focus,
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #27744D inset !important;
 }
-.embedded .el-pagination.is-background .el-pager li.is-active {
-  background-color: #ffc200 !important;
-  color: #333333 !important;
+.embedded .el-pagination.is-background .el-pager li.is-active,
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: #27744D !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 </style>

@@ -1,78 +1,97 @@
 <template>
   <div class="navbar">
     <div class="statusBox">
-      <hamburger id="hamburger-container"
-                 :is-active="sidebar.opened"
-                 class="hamburger-container"
-                 @toggleClick="toggleSideBar" />
-      <span v-if="status===1"
-            class="businessBtn">营业中</span>
-      <span v-else
-            class="businessBtn closing">打烊中</span>
+      <hamburger
+        id="hamburger-container"
+        :is-active="sidebar.opened"
+        class="hamburger-container"
+        @toggleClick="toggleSideBar"
+      />
+      <div class="header-title">
+        <span class="platform-name">社区鲜选</span>
+        <span class="platform-divider">/</span>
+        <span class="current-module">{{ currentModuleTitle }}</span>
+      </div>
+      <div class="state-pill" :class="status === 1 ? 'is-open' : 'is-closed'">
+        <span class="dot" />
+        <span class="text">{{ status === 1 ? '生鲜服务营业中' : '生鲜服务打烊中' }}</span>
+      </div>
     </div>
 
-    <div :key="restKey"
-         class="right-menu">
+    <div :key="restKey" class="right-menu">
       <div class="rightStatus">
-        <audio ref="audioVo"
-               hidden>
+        <audio ref="audioVo" hidden>
           <source src="./../../../assets/preview.mp3" type="audio/mp3" />
         </audio>
-        <audio ref="audioVo2"
-               hidden>
+        <audio ref="audioVo2" hidden>
           <source src="./../../../assets/reminder.mp3" type="audio/mp3" />
         </audio>
-        <span class="navicon operatingState" @click="handleStatus"><i />营业状态设置</span>
+        <div class="nav-action-btn" @click="handleStatus">
+          <i class="el-icon-time action-icon" />
+          <span>营业状态设置</span>
+        </div>
       </div>
+
       <div class="avatar-wrapper">
-        <div :class="shopShow?'userInfo':''"
-             @mouseenter="toggleShow"
-             @mouseleave="mouseLeaves">
-          <el-button type="primary"
-                     :class="shopShow?'active':''">
-            {{ name }}<i class="el-icon-arrow-down" />
-          </el-button>
-          <div v-if="shopShow"
-               class="userList">
-            <p class="amendPwdIcon"
-               @click="handlePwd">
-              修改密码<i />
+        <div
+          :class="shopShow ? 'userInfo' : ''"
+          class="user-trigger"
+          @mouseenter="toggleShow"
+          @mouseleave="mouseLeaves"
+        >
+          <div class="user-chip">
+            <span class="user-avatar-tag">管</span>
+            <span class="user-name">{{ name }}</span>
+            <i class="el-icon-arrow-down" :class="{ 'is-active': shopShow }" />
+          </div>
+          <div v-if="shopShow" class="userList">
+            <p class="amendPwdIcon" @click="handlePwd">
+              <i class="el-icon-lock" />
+              <span>修改密码</span>
             </p>
-            <p class="outLogin"
-               @click="logout">
-              退出登录<i />
+            <p class="outLogin" @click="logout">
+              <i class="el-icon-switch-button" />
+              <span>退出登录</span>
             </p>
           </div>
         </div>
       </div>
     </div>
+
     <!-- 营业状态弹层 -->
-    <el-dialog title="营业状态设置"
-               :visible.sync="dialogVisible"
-               width="25%"
-               :show-close="false">
-      <el-radio-group v-model="setStatus">
-        <el-radio :label="1">
-          营业中
-          <span>当前餐厅处于营业状态，自动接收任何订单，可点击打烊进入店铺打烊状态。</span>
-        </el-radio>
-        <el-radio :label="0">
-          打烊中
-          <span>当前餐厅处于打烊状态，仅接受营业时间内的预定订单，可点击营业中手动恢复营业状态。</span>
-        </el-radio>
-      </el-radio-group>
-      <span slot="footer"
-            class="dialog-footer">
+    <el-dialog
+      title="生鲜服务营业状态设置"
+      :visible.sync="dialogVisible"
+      width="440px"
+      :show-close="true"
+    >
+      <div class="status-setting-content">
+        <el-radio-group v-model="setStatus" class="status-radio-group">
+          <el-radio :label="1" class="status-radio-item">
+            <div class="radio-title">营业中</div>
+            <div class="radio-desc">
+              当前社区生鲜服务处于对外营业展示状态，支持自提与配送订单流转。
+            </div>
+          </el-radio>
+          <el-radio :label="0" class="status-radio-item">
+            <div class="radio-title">打烊中</div>
+            <div class="radio-desc">
+              当前社区生鲜服务处于打烊歇业展示状态，提示顾客在营业时段选购。
+            </div>
+          </el-radio>
+        </el-radio-group>
+      </div>
+      <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary"
-                   @click="handleSave">确 定</el-button>
+        <el-button type="primary" @click="handleSave">确 定</el-button>
       </span>
     </el-dialog>
-    <!-- end -->
+
     <!-- 修改密码 -->
-    <Password :dialog-form-visible="dialogFormVisible"
-              @handleclose="handlePwdClose" />
-    <!-- end -->
+    <Password
+      :dialog-form-visible="dialogFormVisible"
+      @handleclose="handlePwdClose"
+    />
   </div>
 </template>
 
@@ -101,6 +120,10 @@ import Password from '../components/password.vue'
   },
 })
 export default class extends Vue {
+  get currentModuleTitle() {
+    return (this.$route.meta && this.$route.meta.title) || '运营管理'
+  }
+
   private storeId = this.getStoreId
   private restKey: number = 0
   private websocket = null
@@ -306,353 +329,262 @@ export default class extends Vue {
 <style lang="scss" scoped>
 .navbar {
   height: 60px;
-  // overflow: hidden;
   position: relative;
-  background: #ffc100;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px 0 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 
-  // box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
   .statusBox {
-    float: left;
     height: 100%;
     align-items: center;
     display: flex;
   }
-  .hamburger-container {
-    // line-height: 54px;
 
-    padding: 0 12px 0 20px;
+  .hamburger-container {
+    padding: 0 16px 0 20px;
     cursor: pointer;
-    transition: background 0.3s;
-    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+    height: 100%;
+    display: flex;
+    align-items: center;
 
     &:hover {
-      background: rgba(0, 0, 0, 0.025);
+      background: rgba(0, 0, 0, 0.03);
     }
   }
 
-  .breadcrumb-container {
-    float: left;
-  }
-  .right-menu {
-    float: right;
-
-    margin-right: 20px;
-
-    color: #333333;
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
+    margin-right: 18px;
 
-    span {
-      padding: 0 10px;
-      width: 130px;
-      display: inline-block;
+    .platform-name {
+      color: #64748B;
+      font-weight: 500;
+    }
+    .platform-divider {
+      color: #CBD5E1;
+    }
+    .current-module {
+      color: #1A202C;
+      font-weight: 600;
+      font-size: 15px;
+    }
+  }
+
+  .state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    &.is-open {
+      background-color: #E8F5E9;
+      color: #27744D;
+      border: 1px solid #A5D6A7;
+      .dot {
+        background-color: #27744D;
+        box-shadow: 0 0 0 2px rgba(39, 116, 77, 0.2);
+      }
+    }
+
+    &.is-closed {
+      background-color: #F1F5F9;
+      color: #64748B;
+      border: 1px solid #CBD5E1;
+      .dot {
+        background-color: #94A3B8;
+      }
+    }
+  }
+
+  .right-menu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+
+    .nav-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #E2E8F0;
+      background: #FAFAFA;
+      color: #475569;
+      transition: all 0.2s;
+
+      .action-icon {
+        color: #27744D;
+        font-size: 15px;
+      }
+
       &:hover {
-        background: rgba(255, 255, 255, 0.52);
+        background: #F1F5F9;
+        color: #1A202C;
+        border-color: #CBD5E1;
       }
     }
-    .amendPwdIcon {
-      i {
-        width: 18px;
-        height: 18px;
-        background: url(./../../../assets/icons/btn_gaimi@2x.png) no-repeat;
-        background-size: contain;
-        margin-top: 8px;
-      }
-    }
-    .outLogin {
-      i {
-        width: 18px;
-        height: 18px;
-        background: url(./../../../assets/icons/btn_close@2x.png) no-repeat 100%
-          100%;
-        background-size: contain;
-        margin-top: 8px;
-      }
-    }
-    .outLogin {
+  }
+
+  .avatar-wrapper {
+    position: relative;
+
+    .user-trigger {
+      position: relative;
       cursor: pointer;
     }
 
-    &:focus {
-      outline: none;
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #F8FAF9;
+      border: 1px solid #E2E8F0;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #EEF5F1;
+        border-color: #A5D6A7;
+      }
+
+      .user-avatar-tag {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #27744D;
+        color: #FFFFFF;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .user-name {
+        color: #1A202C;
+        font-weight: 500;
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .el-icon-arrow-down {
+        font-size: 12px;
+        color: #64748B;
+        transition: transform 0.2s;
+
+        &.is-active {
+          transform: rotate(180deg);
+        }
+      }
     }
 
-    .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
-      height: 100%;
-      font-size: 18px;
-      color: #5a5e66;
-      vertical-align: text-bottom;
+    .userList {
+      position: absolute;
+      top: 40px;
+      right: 0;
+      width: 130px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      border: 1px solid #E2E8F0;
+      padding: 6px 0;
+      z-index: 2000;
 
-      &.hover-effect {
+      p {
+        margin: 0;
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+        font-size: 13px;
         cursor: pointer;
-        transition: background 0.3s;
+        transition: background 0.15s;
+
+        i {
+          font-size: 14px;
+          color: #64748B;
+        }
 
         &:hover {
-          background: rgba(0, 0, 0, 0.025);
+          background: #F8FAF9;
+          color: #27744D;
+
+          i {
+            color: #27744D;
+          }
+        }
+      }
+
+      .outLogin:hover {
+        color: #E53E3E;
+        i {
+          color: #E53E3E;
         }
       }
     }
-
-    // .avatar-container {
-    // margin-right: 30px;
-
-    // }
   }
-  .rightStatus {
-    height: 100%;
-    line-height: 60px;
+}
+
+.status-setting-content {
+  padding: 10px 0;
+
+  .status-radio-group {
     display: flex;
-    align-items: center;
-    float: left;
+    flex-direction: column;
+    gap: 16px;
   }
-  .avatar-wrapper {
-    margin-top: 14px;
-    margin-left: 18px;
-    position: relative;
-    // vertical-align: middle;
-    float: right;
-    width: 120px;
-    text-align: left;
-    .user-avatar {
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+
+  .status-radio-item {
+    display: flex;
+    align-items: flex-start;
+    margin-right: 0;
+    padding: 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    transition: all 0.2s;
+
+    &.is-checked {
+      border-color: #27744D;
+      background: #F0F9F4;
     }
 
-    .el-icon-caret-bottom {
-      cursor: pointer;
-      position: absolute;
-      right: -20px;
-      top: 25px;
+    .radio-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1A202C;
+      margin-bottom: 4px;
+    }
+
+    .radio-desc {
       font-size: 12px;
-    }
-
-    .el-button--primary {
-      // height: 32px;
-      background: rgba(255, 255, 255, 0.52);
-      border-radius: 4px;
-      padding-top: 0px;
-      padding-bottom: 0px;
-      position: relative;
-      // top: -15px;
-      width: 120px;
-      // padding: 11px 12px 10px;
-      padding-left: 12px;
-      text-align: left;
-      border: 0 none;
-      height: 32px;
-      line-height: 32px;
-      &.active {
-        background: rgba(250, 250, 250, 0);
-        border: 0 none;
-        .el-icon-arrow-down {
-          transform: rotate(-180deg);
-        }
-      }
-    }
-  }
-  .businessBtn {
-    height: 22px;
-    line-height: 20px;
-    background: #fd3333;
-    border: 1px solid #ffffff;
-    border-radius: 4px;
-    display: inline-block;
-    padding: 0 6px;
-    color: #fff;
-  }
-  .closing {
-    background: #6a6a6a;
-  }
-  .navicon {
-    i {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      vertical-align: sub;
-      margin: 0 4px 0 0;
-    }
-  }
-  .operatingState {
-    i {
-      background: url('./../../../assets/icons/time.png') no-repeat;
-      background-size: contain;
-    }
-  }
-  .mesCenter {
-    i {
-      background: url('./../../../assets/icons/msg.png') no-repeat;
-      background-size: contain;
-    }
-  }
-  // .el-badge__content.is-fixed {
-  //   top: 20px;
-  //   right: 6px;
-  // }
-}
-</style>
-<style lang="scss">
-.el-notification {
-  // background: rgba(255, 255, 255, 0.71);
-  width: 419px !important;
-  .el-notification__title {
-    margin-bottom: 14px;
-    color: #333;
-    .el-notification__content {
-      color: #333;
-    }
-  }
-}
-.navbar {
-  .el-dialog {
-    min-width: auto !important;
-  }
-  .el-dialog__header {
-    height: 61px;
-    line-height: 60px;
-    background: #fbfbfa;
-    padding: 0 30px;
-    font-size: 16px;
-    color: #333;
-    border: 0 none;
-  }
-  .el-dialog__body {
-    padding: 10px 30px 30px;
-    .el-radio,
-    .el-radio__input {
+      color: #64748B;
+      line-height: 1.5;
       white-space: normal;
     }
-    .el-radio__label {
-      padding-left: 5px;
-      color: #333;
-      font-weight: 700;
-      span {
-        display: block;
-        line-height: 20px;
-        padding-top: 12px;
-        color: #666;
-        font-weight: normal;
-      }
-    }
-    .el-radio__input.is-checked .el-radio__inner {
-      &::after {
-        background: #333;
-      }
-    }
-    .el-radio-group {
-      & > .is-checked {
-        border: 1px solid #ffc200;
-      }
-    }
-    .el-radio {
-      width: 100%;
-      background: #fbfbfa;
-      border: 1px solid #e5e4e4;
-      border-radius: 4px;
-      padding: 14px 22px;
-      margin-top: 20px;
-    }
-    .el-radio__input.is-checked + .el-radio__label {
-      span {
-      }
-    }
-  }
-  .el-badge__content.is-fixed {
-    top: 24px;
-    right: 2px;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
-    line-height: 16px;
-    font-size: 10px;
-    border-radius: 50%;
-    padding: 0;
-  }
-  .badgeW {
-    .el-badge__content.is-fixed {
-      width: 30px;
-      border-radius: 20px;
-    }
   }
 }
-.el-icon-arrow-down {
-  background: url('./../../../assets/icons/up.png') no-repeat 50% 50%;
-  background-size: contain;
-  width: 8px;
-  height: 8px;
-  transform: rotate(0eg);
-  margin-left: 16px;
-  position: absolute;
-  right: 16px;
-  top: 12px;
-  &:before {
-    content: '';
-  }
-}
-
-.userInfo {
-  background: #fff;
-  position: absolute;
-  top: 0px;
-  left: 0;
-  z-index: 99;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.14);
-  width: 100%;
-  border-radius: 4px;
-  line-height: 32px;
-  padding: 0 0 5px;
-  height: 105px;
-  // .active {
-  //   top: 0;
-  //   left: 0;
-  // }
-  .userList {
-    width: 95%;
-    // // margin-top: -5px;
-    // position: absolute;
-    // top: 35px;
-    padding-left: 5px;
-  }
-  p {
-    cursor: pointer;
-    height: 32px;
-    line-height: 32px;
-    padding: 0 5px 0 7px;
-    i {
-      margin-left: 10px;
-
-      vertical-align: middle;
-      margin-top: 4px;
-      float: right;
-    }
-    &:hover {
-      background: #f6f1e1;
-    }
-  }
-}
-.msgTip {
-  color: #419eff;
-  padding: 0 5px;
-}
-// .el-dropdown{
-//   .el-button--primary{
-//     height: 32px;
-//     background: rgba(255,255,255,0.52);
-//     border-radius: 4px;
-//     padding-top: 0px;
-//     padding-bottom: 0px;
-//   }
-//   margin-top: 2px;
-// }
-// .el-popper{
-//   top: 45px !important;
-//   padding-top: 50px !important;
-//   border-radius: 0 0 4px 4px;
-// }
-// .el-popper[x-placement^=bottom] .popper__arrow::after,.popper__arrow{
-//   display: none !important;
-// }
 </style>

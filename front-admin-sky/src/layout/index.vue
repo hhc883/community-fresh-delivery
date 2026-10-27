@@ -50,16 +50,20 @@ export default class extends mixins(ResizeMixin) {
   position: relative;
   height: 100%;
   width: 100%;
-  min-width: 1366px;
+  min-width: 980px;
   overflow-x: auto;
   overflow-y: hidden;
+  background-color: #F4F6F8;
 }
 
 .main-container {
   height: 100%;
-  background: #f3f4f7;
+  min-height: 100%;
+  transition: margin-left 0.28s;
+  margin-left: $sideBarWidth;
+  background: #F4F6F8;
   position: relative;
-  width: calc(100% - 190px);
+  width: calc(100% - #{$sideBarWidth});
 }
 
 .drawer-bg {
@@ -72,67 +76,26 @@ export default class extends mixins(ResizeMixin) {
   z-index: 999;
 }
 
-.main-container {
-  min-height: 100%;
-  transition: margin-left 0.28s;
-  margin-left: $sideBarWidth;
-  background: $gray-5;
-  position: relative;
-}
-
 .sidebar-container {
   transition: width 0.28s;
   width: $sideBarWidth !important;
   height: 100%;
   position: fixed;
-  // font-size: 0px;
   top: 0;
   bottom: 0;
   left: 0;
   z-index: 1001;
   overflow: hidden;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
 }
 
 .hideSidebar {
   .main-container {
-    margin-left: 80px;
-    width: calc(100% - 80px);
+    margin-left: 64px;
+    width: calc(100% - 64px);
   }
-
   .sidebar-container {
-    width: 80px !important;
-  }
-}
-
-/* for mobile response 适配移动端 */
-.mobile {
-  .main-container {
-    margin-left: 0px;
-  }
-
-  .sidebar-container {
-    transition: transform 0.28s;
-    width: $sideBarWidth !important;
-  }
-
-  &.openSidebar {
-    position: fixed;
-    top: 0;
-  }
-
-  &.hideSidebar {
-    .sidebar-container {
-      pointer-events: none;
-      transition-duration: 0.3s;
-      transform: translate3d(-$sideBarWidth, 0, 0);
-    }
-  }
-}
-
-.withoutAnimation {
-  .main-container,
-  .sidebar-container {
-    transition: none;
+    width: 64px !important;
   }
 }
 </style>

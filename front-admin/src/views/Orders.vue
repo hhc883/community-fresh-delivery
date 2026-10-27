@@ -2,26 +2,25 @@
   <div class="page">
     <div class="page-head">
       <h2 class="page-title">订单履约</h2>
-      <el-tag type="danger" effect="dark" size="small" class="mode-badge">本页会改数据</el-tag>
+      <el-tag type="success" effect="plain" size="small" class="mode-badge">自提与配送</el-tag>
     </div>
     <p class="page-note">
-      订单列表、详情与状态流转均为真实数据库读写。状态机：1待付款 → 2待接单 → 3已接单 → 4派送中 → 5已完成；6已取消。
-      自提订单可用提货码核销（已核销订单不可二次核销，由服务端判定）。
+      处理社区生鲜订单，支持接单、派送、提货码核销与状态跟进。
     </p>
 
     <div class="toolbar">
       <el-input v-model="filter.number" placeholder="订单号" clearable style="width: 180px" @keyup.enter="onSearch" />
-      <el-input v-model="filter.phone" placeholder="手机号" clearable style="width: 150px" @keyup.enter="onSearch" />
-      <el-select v-model="filter.status" placeholder="订单状态" clearable style="width: 130px">
+      <el-input v-model="filter.phone" placeholder="顾客手机号" clearable style="width: 150px" @keyup.enter="onSearch" />
+      <el-select v-model="filter.status" placeholder="订单履约状态" clearable style="width: 140px">
         <el-option v-for="(label, value) in STATUS_LABELS" :key="value" :label="label" :value="Number(value)" />
       </el-select>
       <el-date-picker
         v-model="range"
         type="datetimerange"
         value-format="YYYY-MM-DD HH:mm:ss"
-        start-placeholder="下单开始时间"
-        end-placeholder="下单结束时间"
-        style="width: 360px"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        style="width: 350px"
       />
       <el-button type="primary" @click="onSearch">查询</el-button>
       <el-button @click="onReset">重置</el-button>
@@ -36,26 +35,28 @@
     </div>
     <template v-else>
       <el-table :data="rows" border stripe>
-        <el-table-column prop="number" label="订单号" min-width="180" />
-        <el-table-column prop="userName" label="下单用户" width="100" />
-        <el-table-column prop="phone" label="手机号" width="120" />
-        <el-table-column label="金额" width="100">
-          <template #default="{ row }">￥{{ row.amount }}</template>
-        </el-table-column>
-        <el-table-column label="方式" width="90">
+        <el-table-column prop="number" label="订单编号" min-width="180" />
+        <el-table-column prop="userName" label="下单顾客" width="110" />
+        <el-table-column prop="phone" label="联系电话" width="120" />
+        <el-table-column label="订单金额" width="110">
           <template #default="{ row }">
-            <el-tag v-if="isPickupOrder(row)" type="success" size="small">自提</el-tag>
-            <el-tag v-else type="primary" size="small">配送</el-tag>
+            <span class="order-price">￥{{ row.amount }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="支付" width="80">
+        <el-table-column label="履约方式" width="96" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="isPickupOrder(row)" type="success" size="small" effect="light">门店自提</el-tag>
+            <el-tag v-else type="primary" size="small" effect="light">配送到家</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="支付状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="row.payStatus === 1 ? 'success' : 'info'" size="small">
-              {{ PAY_LABELS[row.payStatus] || '未知' }}
+              {{ PAY_LABELS[row.payStatus] || '待支付' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="履约进度" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="STATUS_TAG_TYPES[row.status] || 'info'" size="small">
               {{ STATUS_LABELS[row.status] || row.status }}
@@ -63,7 +64,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="orderTime" label="下单时间" width="170" />
-        <el-table-column label="操作" width="230" fixed="right">
+        <el-table-column label="操作" width="230" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button v-if="row.status === 2" link type="success" @click="onConfirm(row)">接单</el-button>
@@ -85,54 +86,54 @@
       />
     </template>
 
-    <!-- 订单详情 -->
-    <el-drawer v-model="detail.visible" title="订单详情" size="480px">
+    <!-- 订单详情抽屉 -->
+    <el-drawer v-model="detail.visible" title="订单履约明细" size="480px">
       <div v-if="detail.loading" class="state-box">详情加载中…</div>
       <div v-else-if="detail.error" class="state-box">{{ detail.error }}</div>
       <div v-else-if="detail.data" class="detail">
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="订单号">{{ detail.data.number }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item label="履约状态">
             {{ STATUS_LABELS[detail.data.status] || detail.data.status }}
-            <el-tag v-if="detail.data.verifyStatus === 1" type="success" size="small" style="margin-left: 6px">已核销</el-tag>
+            <el-tag v-if="detail.data.verifyStatus === 1" type="success" size="small" style="margin-left: 6px">已核销提货</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="实收金额">￥{{ detail.data.amount }}</el-descriptions-item>
           <el-descriptions-item label="支付状态">{{ PAY_LABELS[detail.data.payStatus] || '未知' }}</el-descriptions-item>
           <el-descriptions-item label="下单时间">{{ detail.data.orderTime }}</el-descriptions-item>
-          <el-descriptions-item label="收货人">{{ detail.data.consignee || detail.data.userName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="手机号">{{ detail.data.phone || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="地址">{{ detail.data.address || '-' }}</el-descriptions-item>
-          <el-descriptions-item v-if="isPickupOrder(detail.data) && (detail.data.pickupPointName || detail.data.pickupPointId)" label="自提点">
-            {{ detail.data.pickupPointName || ('自提点 #' + detail.data.pickupPointId) }}（{{ detail.data.pickupPointAddress || '-' }}）
+          <el-descriptions-item label="顾客姓名">{{ detail.data.consignee || detail.data.userName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ detail.data.phone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="收货地址">{{ detail.data.address || '-' }}</el-descriptions-item>
+          <el-descriptions-item v-if="isPickupOrder(detail.data) && (detail.data.pickupPointName || detail.data.pickupPointId)" label="自提门店">
+            {{ detail.data.pickupPointName || ('社区自提点 #' + detail.data.pickupPointId) }}（{{ detail.data.pickupPointAddress || '-' }}）
           </el-descriptions-item>
-          <el-descriptions-item v-if="isPickupOrder(detail.data) && detail.data.pickupCode" label="提货码">
+          <el-descriptions-item v-if="isPickupOrder(detail.data) && detail.data.pickupCode" label="提货凭证码">
             <span class="pickup-code">{{ detail.data.pickupCode }}</span>
           </el-descriptions-item>
-          <el-descriptions-item v-if="detail.data.remark" label="备注">{{ detail.data.remark }}</el-descriptions-item>
-          <el-descriptions-item v-if="detail.data.cancelReason" label="取消原因">{{ detail.data.cancelReason }}</el-descriptions-item>
+          <el-descriptions-item v-if="detail.data.remark" label="顾客备注">{{ detail.data.remark }}</el-descriptions-item>
+          <el-descriptions-item v-if="detail.data.cancelReason" label="取消/退款原因">{{ detail.data.cancelReason }}</el-descriptions-item>
         </el-descriptions>
-        <p class="detail-sub">商品明细</p>
+        <p class="detail-sub">生鲜商品清单</p>
         <el-table :data="detail.data.orderDetailList || []" border size="small">
-          <el-table-column prop="name" label="名称" min-width="120" />
-          <el-table-column prop="number" label="数量" width="60" />
-          <el-table-column label="单价" width="80">
+          <el-table-column prop="name" label="商品名称" min-width="120" />
+          <el-table-column prop="number" label="数量" width="70" align="center" />
+          <el-table-column label="单价" width="90">
             <template #default="{ row }">￥{{ row.amount }}</template>
           </el-table-column>
         </el-table>
       </div>
     </el-drawer>
 
-    <!-- 提货码核销 -->
-    <el-dialog v-model="verify.visible" title="提货码核销" width="420px">
+    <!-- 提货码核销弹窗 -->
+    <el-dialog v-model="verify.visible" title="自提提货码核销" width="420px">
       <el-form label-width="80px">
         <el-form-item label="提货码" required>
-          <el-input v-model="verify.pickupCode" maxlength="16" placeholder="用户出示的 8 位提货码" @keyup.enter="doVerify" />
+          <el-input v-model="verify.pickupCode" maxlength="16" placeholder="请输入顾客出示的 8 位提货码" @keyup.enter="doVerify" />
         </el-form-item>
       </el-form>
-      <p class="form-note">核销成功后订单标记为已核销；同一提货码第二次核销会被服务端拒绝，不产生第二次履约。</p>
+      <p class="form-note">输入顾客出示的提货码进行身份核对并完成生鲜商品自提交付。</p>
       <template #footer>
         <el-button @click="verify.visible = false">取消</el-button>
-        <el-button type="primary" :loading="verify.saving" @click="doVerify">核销</el-button>
+        <el-button type="primary" :loading="verify.saving" @click="doVerify">确认核销</el-button>
       </template>
     </el-dialog>
   </div>
@@ -335,47 +336,32 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 16px 0 14px;
+.order-price {
+  font-weight: 600;
+  color: #27744D;
 }
 .pager {
-  margin-top: 14px;
+  margin-top: 16px;
   justify-content: flex-end;
 }
 .detail-sub {
+  font-size: 14px;
   font-weight: 600;
-  font-size: 13px;
-  margin: 16px 0 8px;
+  margin: 18px 0 8px;
+  color: #1e293b;
 }
 .pickup-code {
   font-family: monospace;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 2px;
+  color: #27744D;
+  background: #e8f5e9;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 .form-note {
   font-size: 12px;
-  color: #909399;
-  margin: 0 0 8px;
-}
-.state-box {
-  padding: 40px;
-  text-align: center;
-  background: #fff;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-}
-.state-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.state-desc {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 10px;
+  color: #64748b;
+  margin-top: 8px;
 }
 </style>

@@ -1,141 +1,171 @@
 <template>
-  <div class="dashboard-container">
-    <div class="container">
-      <div class="tableBar"
-           style="display: inline-block; width: 100%">
-        <label style="margin-right: 10px">分类名称：</label>
-        <el-input v-model="name"
-                  placeholder="请填写分类名称"
-                  style="width: 15%"
-                  clearable
-                  @clear="init"
-                  @keyup.enter.native="init" />
+  <div class="category-page">
+    <div class="page-container">
+      <div class="tableBar">
+        <div class="search-form">
+          <div class="filter-item">
+            <span class="filter-label">分类名称：</span>
+            <el-input
+              v-model="name"
+              placeholder="请输入分类名称"
+              style="width: 200px"
+              clearable
+              @clear="init"
+              @keyup.enter.native="init"
+            />
+          </div>
 
-        <label style="margin-right: 5px; margin-left: 20px">分类类型：</label>
-        <el-select v-model="categoryType"
-                   placeholder="请选择"
-                   clearable
-                   style="width: 15%"
-                   @clear="init">
-          <el-option v-for="item in options"
-                     :key="item.value"
-                     :label="item.label"
-                     :value="item.value" />
-        </el-select>
+          <div class="filter-item">
+            <span class="filter-label">分类类型：</span>
+            <el-select
+              v-model="categoryType"
+              placeholder="请选择类型"
+              clearable
+              style="width: 160px"
+              @clear="init"
+            >
+              <el-option
+                v-for="item in options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </div>
 
-        <div style="float: right">
-          <el-button type="primary"
-                     class="continue"
-                     @click="addClass('class')">
-            + 新增商品分类
+          <el-button type="primary" icon="el-icon-search" @click="init(true)">
+            查询
           </el-button>
         </div>
 
-        <el-button class="normal-btn continue"
-                   @click="init(true)">
-          查询
-        </el-button>
+        <div class="action-bar">
+          <el-button type="primary" icon="el-icon-plus" @click="addClass('class')">
+            新增商品分类
+          </el-button>
+        </div>
       </div>
-      <el-table v-if="tableData.length"
-                :data="tableData"
-                stripe
-                class="tableBox">
-        <el-table-column prop="name"
-                         label="分类名称" />
-        <el-table-column prop="type"
-                         label="分类类型">
+
+      <el-table
+        v-if="tableData.length"
+        :data="tableData"
+        stripe
+        border
+        class="tableBox"
+      >
+        <el-table-column prop="name" label="分类名称" min-width="160" />
+        <el-table-column prop="type" label="分类类型" width="130">
           <template slot-scope="scope">
-            <span>{{ scope.row.type == '1' ? '商品分类' : '套餐分类' }}</span>
+            <el-tag size="small" type="success" effect="plain">
+              {{ scope.row.type == '1' ? '商品分类' : '套餐分类' }}
+            </el-tag>
           </template>
         </el-table-column>
-
-        <el-table-column prop="sort"
-                         label="排序" />
-        <el-table-column label="状态">
+        <el-table-column prop="sort" label="展示排序" width="100" align="center" />
+        <el-table-column label="状态" width="120" align="center">
           <template slot-scope="scope">
-            <div class="tableColumn-status"
-                 :class="{ 'stop-use': String(scope.row.status) === '0' }">
-              {{ String(scope.row.status) === '0' ? '禁用' : '启用' }}
+            <div
+              class="tableColumn-status"
+              :class="{ 'stop-use': String(scope.row.status) === '0' }"
+            >
+              {{ String(scope.row.status) === '0' ? '已停用' : '正常启用' }}
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="updateTime"
-                         label="操作时间" />
-        <el-table-column label="操作"
-                         width="200"
-                         align="center">
+        <el-table-column prop="updateTime" label="最后修改时间" min-width="170" />
+        <el-table-column label="操作" width="220" align="center">
           <template slot-scope="scope">
-            <el-button type="text"
-                       size="small"
-                       class="blueBug"
-                       @click="editHandle(scope.row)">
-              修改
+            <el-button
+              type="text"
+              size="small"
+              class="op-btn"
+              @click="editHandle(scope.row)"
+            >
+              编辑
             </el-button>
-            <el-button type="text"
-                       size="small"
-                       class="delBut"
-                       @click="deleteHandle(scope.row.id)">
+            <el-button
+              type="text"
+              size="small"
+              class="op-btn"
+              :class="scope.row.status == '1' ? 'op-danger' : 'op-success'"
+              @click="statusHandle(scope.row)"
+            >
+              {{ scope.row.status == '1' ? '停用' : '启用' }}
+            </el-button>
+            <el-button
+              type="text"
+              size="small"
+              class="op-btn op-danger"
+              @click="deleteHandle(scope.row.id)"
+            >
               删除
-            </el-button>
-            <el-button type="text"
-                       size="small"
-                       class="non"
-                       :class="{
-                         blueBug: scope.row.status == '0',
-                         delBut: scope.row.status != '0'
-                       }"
-                       @click="statusHandle(scope.row)">
-              {{ scope.row.status == '1' ? '禁用' : '启用' }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-      <Empty v-else
-             :is-search="isSearch" />
-      <el-pagination v-if="counts > 10"
-                     class="pageList"
-                     :page-sizes="[10, 20, 30, 40]"
-                     :page-size="pageSize"
-                     layout="total, sizes, prev, pager, next, jumper"
-                     :total="counts"
-                     @size-change="handleSizeChange"
-                     @current-change="handleCurrentChange" />
+
+      <Empty v-else :is-search="isSearch" />
+
+      <el-pagination
+        v-if="counts > 10"
+        class="pageList"
+        :page-sizes="[10, 20, 30, 40]"
+        :page-size="pageSize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="counts"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
-    <el-dialog :title="classData.title"
-               :visible.sync="classData.dialogVisible"
-               width="30%"
-               :before-close="handleClose">
-      <el-form ref="classData"
-               :model="classData"
-               class="demo-form-inline"
-               :rules="rules"
-               label-width="100px">
-        <el-form-item label="分类名称："
-                      prop="name">
-          <el-input v-model="classData.name"
-                    placeholder="请输入分类名称"
-                    maxlength="20" />
+
+    <!-- 新增/修改分类弹框 -->
+    <el-dialog
+      :title="classData.title"
+      :visible.sync="classData.dialogVisible"
+      width="440px"
+      :before-close="handleClose"
+    >
+      <el-form
+        ref="classData"
+        :model="classData"
+        :rules="rules"
+        label-width="100px"
+        style="padding: 10px 10px 0"
+      >
+        <el-form-item label="分类名称：" prop="name">
+          <el-input
+            v-model="classData.name"
+            placeholder="请输入生鲜分类名称"
+            maxlength="20"
+          />
         </el-form-item>
-        <el-form-item label="排序："
-                      prop="sort">
-          <el-input v-model="classData.sort"
-                    placeholder="请输入排序" />
+        <el-form-item label="排序序号：" prop="sort">
+          <el-input
+            v-model="classData.sort"
+            placeholder="请输入排序数字（0-99）"
+          />
         </el-form-item>
       </el-form>
-      <span slot="footer"
-            class="dialog-footer">
-        <el-button size="medium"
-                   @click="
-            ;(classData.dialogVisible = false), $refs.classData.resetFields()
-                   ">取 消</el-button>
-        <el-button type="primary"
-                   :class="{ continue: actionType === 'add' }"
-                   size="medium"
-                   @click="submitForm()">确 定</el-button>
-        <el-button v-if="action != 'edit'"
-                   type="primary"
-                   size="medium"
-                   @click="submitForm('go')">
+      <span slot="footer" class="dialog-footer">
+        <el-button
+          size="medium"
+          @click=";(classData.dialogVisible = false), $refs.classData.resetFields()"
+        >
+          取 消
+        </el-button>
+        <el-button
+          type="primary"
+          size="medium"
+          @click="submitForm()"
+        >
+          确 定
+        </el-button>
+        <el-button
+          v-if="action != 'edit'"
+          type="primary"
+          plain
+          size="medium"
+          @click="submitForm('go')"
+        >
           保存并继续添加
         </el-button>
       </span>
@@ -410,48 +440,82 @@ export default class extends Vue {
   }
 }
 </script>
+
 <style lang="scss" scoped>
-.dashboard {
-  &-container {
-    margin: 30px;
+.category-page {
+  padding: 20px;
+  background-color: #F4F6F8;
+  min-height: calc(100vh - 64px);
 
-    .container {
-      background: #fff;
-      position: relative;
-      z-index: 1;
-      padding: 30px 28px;
-      border-radius: 4px;
+  .page-container {
+    background: #FFFFFF;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+    padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 
-      .tableBar {
+    .tableBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+
+      .search-form {
         display: flex;
-        margin-bottom: 20px;
-        justify-content: space-between;
-      }
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
 
-      .tableBox {
-        width: 100%;
-        border: 1px solid $gray-5;
-        border-bottom: 0;
-      }
+        .filter-item {
+          display: flex;
+          align-items: center;
 
-      .pageList {
-        text-align: center;
-        margin-top: 30px;
+          .filter-label {
+            font-size: 13px;
+            color: #475569;
+            margin-right: 6px;
+            white-space: nowrap;
+          }
+        }
       }
-      //查询黑色按钮样式
-      .normal-btn {
-        background: #333333;
-        color: white;
-        margin-left: 20px;
+    }
+
+    .tableBox {
+      width: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+
+      .op-btn {
+        padding: 4px 8px;
+        font-size: 13px;
+        color: #27744D;
+
+        &:hover {
+          color: #318a5d;
+        }
+
+        &.op-danger {
+          color: #E53E3E;
+          &:hover {
+            color: #C53030;
+          }
+        }
+
+        &.op-success {
+          color: #27744D;
+          &:hover {
+            color: #318a5d;
+          }
+        }
       }
+    }
+
+    .pageList {
+      text-align: right;
+      margin-top: 24px;
     }
   }
 }
-</style>
-<style lang='scss'>
-// .customClass {
-//   .el-button--primary {
-//     background-color: #ffc200 !important ;
-//   }
-// }
 </style>

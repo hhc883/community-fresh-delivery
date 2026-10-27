@@ -1,65 +1,68 @@
 /* Variables */
 
-// Base color
-$mine:#FFC200;
-$loginBg: #FFCFAC;
-$blue:#2892E5;
-$green: #1DC779;
-$yellow:#FFB302;
+// 社区鲜选生鲜运营端品牌色彩系统
+$freshGreen: #27744D;
+$freshGreenHover: #318a5d;
+$freshGreenLight: #E8F5E9;
+$freshGreenSubtle: #F0F9F4;
+
+// Base color 映射
+$mine: #27744D;
+$loginBg: #F4F6F8;
+$blue: #2B7EC3;
+$green: #27744D;
+$yellow: #E6A23C;
 $pink: #F56C6C;
-$block:#000;
-$gray-1: #20232A;
-$gray-2: #818693;
-$gray-3: #BAC0CD;
-$gray-4: #D8DDE3;
-$gray-5: #F3F4F7;
-$gray-6: #EBEEF5;
-$bgColor: #FAFAFB;
+$block: #000;
+$gray-1: #1A202C;
+$gray-2: #64748B;
+$gray-3: #94A3B8;
+$gray-4: #CBD5E1;
+$gray-5: #F1F5F9;
+$gray-6: #E2E8F0;
+$bgColor: #F4F6F8;
 $white: #fff;
 
-// Sidebar
-$sideBarWidth: 190px;
-$subMenuBg:#272A36;
-$subMenuHover:#272A36;
-$subMenuActiveText:#f4f4f5;
-$menuBg:#343744;
-$menuText:#bfcbd9;
-$menuActiveText:$mine; //Also see settings.sidebarTextTheme
+// Sidebar (深翠雨林绿)
+$sideBarWidth: 200px;
+$subMenuBg: #0E2217;
+$subMenuHover: #1A3928;
+$subMenuActiveText: #FFFFFF;
+$menuBg: #132B1E;
+$menuText: #B7D5C4;
+$menuActiveText: #FFFFFF;
 
 // Login page
-$lightGray: #080808;
-$darkGray:#889aa4;
-$loginCursorColor: #080808;
+$lightGray: #1A202C;
+$darkGray: #64748B;
+$loginCursorColor: #27744D;
 
 // The :export directive is the magic sauce for webpack
-// https://mattferderer.com/use-sass-variables-in-typescript-and-javascript
 :export {
   menuBg: $menuBg;
   menuText: $menuText;
   menuActiveText: $menuActiveText;
 }
 
-.avatar-uploader .el-upload{
-  // border: dashed 2px #D8DDE3 !important;
-  border-radius: 4px !important;
+.avatar-uploader .el-upload {
+  border-radius: 6px !important;
   background: #FCFCFC;
 }
-.avatar-uploader .avatar-uploader-icon{
+.avatar-uploader .avatar-uploader-icon {
   background: #FCFCFC;
 }
-.avatar-uploader .el-icon-plus:before{
+.avatar-uploader .el-icon-plus:before {
   content: '上传图片' !important;
   font-size: 12px;
-  color:#000;
+  color: #64748B;
 }
-
 
 // 弹框样式处理
-.el-dialog{
+.el-dialog {
   border-radius: 8px;
 }
-.el-dialog__header{
-  background: #FBFBFA;
+.el-dialog__header {
+  background: #FAFAFA;
   border-radius: 8px 8px 0 0;
-  border: none;
+  border-bottom: 1px solid #E2E8F0;
 }

@@ -1,54 +1,36 @@
 <template>
-  <div>
-    <div class="logo">
-      <!-- <img
-        src="./../../../assets/logo.png"
-        width="122.5"
-        alt=""
-      > -->
-      <!-- <img
-        src="@/assets/login/login-logo.png"
-        alt=""
-        style="width: 120px; height: 31px"
-      /> -->
-      <div v-if="!isCollapse"
-           class="sidebar-logo">
-        <img src="@/assets/login/logo.png"
-             style="width: 120px; height: 31px">
+  <div class="sidebar-wrapper">
+    <div class="brand-header">
+      <div v-if="!isCollapse" class="brand-logo-full">
+        <img src="/branding/fresh-mark.svg" alt="社区鲜选" class="brand-icon" />
+        <div class="brand-text">
+          <span class="brand-title">社区鲜选</span>
+          <span class="brand-sub">生鲜运营管理</span>
+        </div>
       </div>
-      <div v-else
-           class="sidebar-logo-mini">
-        <img src="@/assets/login/mini-logo.png">
+      <div v-else class="brand-logo-mini">
+        <img src="/branding/fresh-mark.svg" alt="社区鲜选" class="brand-icon-mini" />
       </div>
     </div>
     <el-scrollbar wrap-class="scrollbar-wrapper">
-      <el-menu :default-openeds="defOpen"
-               :default-active="defAct"
-               :collapse="isCollapse"
-               :background-color="variables.menuBg"
-               :text-color="variables.menuText"
-               :active-text-color="variables.menuActiveText"
-               :unique-opened="false"
-               :collapse-transition="false"
-               mode="vertical">
-        <sidebar-item v-for="route in routes"
-                      :key="route.path"
-                      :item="route"
-                      :base-path="route.path"
-                      :is-collapse="isCollapse" />
-        <!-- <div class="sub-menu">
-          <div class="avatarName">
-            {{ name }}
-          </div>
-          <div class="img">
-            <img
-              src="./../../../assets/icons/btn_close@2x.png"
-              class="outLogin"
-              alt="退出"
-              @click="logout"
-            />
-          </div>
-        </div> -->
+      <el-menu
+        :default-openeds="defOpen"
+        :default-active="defAct"
+        :collapse="isCollapse"
+        :background-color="variables.menuBg"
+        :text-color="variables.menuText"
+        :active-text-color="variables.menuActiveText"
+        :unique-opened="false"
+        :collapse-transition="false"
+        mode="vertical"
+      >
+        <sidebar-item
+          v-for="route in routes"
+          :key="route.path"
+          :item="route"
+          :base-path="route.path"
+          :is-collapse="isCollapse"
+        />
       </el-menu>
     </el-scrollbar>
   </div>
@@ -133,30 +115,128 @@ export default class extends Vue {
 </script>
 
 <style lang="scss" scoped>
-.logo {
-  text-align: center;
-  background-color: #ffc100;
-  padding: 15px 0 0;
+.sidebar-wrapper {
+  height: 100%;
+  background-color: #132B1E;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-header {
   height: 60px;
-  img {
-    display: inline-block;
+  background-color: #0E2217;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  user-select: none;
+  overflow: hidden;
+}
+
+.brand-logo-full {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+
+    .brand-title {
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-sub {
+      color: #8CCAA7;
+      font-size: 11px;
+      font-weight: 400;
+      margin-top: 2px;
+      letter-spacing: 0.2px;
+    }
   }
 }
-.sidebar-logo-mini {
-  img {
+
+.brand-logo-mini {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .brand-icon-mini {
     width: 30px;
     height: 30px;
+    border-radius: 8px;
   }
 }
+
 .el-scrollbar {
-  height: 100%;
-  background-color: rgb(52, 55, 68);
+  flex: 1;
+  background-color: #132B1E;
 }
 
 .el-menu {
   border: none;
-  height: calc(95vh - 23px);
   width: 100% !important;
-  padding: 47px 15px 0;
+  padding: 16px 8px 24px;
+}
+</style>
+
+<style lang="scss">
+.sidebar-container {
+  .el-menu {
+    background-color: #132B1E !important;
+
+    .el-menu-item {
+      color: #B7D5C4 !important;
+      height: 44px;
+      line-height: 44px;
+      padding: 0 14px !important;
+      margin: 4px 0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      i {
+        color: inherit;
+        font-size: 18px;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      &:hover {
+        color: #FFFFFF !important;
+        background-color: #1A3928 !important;
+      }
+    }
+
+    .router-link-active .el-menu-item,
+    .el-menu-item.is-active {
+      background-color: #27744D !important;
+      color: #FFFFFF !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 6px rgba(19, 43, 30, 0.4);
+
+      i {
+        color: #FFFFFF !important;
+      }
+
+      span {
+        color: #FFFFFF !important;
+      }
+    }
+  }
 }
 </style>

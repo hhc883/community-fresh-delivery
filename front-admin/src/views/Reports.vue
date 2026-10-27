@@ -2,9 +2,9 @@
   <div class="page">
     <div class="page-head">
       <h2 class="page-title">统计报表</h2>
-      <el-tag type="info" effect="plain" size="small" class="mode-badge">本页只读</el-tag>
+      <el-tag type="success" effect="plain" size="small" class="mode-badge">多维经营分析</el-tag>
     </div>
-    <p class="page-note">数据来自 /admin/report/*，全部由服务端按真实订单聚合；日期区间默认最近 30 天（含今天）。</p>
+    <p class="page-note">多维度业务统计图表与数据趋势。支持自定义时间区间分析营业额走势、订单转化、新增顾客及生鲜热销排行。</p>
 
     <div class="toolbar">
       <el-date-picker
@@ -17,7 +17,7 @@
         style="width: 280px"
         @change="loadAll"
       />
-      <el-button type="primary" :loading="loading" @click="loadAll">查询</el-button>
+      <el-button type="primary" :loading="loading" @click="loadAll">查询统计</el-button>
     </div>
 
     <div v-if="loading" class="state-box">报表数据读取中…</div>
@@ -29,16 +29,16 @@
     <template v-else>
       <!-- 营业额趋势 -->
       <section class="block">
-        <h3 class="block-title">营业额趋势</h3>
-        <p class="block-note">口径：每日已完成订单的实收金额合计；无成交日为 0。区间合计 ¥{{ sumTurnover }}</p>
+        <h3 class="block-title">营业额走势</h3>
+        <p class="block-note">每日已完成履约订单的实收金额合计；所选区间累计实收：<strong class="highlight-text">¥{{ sumTurnover }}</strong></p>
         <table class="trend-table">
           <thead>
-            <tr><th>日期</th><th>营业额（元）</th><th class="bar-head">分布</th></tr>
+            <tr><th>日期</th><th>营业额（元）</th><th class="bar-head">走势分布</th></tr>
           </thead>
           <tbody>
             <tr v-for="(d, i) in turnover.rows" :key="'t' + i">
               <td>{{ d }}</td>
-              <td>{{ turnover.values[i] }}</td>
+              <td class="num-cell">￥{{ turnover.values[i] }}</td>
               <td><div class="bar" :style="{ width: barWidth(turnover.values[i], turnover.max) }"></div></td>
             </tr>
           </tbody>
@@ -47,21 +47,21 @@
 
       <!-- 订单趋势 -->
       <section class="block">
-        <h3 class="block-title">订单趋势</h3>
+        <h3 class="block-title">订单量与转化分析</h3>
         <p class="block-note">
-          区间订单总数 {{ orderReport.totalOrderCount }}，有效订单 {{ orderReport.validOrderCount }}，完成率
-          {{ rateText(orderReport.orderCompletionRate) }}。口径：有效订单 = 已完成且已支付。
+          区间下单总数 {{ orderReport.totalOrderCount }} 单，有效履约订单 {{ orderReport.validOrderCount }} 单，全周期订单完成率
+          <strong class="highlight-text">{{ rateText(orderReport.orderCompletionRate) }}</strong>。
         </p>
         <table class="trend-table">
           <thead>
-            <tr><th>日期</th><th>订单数</th><th>有效订单数</th><th class="bar-head">分布（有效订单）</th></tr>
+            <tr><th>日期</th><th>总下单量</th><th>有效订单数</th><th class="bar-head">有效订单分布</th></tr>
           </thead>
           <tbody>
             <tr v-for="(d, i) in orderReport.rows" :key="'o' + i">
               <td>{{ d }}</td>
               <td>{{ orderReport.counts[i] }}</td>
-              <td>{{ orderReport.validCounts[i] }}</td>
-              <td><div class="bar" :style="{ width: barWidth(orderReport.validCounts[i], orderReport.max) }"></div></td>
+              <td class="num-cell">{{ orderReport.validCounts[i] }}</td>
+              <td><div class="bar bar-subtle" :style="{ width: barWidth(orderReport.validCounts[i], orderReport.max) }"></div></td>
             </tr>
           </tbody>
         </table>
@@ -69,16 +69,17 @@
 
       <!-- 新增用户 -->
       <section class="block">
-        <h3 class="block-title">新增用户趋势</h3>
+        <h3 class="block-title">新增顾客趋势</h3>
+        <p class="block-note">所选时间区间内每日新增注册用户数量。</p>
         <table class="trend-table">
           <thead>
-            <tr><th>日期</th><th>新增用户</th><th class="bar-head">分布</th></tr>
+            <tr><th>日期</th><th>新增顾客数</th><th class="bar-head">增长分布</th></tr>
           </thead>
           <tbody>
             <tr v-for="(d, i) in userReport.rows" :key="'u' + i">
               <td>{{ d }}</td>
-              <td>{{ userReport.values[i] }}</td>
-              <td><div class="bar" :style="{ width: barWidth(userReport.values[i], userReport.max) }"></div></td>
+              <td class="num-cell">{{ userReport.values[i] }}</td>
+              <td><div class="bar bar-accent" :style="{ width: barWidth(userReport.values[i], userReport.max) }"></div></td>
             </tr>
           </tbody>
         </table>
@@ -86,38 +87,40 @@
 
       <!-- 商品销量 Top10 -->
       <section class="block">
-        <h3 class="block-title">商品销量 Top10</h3>
-        <p class="block-note">口径：区间内已完成订单的商品销量合计。</p>
+        <h3 class="block-title">生鲜商品销量 Top 10</h3>
+        <p class="block-note">区间内已完成履约订单中累计销量前十名的热销生鲜商品。</p>
         <table class="trend-table" v-if="top10.rows.length">
           <thead>
-            <tr><th>排名</th><th>商品</th><th>销量</th><th class="bar-head">分布</th></tr>
+            <tr><th style="width: 60px">排名</th><th>生鲜商品</th><th>累计销量</th><th class="bar-head">销量占比</th></tr>
           </thead>
           <tbody>
             <tr v-for="(name, i) in top10.rows" :key="'s' + i">
-              <td>{{ i + 1 }}</td>
+              <td>
+                <span class="rank-badge" :class="'rank-' + (i + 1)">{{ i + 1 }}</span>
+              </td>
               <td>{{ name }}</td>
-              <td>{{ top10.values[i] }}</td>
+              <td class="num-cell">{{ top10.values[i] }}</td>
               <td><div class="bar" :style="{ width: barWidth(top10.values[i], top10.max) }"></div></td>
             </tr>
           </tbody>
         </table>
-        <p v-else class="block-note">区间内没有已完成订单的销量数据。</p>
+        <p v-else class="block-note">所选区间内暂无已完成的商品销量记录。</p>
       </section>
 
       <!-- 拼团统计 -->
       <section class="block">
-        <h3 class="block-title">拼团统计</h3>
+        <h3 class="block-title">社区拼团经营汇总</h3>
         <p class="block-note">
-          口径：活动数按 groupon.create_time 落在区间计；拼团订单数/实收金额按订单 order_time 落在区间计（仅已支付订单计入金额）。
+          统计区间内发起的拼团活动成团率、顾客参团人次与累计拼团实收金额。
         </p>
         <div class="cards">
-          <div class="card"><div class="card-label">拼团中</div><div class="card-value">{{ grouponStats.ongoing }}</div></div>
-          <div class="card"><div class="card-label">已成团</div><div class="card-value">{{ grouponStats.success }}</div></div>
-          <div class="card"><div class="card-label">已失败</div><div class="card-value">{{ grouponStats.failed }}</div></div>
-          <div class="card"><div class="card-label">已过期</div><div class="card-value">{{ grouponStats.expired }}</div></div>
-          <div class="card"><div class="card-label">参团人次</div><div class="card-value">{{ grouponStats.memberCount }}</div></div>
-          <div class="card"><div class="card-label">拼团订单数</div><div class="card-value">{{ grouponStats.grouponOrderCount }}</div></div>
-          <div class="card"><div class="card-label">拼团实收（元）</div><div class="card-value">{{ grouponStats.grouponTurnover }}</div></div>
+          <div class="card"><div class="card-label">进行中拼团</div><div class="card-value">{{ grouponStats.ongoing }}</div></div>
+          <div class="card"><div class="card-label">已成功成团</div><div class="card-value text-success">{{ grouponStats.success }}</div></div>
+          <div class="card"><div class="card-label">拼团未达成</div><div class="card-value">{{ grouponStats.failed }}</div></div>
+          <div class="card"><div class="card-label">超时关闭活动</div><div class="card-value">{{ grouponStats.expired }}</div></div>
+          <div class="card"><div class="card-label">累计参团人次</div><div class="card-value">{{ grouponStats.memberCount }}</div></div>
+          <div class="card"><div class="card-label">拼团订单总量</div><div class="card-value">{{ grouponStats.grouponOrderCount }}</div></div>
+          <div class="card"><div class="card-label">拼团实收金额（元）</div><div class="card-value text-success">￥{{ grouponStats.grouponTurnover }}</div></div>
         </div>
       </section>
     </template>
@@ -256,39 +259,84 @@ onMounted(() => {
   background: #fff;
   border: 1px solid var(--admin-border);
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: 18px 22px;
   margin-bottom: 16px;
 }
 .block-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+  color: #1e293b;
 }
 .block-note {
-  font-size: 12px;
-  color: #909399;
-  margin: 0 0 12px;
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 14px;
+}
+.highlight-text {
+  color: #27744D;
+  font-weight: 600;
 }
 .trend-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 .trend-table th,
 .trend-table td {
-  border-bottom: 1px solid #f0f1f4;
-  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 8px 10px;
   text-align: left;
   white-space: nowrap;
 }
+.trend-table th {
+  color: #64748b;
+  font-weight: 500;
+  background: #f8faf9;
+}
+.num-cell {
+  font-weight: 500;
+  color: #1e293b;
+}
 .bar-head {
-  width: 50%;
+  width: 45%;
 }
 .bar {
-  height: 10px;
-  background: #e6a23c;
-  border-radius: 3px;
+  height: 8px;
+  background: #27744D;
+  border-radius: 4px;
   min-width: 2px;
+  transition: width 0.3s ease;
+}
+.bar-subtle {
+  background: #3b82f6;
+}
+.bar-accent {
+  background: #10b981;
+}
+.rank-badge {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #64748b;
+}
+.rank-1 {
+  background: #fef3c7;
+  color: #d97706;
+}
+.rank-2 {
+  background: #e2e8f0;
+  color: #475569;
+}
+.rank-3 {
+  background: #fed7aa;
+  color: #c2410c;
 }
 .cards {
   display: grid;
@@ -303,28 +351,20 @@ onMounted(() => {
 }
 .card-label {
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
   margin-bottom: 6px;
 }
 .card-value {
   font-size: 22px;
   font-weight: 600;
+  color: #1e293b;
 }
-.state-box {
-  padding: 40px;
-  text-align: center;
-  background: #fff;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
+.text-success {
+  color: #27744D;
 }
-.state-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.state-desc {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 10px;
+@media (max-width: 1024px) {
+  .cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

@@ -1,49 +1,85 @@
 <template>
-  <div class="login">
-    <div class="login-box">
-      <img src="@/assets/login/login-l.png" alt="" />
-      <div class="login-form">
-        <el-form ref="loginForm" :model="loginForm" :rules="loginRules">
-          <div class="login-form-title">
-            <img
-              src="@/assets/login/icon_logo.png"
-              style="width: 149px; height: 38px"
-              alt=""
-            />
-            <!-- <span class="title-label">苍穹外卖</span> -->
+  <div class="login-container">
+    <div class="login-card">
+      <!-- 左侧生鲜视觉展示 -->
+      <div class="login-hero">
+        <img
+          src="/branding/fresh-produce.webp"
+          alt="社区生鲜"
+          class="hero-image"
+        />
+        <div class="hero-overlay">
+          <div class="hero-content">
+            <div class="hero-badge">社区团购 · 配送自提</div>
+            <h2 class="hero-title">新鲜品质，每日鲜选</h2>
+            <p class="hero-desc">
+              微信小程序社区团购 · 社区自提 · 生鲜配送
+            </p>
           </div>
-          <el-form-item prop="username">
+        </div>
+      </div>
+
+      <!-- 右侧运营登录表单 -->
+      <div class="login-form-pane">
+        <div class="brand-header">
+          <img
+            src="/branding/fresh-mark.svg"
+            alt="社区鲜选"
+            class="brand-icon"
+          />
+          <div class="brand-text">
+            <h1 class="brand-name">社区鲜选</h1>
+            <span class="brand-subtitle">生鲜运营管理中台</span>
+          </div>
+        </div>
+
+        <el-form
+          ref="loginForm"
+          :model="loginForm"
+          :rules="loginRules"
+          class="login-form"
+          label-position="top"
+        >
+          <el-form-item label="运营账号" prop="username">
             <el-input
               v-model="loginForm.username"
               type="text"
               auto-complete="off"
-              placeholder="账号"
-              prefix-icon="iconfont icon-user"
+              placeholder="请输入管理员或运营账号"
+              prefix-icon="el-icon-user"
+              size="medium"
             />
           </el-form-item>
-          <el-form-item prop="password">
+
+          <el-form-item label="登录密码" prop="password">
             <el-input
               v-model="loginForm.password"
               type="password"
-              placeholder="密码"
-              prefix-icon="iconfont icon-lock"
+              placeholder="请输入登录密码"
+              prefix-icon="el-icon-lock"
+              show-password
+              size="medium"
               @keyup.enter.native="handleLogin"
             />
           </el-form-item>
-          <el-form-item style="width: 100%">
+
+          <el-form-item class="submit-item">
             <el-button
               :loading="loading"
               class="login-btn"
               size="medium"
               type="primary"
-              style="width: 100%"
               @click.native.prevent="handleLogin"
             >
-              <span v-if="!loading">登录</span>
-              <span v-else>登录中...</span>
+              <span v-if="!loading">登 录</span>
+              <span v-else>安全登录中...</span>
             </el-button>
           </el-form-item>
         </el-form>
+
+        <div class="login-footer">
+          <span>社区鲜选数字生鲜运营支撑系统</span>
+        </div>
       </div>
     </div>
   </div>
@@ -118,113 +154,214 @@ export default class extends Vue {
 }
 </script>
 
-<style lang="scss">
-.login {
+<style lang="scss" scoped>
+.login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  // background: #476dbe;
-  background-color: #333;
+  min-height: 100vh;
+  background: #F4F6F8;
+  padding: 24px;
 }
 
-.login-box {
-  width: 1000px;
-  height: 474.38px;
-  border-radius: 8px;
+.login-card {
+  width: 960px;
+  max-width: 95vw;
+  min-height: 540px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid #E2E8F0;
   display: flex;
-  img {
-    width: 60%;
-    height: auto;
-  }
+  overflow: hidden;
 }
 
-.title {
-  margin: 0px auto 10px auto;
-  text-align: left;
-  color: #707070;
-}
-
-.login-form {
-  background: #ffffff;
-  width: 40%;
-  border-radius: 0px 8px 8px 0px;
+.login-hero {
+  flex: 1.1;
+  position: relative;
+  background: #132B1E;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  .el-form {
-    width: 214px;
-    height: 307px;
+  overflow: hidden;
+
+  .hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
-  .el-form-item {
-    margin-bottom: 30px;
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(19, 43, 30, 0.25) 0%,
+      rgba(19, 43, 30, 0.85) 100%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 40px;
+    color: #FFFFFF;
   }
-  .el-form-item.is-error .el-input__inner {
-    border: 0 !important;
-    border-bottom: 1px solid #fd7065 !important;
-    background: #fff !important;
+
+  .hero-content {
+    max-width: 380px;
+
+    .hero-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(39, 116, 77, 0.7);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #E8F5E9;
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-size: 26px;
+      font-weight: 600;
+      margin: 0 0 10px;
+      line-height: 1.3;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-desc {
+      font-size: 13px;
+      color: #C5E1D4;
+      line-height: 1.6;
+      margin: 0;
+    }
   }
-  .input-icon {
-    height: 32px;
-    width: 18px;
-    margin-left: -2px;
+}
+
+.login-form-pane {
+  flex: 0.9;
+  padding: 48px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #FFFFFF;
+
+  .brand-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 32px;
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+
+      .brand-name {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 600;
+        color: #1A202C;
+        letter-spacing: 0.5px;
+      }
+
+      .brand-subtitle {
+        font-size: 13px;
+        color: #27744D;
+        font-weight: 500;
+        margin-top: 3px;
+      }
+    }
   }
-  .el-input__inner {
-    border: 0;
-    border-bottom: 1px solid #e9e9e8;
-    border-radius: 0;
+
+  .login-form {
+    width: 100%;
+
+    ::v-deep .el-form-item__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      padding-bottom: 6px;
+      line-height: 1;
+    }
+
+    ::v-deep .el-input__inner {
+      height: 40px;
+      line-height: 40px;
+      border-radius: 6px;
+      border: 1px solid #CBD5E1;
+      font-size: 13px;
+      padding-left: 36px;
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: #27744D;
+        box-shadow: 0 0 0 2px rgba(39, 116, 77, 0.15);
+      }
+    }
+
+    ::v-deep .el-input__prefix {
+      left: 10px;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+    }
+
+    .submit-item {
+      margin-top: 32px;
+      margin-bottom: 0;
+    }
+
+    .login-btn {
+      width: 100%;
+      height: 42px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      border-radius: 6px;
+      background-color: #27744D !important;
+      border-color: #27744D !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 12px rgba(39, 116, 77, 0.25);
+      transition: all 0.2s;
+
+      &:hover,
+      &:focus {
+        background-color: #318a5d !important;
+        border-color: #318a5d !important;
+        box-shadow: 0 6px 16px rgba(39, 116, 77, 0.35);
+      }
+
+      &:active {
+        background-color: #1f5f3e !important;
+      }
+    }
+  }
+
+  .login-footer {
+    text-align: center;
     font-size: 12px;
-    font-weight: 400;
-    color: #333333;
-    height: 32px;
-    line-height: 32px;
-  }
-  .el-input__prefix {
-    left: 0;
-  }
-  .el-input--prefix .el-input__inner {
-    padding-left: 26px;
-  }
-  .el-input__inner::placeholder {
-    color: #aeb5c4;
-  }
-  .el-form-item--medium .el-form-item__content {
-    line-height: 32px;
-  }
-  .el-input--medium .el-input__icon {
-    line-height: 32px;
+    color: #94A3B8;
+    margin-top: 24px;
   }
 }
 
-.login-btn {
-  border-radius: 17px;
-  padding: 11px 20px !important;
-  margin-top: 10px;
-  font-weight: 500;
-  font-size: 12px;
-  border: 0;
-  font-weight: 500;
-  color: #333333;
-  // background: #09a57a;
-  background-color: #ffc200;
-  &:hover,
-  &:focus {
-    // background: #09a57a;
-    background-color: #ffc200;
-    color: #ffffff;
+@media (max-width: 768px) {
+  .login-card {
+    flex-direction: column;
+    min-height: auto;
   }
-}
-.login-form-title {
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 40px;
-  .title-label {
-    font-weight: 500;
-    font-size: 20px;
-    color: #333333;
-    margin-left: 10px;
+  .login-hero {
+    height: 180px;
+    flex: none;
+  }
+  .login-form-pane {
+    padding: 30px 24px;
   }
 }
 </style>

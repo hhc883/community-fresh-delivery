@@ -19,10 +19,11 @@
           >
             <!-- <i v-if="theOnlyOneChild.meta.title==='工作台'" class="iconfont icon img-icon-sel" /> -->
             <!-- <svg-icon v-if="theOnlyOneChild.meta.title==='工作台'" name="dashboard" width="20" height="20"></svg-icon> -->
-            <i
+            <img
               v-if="theOnlyOneChild.meta.icon"
-              class="iconfont"
-              :class="theOnlyOneChild.meta.icon"
+              class="fresh-menu-icon"
+              :src="menuIcon(theOnlyOneChild.meta.icon)"
+              alt=""
             />
             <span v-if="theOnlyOneChild.meta.title" slot="title">{{
               theOnlyOneChild.meta.title
@@ -32,10 +33,11 @@
       </template>
       <el-submenu v-else :index="resolvePath(item.path)" popper-append-to-body>
         <template slot="title">
-          <i
+          <img
             v-if="item.meta && item.meta.icon"
-            class="iconfont"
-            :class="item.meta.icon"
+            class="fresh-menu-icon"
+            :src="menuIcon(item.meta.icon)"
+            alt=""
           />
           <span v-if="item.meta && item.meta.title" slot="title">{{
             item.meta.title
@@ -119,5 +121,20 @@ export default class extends Vue {
     }
     return path.resolve(this.basePath, routePath)
   }
+
+  private menuIcon(icon: string) {
+    const icons: { [key: string]: string } = {
+      dashboard: 'house',
+      'icon-dish': 'shopping-basket',
+      'icon-category': 'layout-grid',
+      'icon-order': 'clipboard-list',
+      'icon-combo': 'users',
+      'icon-statistics': 'chart-column',
+    }
+    return '/branding/icons/' + (icons[icon] || 'layout-grid') + '.svg'
+  }
 }
 </script>
+<style scoped>
+.fresh-menu-icon { display: inline-block; width: 20px; height: 20px; margin-right: 12px; vertical-align: middle; opacity: .9; flex-shrink: 0; }
+</style>
