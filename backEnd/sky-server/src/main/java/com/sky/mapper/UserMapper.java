@@ -3,6 +3,8 @@ package com.sky.mapper;
 import com.sky.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.Map;
 
@@ -26,6 +28,9 @@ public interface UserMapper {
     @Select("select * from user where id = #{id}")
     User getById(Long userId);
 
+    @Select("select * from user where id = #{id} for update")
+    User getByIdForUpdate(Long id);
+
     /**
      * 根据手机号查询用户
      * @param phone
@@ -39,6 +44,11 @@ public interface UserMapper {
      * @param user
      */
     void update(User user);
+
+    /** 旧密码迁移必须匹配读取时的值，避免覆盖并发设置的新密码。 */
+    @Update("update user set password=#{password} where id=#{id} and password=#{expectedPassword}")
+    int migratePassword(@Param("id") Long id, @Param("expectedPassword") String expectedPassword,
+                        @Param("password") String password);
 
     /**
      * 根据动态条件统计用户数量

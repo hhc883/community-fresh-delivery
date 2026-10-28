@@ -26,9 +26,15 @@ export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = typeof fn === 'function' ? fn : null
 }
 
-// 401 统一处理：清本地登录态 + 通知 store + 结构化 reject（仅 reject 不重试，无死循环）
+// 401 统一处理：清本地登录态 + 挂起意图 + 通知 store + 结构化 reject（仅 reject 不重试，无死循环）
 function rejectUnauthorized(reject) {
   try {
+    const cached = uni.getStorageSync('user')
+    const user = typeof cached === 'string' ? JSON.parse(cached) : cached
+    if (user && user.id) {
+      uni.removeStorageSync('pending-checkout:' + String(user.id))
+    }
+    uni.removeStorageSync('pending-checkout:guest')
     uni.removeStorageSync('user')
   } catch (e) {
     // 存储异常静默
@@ -81,7 +87,7 @@ const request = (options) => {
           // 统一结构化 reject，message 优先透出后端人话，调用方 toast 且保留现场可重试
           reject({
             code: body && body.code != null ? body.code : res.statusCode,
-            message: (body && body.message) || '服务开小差了，请稍后重试'
+            message: (body && (body.message || body.msg)) || '服务开小差了，请稍后重试'
           })
         }
       },
@@ -143,6 +149,7 @@ export function decorateDish(d) {
   const rushText = soldCount >= 10000 ? '正在疯抢' : '即将抢光'
   return {
     ...d,
+    image: typeof d.image === 'string' && d.image.startsWith('/uploads/') ? BASE_URL + d.image : d.image,
     seckill,
     seckillPrice,
     cutText,
@@ -182,7 +189,7 @@ export function getDishes(category) {
   return request({
     url: '/api/dishes',
     method: 'GET',
-    data: { category }
+    data: typeof category === 'object' ? category : { category }
   }).then(decorateDishListResponse)
 }
 
@@ -201,11 +208,9 @@ export function getDishDetail(id) {
 
 /**
  * 提交订单（POST 提交类，20s 超时）
- * body 契约 OrderCreateDTO（M4 契约扩展，均为可选字段）：
- * { clientRequestId(必填,≤64), phone(必填,1[3-9]\d{9}), items:[{dishId(必填), quantity(1~限购)}],
- *   couponId?:number - 用户优惠券 id（服务端校验归属/available/满减门槛后抵扣重算，不满足 400"未满足满减条件"）,
- *   storeId?:number  - 自提门店 id（orders 落 store_id + store_name/store_address 快照列） }
- * 金额由服务端按 dish 现价重算；同 clientRequestId 重复提交幂等返回首次订单
+ * body：clientRequestId、items:[{dishId,number}]、deliveryType(1配送/2自提)。
+ * 配送仅传 addressBookId；自提仅传 pickupPointId、pickupPersonName/Phone。
+ * 身份从用户 JWT 读取，金额由服务端计算；同一请求标识重试返回原订单。
  * @param {object} orderData - OrderCreateDTO
  */
 export function submitOrder(orderData) {
@@ -231,11 +236,11 @@ export function getOrderDetail(id) {
  * @param {number} pageSize - 每页条数（默认 10）
  * @returns {Promise<{code,data:{list:Array,total:number}}>}
  */
-export function getOrders(pageNum = 1, pageSize = 10) {
+export function getOrders(pageNum = 1, pageSize = 10, status) {
   return request({
     url: '/api/orders',
     method: 'GET',
-    data: { pageNum, pageSize }
+    data: { pageNum, pageSize, status: status || undefined }
   })
 }
 
@@ -375,7 +380,7 @@ export function withdrawCash() {
 /**
  * 获取门店列表（匿名可调）：GET /api/stores → R{code,data:[{id,name,address,service,status}]}
  * status：'open' 营业 | 'closed' 停业（停业门店前端置灰不可选）
- * 失败时由调用方回退本地兜底门店数据
+ * 失败必须展示真实错误，不使用本地样例门店。
  */
 export function getStores() {
   return request({
@@ -592,11 +597,11 @@ export function getDefaultAddress() {
 }
 
 export function setDefaultAddress(id) {
-  return request({ url: '/user/addressBook/default', method: 'PUT', data: { id } })
+  return request({ url: '/user/addressBook/default', method: 'PUT', data: { id: String(id) } })
 }
 
 export function getAddressDetail(id) {
-  return request({ url: `/user/addressBook/${id}`, method: 'GET' })
+  return request({ url: `/user/addressBook/${encodeURIComponent(String(id))}`, method: 'GET' })
 }
 
 export function addAddress(data) {
@@ -608,17 +613,19 @@ export function updateAddress(data) {
 }
 
 export function deleteAddress(id) {
-  return request({ url: `/user/addressBook?id=${id}`, method: 'DELETE' })
+  return request({ url: `/user/addressBook?id=${encodeURIComponent(String(id))}`, method: 'DELETE' })
 }
 
 // ==================== 社区拼团接口 ====================
 
 export function getGrouponDishList() {
-  return request({ url: '/user/groupon/dish/list', method: 'GET' })
+  return request({ url: '/user/groupon/dish/list', method: 'GET' }).then(res => ({
+    ...res, data: Array.isArray(res.data) ? res.data.map(decorateDish) : []
+  }))
 }
 
 export function getGrouponDetail(id) {
-  return request({ url: `/user/groupon/detail/${id}`, method: 'GET' })
+  return request({ url: `/user/groupon/detail/${encodeURIComponent(String(id))}`, method: 'GET' })
 }
 
 export function openGroupon(data) {
@@ -630,8 +637,11 @@ export function joinGroupon(data) {
 }
 
 export function getMyGroupons(status) {
-  return request({ url: '/user/groupon/my', method: 'GET', data: status != null ? { status } : {} })
+  return request({ url: '/user/groupon/mine', method: 'GET', data: status != null ? { status } : {} })
 }
+
+export function getCategories() { return request({ url: '/user/category/list', data: { type: 1 } }) }
+export function getJoinableGroupons(id) { return request({ url: '/user/groupon/joinable/' + encodeURIComponent(String(id)) }) }
 
 export default {
   decorateDish,

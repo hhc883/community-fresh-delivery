@@ -1,286 +1,218 @@
 <template>
-  <view class="pay-page">
-    <!-- 顶部金额与倒计时提醒 -->
-    <view class="amount-header">
-      <text class="amount-tip">应付金额</text>
-      <view class="price-box">
-        <text class="price-val">¥ {{ amount }}</text>
-      </view>
-      <text class="countdown-tip">请在30分钟内完成支付</text>
+  <view class="core">
+    <view class="pay-header">
+      <text class="title">模拟收银台</text>
+      <text class="sub">本系统仅模拟支付与退款记账，不发起真实资金扣款。</text>
     </view>
 
-    <!-- 支付方式选项列表 -->
-    <view class="method-card">
-      <!-- 微信支付 -->
-      <view class="method-row" @click="selectedMethod = 'wechat'">
-        <view class="mr-left">
-          <view class="method-icon-wrap wechat-wrap">
-            <text class="icon-chat">💬</text>
-          </view>
-          <text class="method-name">微信支付</text>
-        </view>
-        <view class="radio-box" :class="{ checked: selectedMethod === 'wechat' }">
-          <text v-if="selectedMethod === 'wechat'" class="tick">✓</text>
+    <view v-if="loading" class="empty">正在读取订单待付信息…</view>
+    <view v-if="error" class="error">{{ error }}</view>
+
+    <view v-if="order" class="card stack pay-card">
+      <view class="row order-no-row">
+        <text class="pay-label">待付订单：</text>
+        <text class="pay-order-no">{{ order.number || order.orderNumber || order.id }}</text>
+      </view>
+
+      <view class="amount-hero-box">
+        <text class="amount-tip">支付金额</text>
+        <view class="price-box">
+          <text class="price-symbol">¥</text>
+          <text class="price-val">{{ $fmtMoney(order.amount) }}</text>
         </view>
       </view>
 
-      <view class="divider"></view>
-
-      <!-- 余额支付 -->
-      <view class="method-row disabled" @click="onBalanceTap">
-        <view class="mr-left">
-          <view class="method-icon-wrap balance-wrap">
-            <text class="icon-balance">¥</text>
-          </view>
-          <view class="name-box">
-            <text class="method-name">余额支付</text>
-            <text class="method-sub">可用余额 ¥ 0</text>
-          </view>
+      <view class="method-box">
+        <view class="method-left">
+          <image
+            class="method-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text class="method-name">模拟支付</text>
         </view>
-        <view class="radio-box disabled-radio"></view>
+        <text class="method-desc">不会扣款</text>
       </view>
 
-      <view class="divider"></view>
-
-      <!-- 货到付款 / 自提付款 -->
-      <view class="method-row" @click="selectedMethod = 'offline'">
-        <view class="mr-left">
-          <view class="method-icon-wrap cod-wrap">
-            <text class="icon-cart">🛒</text>
-          </view>
-          <text class="method-name">货到付款</text>
-        </view>
-        <view class="radio-box" :class="{ checked: selectedMethod === 'offline' }">
-          <text v-if="selectedMethod === 'offline'" class="tick">✓</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 确认支付按钮 -->
-    <view class="btn-box">
-      <button class="btn-confirm-pay" :loading="paying" @click="handlePay">
-        确认支付
+      <button
+        v-if="Number(order.status) === 1 && Number(order.payStatus) === 0"
+        class="primary btn-pay-action"
+        :disabled="paying"
+        :loading="paying"
+        @tap="pay"
+      >
+        确认模拟支付 ¥{{ $fmtMoney(order.amount) }}
       </button>
+
+      <view v-else class="processed-box">
+        <text class="processed-text">该订单已处理完成，请查看详情。</text>
+      </view>
+
+      <button class="secondary btn-detail-action" @tap="detail">查看订单详情</button>
     </view>
   </view>
 </template>
 
 <script>
-import { mockPay } from '@/api/index.js'
-
+import { getOrderDetail, mockPay } from "../../api/index.js";
 export default {
-  data() {
-    return {
-      orderId: '',
-      amount: 603,
-      selectedMethod: 'wechat',
-      paying: false
-    }
-  },
-  onLoad(options) {
-    if (options.orderId) this.orderId = options.orderId
-    if (options.amount) this.amount = Number(options.amount) || 603
+  data: () => ({
+    id: "",
+    order: null,
+    error: "",
+    loading: true,
+    paying: false,
+  }),
+  onLoad(o) {
+    this.id = o.orderId || "";
+    this.load();
   },
   methods: {
-    onBalanceTap() {
-      uni.showToast({
-        title: '可用余额不足',
-        icon: 'none'
-      })
-    },
-    async handlePay() {
-      if (this.paying) return
-      this.paying = true
-
+    async load() {
       try {
-        try {
-          await mockPay(this.orderId)
-        } catch (e) {
-          // Fallback mock
-        }
-
-        uni.showToast({
-          title: '支付成功',
-          icon: 'success',
-          duration: 1500
-        })
-
-        setTimeout(() => {
-          uni.redirectTo({
-            url: `/pages/order/detail?id=${this.orderId || '20210321152030018593'}`
-          })
-        }, 1200)
+        if (!this.id) throw new Error("缺少订单号");
+        this.order = (await getOrderDetail(this.id)).data;
+      } catch (e) {
+        this.error = e.message;
       } finally {
-        this.paying = false
+        this.loading = false;
       }
-    }
-  }
-}
+    },
+    async pay() {
+      if (this.paying) return;
+      this.paying = true;
+      this.error = "";
+      try {
+        await mockPay(this.id);
+        uni.showToast({ title: "模拟支付成功", icon: "success" });
+        uni.redirectTo({
+          url: "/pages/order/detail?id=" + encodeURIComponent(this.id),
+        });
+      } catch (e) {
+        this.error = e.message || "模拟支付失败，请重试";
+      } finally {
+        this.paying = false;
+      }
+    },
+    detail() {
+      uni.redirectTo({
+        url: "/pages/order/detail?id=" + encodeURIComponent(this.id),
+      });
+    },
+  },
+};
 </script>
 
-<style lang="scss" scoped>
-.pay-page {
-  min-height: 100vh;
-  background-color: #F7F8FA;
-  padding: 40rpx 32rpx;
-  box-sizing: border-box;
+<style scoped>
+.pay-header {
+  margin-bottom: 24rpx;
 }
 
-/* 顶部金额区 */
-.amount-header {
+.pay-card {
+  padding: 32rpx 28rpx;
+}
+
+.order-no-row {
+  border-bottom: 1rpx solid #eef2ef;
+  padding-bottom: 16rpx;
+}
+
+.pay-label {
+  font-size: 26rpx;
+  color: #778579;
+}
+
+.pay-order-no {
+  font-size: 26rpx;
+  color: #19241d;
+  font-family: monospace, Arial, sans-serif;
+  font-weight: 500;
+}
+
+.amount-hero-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40rpx 0 60rpx;
-
-  .amount-tip {
-    font-size: 28rpx;
-    color: #8F959E;
-    margin-bottom: 16rpx;
-  }
-
-  .price-box {
-    display: flex;
-    align-items: center;
-
-    .price-val {
-      font-size: 64rpx;
-      font-weight: 700;
-      color: #25B873; /* 鲜明绿色大字价格 */
-      line-height: 1.1;
-    }
-  }
-
-  .countdown-tip {
-    font-size: 24rpx;
-    color: #FF7D00; /* 橙色提示倒计时 */
-    margin-top: 16rpx;
-  }
+  padding: 36rpx 0 28rpx;
 }
 
-/* 支付方式卡片 */
-.method-card {
-  background-color: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 0 32rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.02);
-
-  .divider {
-    height: 1rpx;
-    background-color: #F0F2F5;
-  }
-
-  .method-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 120rpx;
-
-    &.disabled {
-      opacity: 0.8;
-    }
-
-    .mr-left {
-      display: flex;
-      align-items: center;
-
-      .method-icon-wrap {
-        width: 60rpx;
-        height: 60rpx;
-        border-radius: 12rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 24rpx;
-
-        &.wechat-wrap {
-          background-color: #25B873;
-          color: #FFFFFF;
-          border-radius: 50%;
-          font-size: 32rpx;
-        }
-
-        &.balance-wrap {
-          background-color: #FF7D00;
-          color: #FFFFFF;
-          border-radius: 12rpx;
-          font-size: 34rpx;
-          font-weight: 700;
-        }
-
-        &.cod-wrap {
-          background-color: #25B873;
-          color: #FFFFFF;
-          border-radius: 12rpx;
-          font-size: 32rpx;
-        }
-      }
-
-      .method-name {
-        font-size: 30rpx;
-        font-weight: 500;
-        color: #1F2329;
-      }
-
-      .name-box {
-        display: flex;
-        flex-direction: column;
-
-        .method-sub {
-          font-size: 22rpx;
-          color: #8F959E;
-          margin-top: 4rpx;
-        }
-      }
-    }
-
-    .radio-box {
-      width: 44rpx;
-      height: 44rpx;
-      border-radius: 50%;
-      border: 2rpx solid #D8D8D8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-
-      &.checked {
-        background-color: #25B873;
-        border-color: #25B873;
-
-        .tick {
-          color: #FFFFFF;
-          font-size: 26rpx;
-          font-weight: 700;
-        }
-      }
-
-      &.disabled-radio {
-        background-color: #EFEFEF;
-        border-color: #EFEFEF;
-      }
-    }
-  }
+.amount-tip {
+  font-size: 24rpx;
+  color: #778579;
+  margin-bottom: 8rpx;
 }
 
-/* 确认支付按钮 */
-.btn-box {
-  margin-top: 60rpx;
+.price-box {
+  display: flex;
+  align-items: baseline;
+}
 
-  .btn-confirm-pay {
-    width: 100%;
-    height: 90rpx;
-    line-height: 90rpx;
-    background-color: #25B873;
-    border-radius: 16rpx;
-    color: #FFFFFF;
-    font-size: 32rpx;
-    font-weight: 600;
-    border: none;
+.price-symbol {
+  font-size: 32rpx;
+  color: #ff5722;
+  font-weight: 700;
+  margin-right: 4rpx;
+}
 
-    &::after {
-      border: none;
-    }
-  }
+.price-val {
+  font-size: 60rpx;
+  color: #ff5722;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+}
+
+.method-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f6f8f5;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  margin: 12rpx 0 24rpx;
+  border: 1rpx solid #e1e8e2;
+}
+
+.method-left {
+  display: flex;
+  align-items: center;
+}
+
+.method-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 12rpx;
+}
+
+.method-name {
+  font-size: 26rpx;
+  color: #19241d;
+  font-weight: 500;
+}
+
+.method-desc {
+  font-size: 22rpx;
+  color: #27744d;
+  background-color: #eaf5ee;
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+  font-weight: 600;
+}
+
+.btn-pay-action {
+  margin: 12rpx 0;
+}
+
+.processed-box {
+  text-align: center;
+  padding: 16rpx 0;
+}
+
+.processed-text {
+  font-size: 26rpx;
+  color: #778579;
+}
+
+.btn-detail-action {
+  margin-top: 8rpx;
 }
 </style>

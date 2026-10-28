@@ -1,46 +1,9 @@
 {
   "pages": [
     {
-      "path": "pages/login/login",
-      "style": {
-        "navigationBarTitleText": "主理人登录"
-      }
-    },
-    {
       "path": "pages/workspace/workspace",
-      "style": {
-        "navigationBarTitleText": "主理人工作台"
-      }
-    },
-    {
-      "path": "pages/verify/verify",
-      "style": {
-        "navigationBarTitleText": "核销台"
-      }
-    },
-    {
-      "path": "pages/arrival/arrival",
-      "style": {
-        "navigationBarTitleText": "到货批次"
-      }
-    },
-    {
-      "path": "pages/store/store",
-      "style": {
-        "navigationBarTitleText": "门店信息"
-      }
-    },
-    {
-      "path": "pages/apply/apply",
-      "style": {
-        "navigationBarTitleText": "入驻申请"
-      }
+      "style": { "navigationBarTitleText": "扩展端暂未开放" }
     }
   ],
-  "globalStyle": {
-    "backgroundColor": "#F5F5F5",
-    "navigationBarBackgroundColor": "#E02020",
-    "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "生鲜主理人端"
-  }
+  "globalStyle": { "navigationBarTitleText": "扩展端暂未开放" }
 }

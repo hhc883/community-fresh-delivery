@@ -4,13 +4,13 @@
 <mapper namespace="com.sky.mapper.OrderMapper">
 
     <insert id="insert" parameterType="Orders" useGeneratedKeys="true" keyProperty="id">
-        insert into orders (number, status, user_id, address_book_id, order_time, checkout_time, pay_method, pay_status,
+        insert into orders (client_request_id, request_hash, number, status, user_id, address_book_id, order_time, checkout_time, pay_method, pay_status,
                             amount, remark, phone, address, consignee, estimated_delivery_time, delivery_status,
                             pack_amount, tableware_number, tableware_status,
                             pickup_point_id, pickup_point_name, is_groupon, groupon_id,
                             pickup_time_slot, pickup_person_name, pickup_person_phone, verify_status)
         values
-               (#{number}, #{status}, #{userId}, #{addressBookId}, #{orderTime}, #{checkoutTime}, #{payMethod},
+               (#{clientRequestId}, #{requestHash}, #{number}, #{status}, #{userId}, #{addressBookId}, #{orderTime}, #{checkoutTime}, #{payMethod},
                 #{payStatus},#{amount}, #{remark}, #{phone}, #{address}, #{consignee}, #{estimatedDeliveryTime},
                 #{deliveryStatus},#{packAmount}, #{tablewareNumber}, #{tablewareStatus},
                 #{pickupPointId}, #{pickupPointName}, #{isGroupon}, #{grouponId},
@@ -93,6 +93,9 @@
             status        = #{status}
         where pickup_code = #{pickupCode}
           and verify_status = 0
+          and pay_status = 1
+          and status in (2, 3)
+          and pickup_point_id is not null
     </update>
 
     <select id="pageQuery" resultType="Orders">
@@ -124,10 +127,13 @@
         select sum(amount) from orders
         <where>
             <if test="begin != null">
-                and order_time &gt; #{begin}
+                and order_time &gt;= #{begin}
             </if>
             <if test="end != null">
-                and order_time &lt; #{end}
+                and order_time &lt;= #{end}
+            </if>
+            <if test="payStatus != null">
+                and pay_status = #{payStatus}
             </if>
             <if test="status != null">
                 and status = #{status}
@@ -138,10 +144,13 @@
         select count(id) from orders
         <where>
             <if test="begin != null">
-                and order_time &gt; #{begin}
+                and order_time &gt;= #{begin}
             </if>
             <if test="end != null">
-                and order_time &lt; #{end}
+                and order_time &lt;= #{end}
+            </if>
+            <if test="payStatus != null">
+                and pay_status = #{payStatus}
             </if>
             <if test="status != null">
                 and status = #{status}
@@ -151,12 +160,12 @@
     <select id="getSalesTop10" resultType="com.sky.dto.GoodsSalesDTO">
         select od.name, sum(od.number) as number
         from order_detail od,orders o
-        where od.order_id = o.id and o.status = 5
+        where od.order_id = o.id and o.status = 5 and o.pay_status = 1
         <if test="begin != null">
-            and o.order_time &gt; #{begin}
+            and o.order_time &gt;= #{begin}
         </if>
         <if test="end != null">
-            and o.order_time &lt; #{end}
+            and o.order_time &lt;= #{end}
         </if>
         group by od.name
         order by number desc

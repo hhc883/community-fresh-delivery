@@ -49,7 +49,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
@@ -71,6 +71,11 @@ export default router
 // 401 → 回登录页（api 层清完 token 后调用，见 api/index.js 的 goToLogin）。
 // 用 replace 而非 push：登录失效前的那一页不该留在历史里，否则浏览器后退又会撞回 401。
 setUnauthorizedHandler(() => {
+  if (window.parent !== window) {
+    document.cookie = 'token=; Max-Age=0; path=/';
+    window.parent.location.replace('/#/login');
+    return;
+  }
   if (router.currentRoute.value.path !== '/login') {
     router.replace('/login')
   }

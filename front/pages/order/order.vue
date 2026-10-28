@@ -1,438 +1,344 @@
 <template>
-  <view class="order-page">
-    <!-- 顶部四状态选项卡 (全部 / 待付款 / 待自提 / 已完成) -->
-    <view class="tab-header">
-      <view
-        class="tab-item"
-        v-for="t in tabs"
-        :key="t.key"
-        :class="{ active: currentTab === t.key }"
-        @click="switchTab(t.key)"
-      >
-        <text class="tab-text">{{ t.label }}</text>
-        <view class="tab-indicator" v-if="currentTab === t.key"></view>
-      </view>
+  <view class="core">
+    <view class="order-list-header">
+      <text class="title">我的订单</text>
+      <text class="sub">交易记录及金额均来自服务器，支持随时查看履约与提货凭证。</text>
     </view>
 
-    <!-- 订单列表展示 -->
-    <view class="order-list">
-      <view
-        class="order-card"
-        v-for="order in filteredOrders"
-        :key="order.id"
-        @click="goDetail(order)"
-      >
-        <!-- 订单卡片顶部：创建时间与状态 -->
-        <view class="card-top">
-          <text class="order-time">{{ order.createTime }}</text>
-          <text class="order-status" :class="order.status">{{ getStatusText(order.status) }}</text>
+    <!-- 未登录 -->
+    <view v-if="!loggedIn" class="card">
+      <text class="login-tip-text">请先登录后查看订单与生鲜提货凭证</text>
+      <button class="primary" @tap="login">去登录</button>
+    </view>
+
+    <template v-else>
+      <!-- 状态筛选胶囊 -->
+      <view class="chips">
+        <text
+          v-for="s in filters"
+          :key="s.value"
+          :class="['chip', status === s.value ? 'active' : '']"
+          @tap="filter(s.value)"
+          >{{ s.label }}</text
+        >
+      </view>
+
+      <view v-if="loading" class="empty">正在读取订单列表…</view>
+      <view v-if="error" class="error" @tap="load">{{ error }} · 点击重试</view>
+      <view v-if="!loading && !error && !rows.length" class="empty">
+        暂无该状态下的订单记录
+      </view>
+
+      <!-- 订单卡片列表 -->
+      <view class="card order-item-card" v-for="o in rows" :key="o.id" @tap="detail(o)">
+        <view class="row order-head-row">
+          <text class="order-no">单号：{{ o.number || o.orderNumber }}</text>
+          <text
+            :class="['order-badge', o.status === 1 ? 'badge-warn' : (o.status === 5 ? 'badge-success' : 'badge-default')]"
+            >{{ labels[o.status] || "未知状态" }}</text
+          >
         </view>
 
-        <!-- 商品明细 -->
-        <view class="goods-row" v-for="(item, idx) in order.items" :key="idx">
-          <image class="goods-img" :src="item.image || '/static/images/png/dish-2.png'" mode="aspectFill" />
-          <view class="goods-info">
-            <text class="goods-name">{{ item.name }}</text>
-            <text class="goods-spec">{{ item.spec }}</text>
-          </view>
-          <view class="goods-price-qty">
-            <text class="goods-price">¥ {{ item.price }}</text>
-            <text class="goods-qty">x {{ item.quantity }}</text>
+        <view class="order-details-box">
+          <view class="line line-goods" v-for="d in o.orderDetailList || []" :key="d.id">
+            <text class="goods-name">{{ d.name }}</text>
+            <text class="goods-num">×{{ d.number }}</text>
           </view>
         </view>
 
-        <!-- 费用小计行 -->
-        <view class="summary-row">
-          <text class="sum-text">共 {{ getTotalQty(order) }} 件商品</text>
-          <text class="sum-text">运费: ¥ {{ order.freight || 0 }}</text>
-          <view class="sum-pay">
-            <text class="pay-label">实付:</text>
-            <text class="pay-price">¥ {{ order.payAmount }}</text>
+        <view class="row order-meta-row">
+          <text class="sub meta-time">{{ o.orderTime }}</text>
+          <view class="delivery-badge">
+            <image
+              v-if="Number(o.deliveryType) === 2 || (Number(o.deliveryType) !== 1 && o.pickupPointId)"
+              class="del-type-icon"
+              src="/static/icons/lucide/store.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else
+              class="del-type-icon"
+              src="/static/icons/lucide/truck.png"
+              mode="aspectFit"
+            />
+            <text>{{ Number(o.deliveryType) === 2 || (Number(o.deliveryType) !== 1 && o.pickupPointId) ? "门店自提" : "配送到家" }}</text>
           </view>
         </view>
 
-        <!-- 底部操作按钮 -->
-        <view class="actions-row" @click.stop>
-          <!-- 待付款 -->
-          <template v-if="order.status === 'pending_pay'">
-            <button class="btn-outline" @click="onCancelOrder(order)">取消订单</button>
-            <button class="btn-green" @click="onPayOrder(order)">立即付款</button>
-          </template>
+        <view class="total order-total-row">
+          <text class="pay-tag">{{ payLabels[o.payStatus] }}</text>
+          <text class="price-symbol">¥</text>
+          <text class="price-val">{{ $fmtMoney(o.amount) }}</text>
+        </view>
 
-          <!-- 待自提 -->
-          <template v-else-if="order.status === 'pending_pickup'">
-            <button class="btn-outline" @click="onRefund(order)">申请退款</button>
-            <button class="btn-green" @click="goDetail(order)">查看提货码</button>
-          </template>
-
-          <!-- 已完成 -->
-          <template v-else>
-            <button class="btn-outline" @click="goReview(order)">去评价</button>
-          </template>
+        <view class="order-action-row">
+          <view class="detail-link">
+            <text>查看订单详情</text>
+            <image
+              class="detail-arrow"
+              src="/static/icons/lucide/chevron-right.png"
+              mode="aspectFit"
+            />
+          </view>
         </view>
       </view>
-    </view>
+
+      <!-- 分页控制 -->
+      <view v-if="!loading && !error && rows.length" class="row pagination-row">
+        <button class="secondary page-btn" :disabled="page === 1" @tap="turn(-1)">
+          上一页
+        </button>
+        <text class="page-num">{{ page }} / {{ Math.max(1, Math.ceil(total / 10)) }}</text>
+        <button class="secondary page-btn" :disabled="page * 10 >= total" @tap="turn(1)">
+          下一页
+        </button>
+      </view>
+    </template>
   </view>
 </template>
 
 <script>
-import { getOrders, cancelOrder } from '@/api/index.js'
-
+import { getOrders } from "../../api/index.js";
 export default {
-  data() {
-    return {
-      currentTab: 'all',
-      tabs: [
-        { key: 'all', label: '全部' },
-        { key: 'pending_pay', label: '待付款' },
-        { key: 'pending_pickup', label: '待自提' },
-        { key: 'completed', label: '已完成' }
-      ],
-      mockOrders: [
-        {
-          id: '202103231527070192',
-          createTime: '2021-03-23 15:27:07',
-          status: 'pending_pay',
-          freight: 0,
-          payAmount: 603,
-          items: [
-            {
-              name: 'Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量...',
-              spec: '晴空翠 4+128G',
-              price: 599.00,
-              quantity: 1,
-              image: '/static/images/png/dish-2.png'
-            }
-          ]
-        },
-        {
-          id: '202103211632000881',
-          createTime: '2021-03-21 16:32:00',
-          status: 'completed',
-          freight: 0,
-          payAmount: 599,
-          items: [
-            {
-              name: 'Redmi 9A 4GB+64GB 碧空蓝 5000mAh大电量...',
-              spec: '碧空蓝 4+64G',
-              price: 499.00,
-              quantity: 1,
-              image: '/static/images/png/dish-1.png'
-            }
-          ]
-        },
-        {
-          id: '20210321152030018593',
-          createTime: '2021-03-21 15:20:30',
-          status: 'pending_pickup',
-          freight: 0,
-          payAmount: 599,
-          items: [
-            {
-              name: 'Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量...',
-              spec: '晴空翠 4+128G',
-              price: 599.00,
-              quantity: 1,
-              image: '/static/images/png/dish-2.png'
-            }
-          ]
-        }
-      ],
-      orders: []
-    }
-  },
+  data: () => ({
+    rows: [],
+    page: 1,
+    total: 0,
+    status: "",
+    loading: false,
+    error: "",
+    labels: {
+      1: "待付款",
+      2: "待接单",
+      3: "已接单",
+      4: "配送中",
+      5: "已完成",
+      6: "已取消",
+    },
+    payLabels: { 0: "未付款", 1: "已付款", 2: "模拟退款" },
+    filters: [
+      { value: "", label: "全部" },
+      { value: 1, label: "待付款" },
+      { value: 2, label: "待履约" },
+      { value: 5, label: "已完成" },
+      { value: 6, label: "已取消" },
+    ],
+  }),
   computed: {
-    filteredOrders() {
-      const list = this.orders.length > 0 ? this.orders : this.mockOrders
-      if (this.currentTab === 'all') return list
-      return list.filter(o => o.status === this.currentTab)
-    }
+    loggedIn() {
+      return Boolean(this.$store.state.user?.token);
+    },
   },
   onLoad(options) {
-    if (options.tab) {
-      this.currentTab = options.tab
+    const status = Number(options.status);
+    if ([1, 2, 5, 6].includes(status)) this.status = status;
+  },
+  onShow() {
+    if (this.loggedIn) {
+      this.load();
     }
-    this.fetchOrderList()
   },
   methods: {
-    async fetchOrderList() {
+    login() {
+      uni.navigateTo({ url: "/pages/login/login" });
+    },
+    async load() {
+      if (!this.loggedIn) return;
+      this.loading = true;
+      this.error = "";
       try {
-        const res = await getOrders()
-        if (res && res.data && res.data.data && res.data.data.records) {
-          this.orders = res.data.data.records.map(o => ({
-            id: String(o.id || o.number),
-            createTime: o.orderTime || '2021-03-23 15:27:07',
-            status: o.status === 1 ? 'pending_pay' : (o.status === 2 || o.status === 3 ? 'pending_pickup' : 'completed'),
-            freight: 0,
-            payAmount: o.amount || 603,
-            items: (o.orderDetailList || []).map(d => ({
-              name: d.name || '生鲜优选商品',
-              spec: d.dishFlavor || '标准规格',
-              price: d.amount || 599,
-              quantity: d.number || 1,
-              image: d.image || '/static/images/png/dish-2.png'
-            }))
-          }))
-        }
+        const d = (await getOrders(this.page, 10, this.status)).data;
+        this.rows = d?.records || [];
+        this.total = Number(d?.total) || 0;
       } catch (e) {
-        // Fallback to mockOrders
+        this.error = e.message || "订单加载失败";
+        this.rows = [];
+      } finally {
+        this.loading = false;
       }
     },
-    switchTab(key) {
-      this.currentTab = key
+    filter(s) {
+      this.status = s;
+      this.page = 1;
+      this.load();
     },
-    getStatusText(status) {
-      if (status === 'pending_pay') return '待付款'
-      if (status === 'pending_pickup') return '待自提'
-      if (status === 'completed') return '已完成'
-      return '已完成'
+    turn(n) {
+      this.page += n;
+      this.load();
     },
-    getTotalQty(order) {
-      return (order.items || []).reduce((acc, cur) => acc + (cur.quantity || 1), 0)
-    },
-    goDetail(order) {
+    detail(o) {
       uni.navigateTo({
-        url: `/pages/order/detail?id=${order.id}`
-      })
+        url: "/pages/order/detail?id=" + encodeURIComponent(o.id),
+      });
     },
-    onPayOrder(order) {
-      uni.navigateTo({
-        url: `/pages/order/pay?orderId=${order.id}&amount=${order.payAmount}`
-      })
-    },
-    async onCancelOrder(order) {
-      uni.showModal({
-        title: '提示',
-        content: '确定要取消该订单吗？',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await cancelOrder(order.id)
-            } catch (e) {}
-            order.status = 'cancelled'
-            uni.showToast({ title: '订单已取消', icon: 'success' })
-          }
-        }
-      })
-    },
-    onRefund(order) {
-      uni.showToast({ title: '售后申请已提交', icon: 'success' })
-    },
-    goReview(order) {
-      uni.navigateTo({
-        url: `/pages/review/review?orderId=${order.id}`
-      })
-    }
-  }
-}
+  },
+};
 </script>
 
-<style lang="scss" scoped>
-.order-page {
-  min-height: 100vh;
-  background-color: #F7F8FA;
-  padding-bottom: 40rpx;
+<style scoped>
+.order-list-header {
+  margin-bottom: 20rpx;
 }
 
-/* 顶部选项卡 */
-.tab-header {
+.login-tip-text {
+  font-size: 28rpx;
+  color: #19241d;
+  display: block;
+  text-align: center;
+  margin: 20rpx 0;
+}
+
+.order-item-card {
+  padding: 24rpx;
+}
+
+.order-head-row {
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #eef2ef;
+}
+
+.order-no {
+  font-size: 24rpx;
+  color: #556257;
+  font-family: monospace, Arial, sans-serif;
+}
+
+.order-badge {
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+}
+
+.badge-warn {
+  background-color: #fff2ec;
+  color: #ff5722;
+}
+
+.badge-success {
+  background-color: #eaf5ee;
+  color: #27744d;
+}
+
+.badge-default {
+  background-color: #f0f4f1;
+  color: #778579;
+}
+
+.order-details-box {
+  padding: 10rpx 0;
+}
+
+.line-goods {
   display: flex;
-  background-color: #FFFFFF;
-  height: 88rpx;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 1rpx 6rpx rgba(0, 0, 0, 0.02);
-
-  .tab-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-
-    .tab-text {
-      font-size: 28rpx;
-      color: #666666;
-    }
-
-    &.active {
-      .tab-text {
-        color: #25B873;
-        font-weight: 700;
-      }
-
-      .tab-indicator {
-        position: absolute;
-        bottom: 6rpx;
-        width: 48rpx;
-        height: 6rpx;
-        background-color: #25B873;
-        border-radius: 3rpx;
-      }
-    }
-  }
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f6f8f5;
 }
 
-/* 订单列表卡片 */
-.order-list {
-  padding: 20rpx 24rpx;
+.goods-name {
+  font-size: 26rpx;
+  color: #19241d;
+  font-weight: 500;
+}
 
-  .order-card {
-    background-color: #FFFFFF;
-    border-radius: 16rpx;
-    padding: 24rpx 28rpx;
-    margin-bottom: 20rpx;
-    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
+.goods-num {
+  font-size: 24rpx;
+  color: #778579;
+}
 
-    .card-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 20rpx;
-      border-bottom: 1rpx solid #F0F2F5;
+.order-meta-row {
+  margin-top: 12rpx;
+  margin-bottom: 8rpx;
+}
 
-      .order-time {
-        font-size: 24rpx;
-        color: #8F959E;
-      }
+.meta-time {
+  font-size: 22rpx;
+  color: #778579;
+}
 
-      .order-status {
-        font-size: 26rpx;
-        font-weight: 600;
+.delivery-badge {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  color: #27744d;
+  background-color: #eaf5ee;
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+}
 
-        &.pending_pay,
-        &.pending_pickup {
-          color: #FA5151; /* 鲜红/橙红 */
-        }
+.del-type-icon {
+  width: 22rpx;
+  height: 22rpx;
+  margin-right: 6rpx;
+}
 
-        &.completed {
-          color: #8F959E;
-        }
-      }
-    }
+.order-total-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  padding: 14rpx 0 10rpx;
+}
 
-    .goods-row {
-      display: flex;
-      padding: 20rpx 0;
-      border-bottom: 1rpx solid #F8F9FA;
+.pay-tag {
+  font-size: 22rpx;
+  color: #778579;
+  font-weight: 400;
+  margin-right: 12rpx;
+}
 
-      .goods-img {
-        width: 140rpx;
-        height: 140rpx;
-        border-radius: 12rpx;
-        background-color: #F7F8FA;
-      }
+.price-symbol {
+  font-size: 22rpx;
+  color: #ff5722;
+  font-weight: 700;
+}
 
-      .goods-info {
-        flex: 1;
-        margin-left: 20rpx;
-        display: flex;
-        flex-direction: column;
+.price-val {
+  font-size: 34rpx;
+  color: #ff5722;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+}
 
-        .goods-name {
-          font-size: 26rpx;
-          color: #1F2329;
-          font-weight: 500;
-          line-height: 38rpx;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          overflow: hidden;
-        }
+.order-action-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10rpx;
+}
 
-        .goods-spec {
-          font-size: 22rpx;
-          color: #8F959E;
-          margin-top: 8rpx;
-        }
-      }
+.detail-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 24rpx;
+  color: #27744d;
+  font-weight: 600;
+  padding: 8rpx 16rpx;
+  background-color: #eaf5ee;
+  border-radius: 24rpx;
+}
 
-      .goods-price-qty {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        margin-left: 16rpx;
+.detail-arrow {
+  width: 22rpx;
+  height: 22rpx;
+  margin-left: 4rpx;
+}
 
-        .goods-price {
-          font-size: 28rpx;
-          font-weight: 600;
-          color: #1F2329;
-        }
+.pagination-row {
+  margin: 30rpx 0 20rpx;
+}
 
-        .goods-qty {
-          font-size: 24rpx;
-          color: #8F959E;
-          margin-top: 8rpx;
-        }
-      }
-    }
+.page-btn {
+  margin: 0;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 26rpx;
+  padding: 0 28rpx;
+}
 
-    .summary-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: flex-end;
-      padding: 18rpx 0;
-      gap: 16rpx;
-
-      .sum-text {
-        font-size: 24rpx;
-        color: #8F959E;
-      }
-
-      .sum-pay {
-        display: flex;
-        align-items: baseline;
-
-        .pay-label {
-          font-size: 24rpx;
-          color: #1F2329;
-          margin-right: 4rpx;
-        }
-
-        .pay-price {
-          font-size: 32rpx;
-          font-weight: 700;
-          color: #FF7D00; /* 实付金额橙色高亮 */
-        }
-      }
-    }
-
-    .actions-row {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-top: 16rpx;
-      gap: 16rpx;
-
-      .btn-outline,
-      .btn-green {
-        height: 60rpx;
-        line-height: 60rpx;
-        border-radius: 30rpx;
-        font-size: 26rpx;
-        padding: 0 28rpx;
-        margin: 0;
-
-        &::after {
-          border: none;
-        }
-      }
-
-      .btn-outline {
-        background-color: #FFFFFF;
-        border: 1rpx solid #D8D8D8;
-        color: #666666;
-      }
-
-      .btn-green {
-        background-color: #25B873;
-        color: #FFFFFF;
-        font-weight: 600;
-        border: none;
-      }
-    }
-  }
+.page-num {
+  font-size: 26rpx;
+  color: #556257;
+  font-weight: 500;
 }
 </style>

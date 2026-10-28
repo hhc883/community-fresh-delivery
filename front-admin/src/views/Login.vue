@@ -1,27 +1,32 @@
 <template>
   <div class="login-wrap">
     <div class="login-card">
-      <h1 class="login-title">生鲜运营端</h1>
-      <p class="login-sub">运营账号登录</p>
+      <div class="brand-row">
+        <img src="/branding/fresh-mark.svg" alt="社区鲜选" class="brand-mark" />
+        <h1 class="login-title">社区鲜选</h1>
+      </div>
+      <p class="login-sub">生鲜运营管理中台</p>
 
       <el-form class="login-form" @submit.prevent="onSubmit">
         <el-form-item>
           <el-input
             v-model="username"
-            placeholder="用户名"
+            placeholder="运营账号"
             autocomplete="username"
             :disabled="viewState === 'loading'"
             clearable
+            size="large"
           />
         </el-form-item>
         <el-form-item>
           <el-input
             v-model="password"
             type="password"
-            placeholder="密码"
+            placeholder="登录密码"
             autocomplete="current-password"
             show-password
             :disabled="viewState === 'loading'"
+            size="large"
           />
         </el-form-item>
         <el-form-item>
@@ -29,18 +34,15 @@
             class="submit"
             type="primary"
             native-type="submit"
+            size="large"
             :loading="viewState === 'loading'"
             :disabled="locked"
           >
-            登录
+            登 录
           </el-button>
         </el-form-item>
       </el-form>
 
-      <!-- 失败文案只有后端 message 原文这一处来源：三种失败（账号不存在 / 口令错 / 已停用）在
-           服务端本来就是同一句「用户名或密码错误」（D-5 防枚举），页面不得自己分支、
-           不得推断成「锁定中」「账号不存在」这类可区分信号。
-           锁定态唯一的例外是后端在 data 里如实给的 retryAfterSeconds——那是既有载荷的转述，不是推断。 -->
       <p v-if="viewState === 'error' || viewState === 'forbidden'" class="error">{{ errorText }}</p>
       <p v-if="locked" class="lock-tip">请 {{ waitDurationText(lockRemaining) }}后再试</p>
     </div>
@@ -139,38 +141,61 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f4f6f8;
+  padding: 24px;
 }
 .login-card {
-  width: 360px;
-  padding: 32px 28px 20px;
+  width: 400px;
+  max-width: 90vw;
   background: #fff;
   border: 1px solid var(--admin-border);
-  border-radius: 10px;
+  border-radius: 12px;
+  padding: 36px 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
 }
 .login-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
-  margin: 0 0 4px;
+  margin: 0;
+  color: #1a202c;
 }
 .login-sub {
   font-size: 13px;
-  color: #909399;
-  margin: 0 0 20px;
+  color: #27744D;
+  font-weight: 500;
+  text-align: center;
+  margin: 4px 0 24px;
 }
-.login-form :deep(.el-form-item) {
-  margin-bottom: 16px;
+.login-form {
+  margin-top: 8px;
 }
 .submit {
   width: 100%;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 .error {
   color: #f56c6c;
   font-size: 13px;
-  margin: 0;
+  margin-top: 14px;
+  text-align: center;
 }
 .lock-tip {
   color: #e6a23c;
-  font-size: 12px;
-  margin: 6px 0 0;
+  font-size: 13px;
+  margin-top: 14px;
+  text-align: center;
 }
 </style>

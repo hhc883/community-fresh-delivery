@@ -1,7 +1,7 @@
 -- ============================================================
 -- 生鲜自提前端与后端无缝对接 —— 数据库增量补丁（幂等，可重复执行）
 -- ============================================================
-USE sky_take_out;
+-- Target database must be selected explicitly by the migration runner.
 
 -- ------------------------------------------------------------
 -- 1) 自提网点表 (pickup_point) 字段补充与对齐
@@ -75,9 +75,7 @@ SET @ddl = IF(
   'DO 0');
 PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
 
--- 插入默认门店「高黎柱发士多店」
-INSERT IGNORE INTO `pickup_point` (`id`, `name`, `address`, `contact`, `contact_name`, `phone`, `contact_phone`, `distance`, `latitude`, `longitude`, `image`, `service_tags`, `status`)
-VALUES (1, '高黎柱发士多店(请自备袋子谢谢)', '广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号', '柱哥', '柱哥', '13800138000', '13800138000', '260m', 22.7725000, 113.3122000, '/static/images/png/dish-1.png', '支持冷冻/冷藏', 1);
+-- Demo data is in backEnd/sql/002-demo-seed.sql; migrations never insert a store.
 
 -- ------------------------------------------------------------
 -- 2) 订单表 (orders) 自提字段对齐

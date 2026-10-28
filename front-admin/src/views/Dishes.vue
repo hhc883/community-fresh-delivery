@@ -2,9 +2,9 @@
   <div class="page">
     <div class="page-head">
       <h2 class="page-title">商品管理</h2>
-      <el-tag type="danger" effect="dark" size="small" class="mode-badge">本页会改数据</el-tag>
+      <el-tag type="success" effect="plain" size="small" class="mode-badge">生鲜库存与规格</el-tag>
     </div>
-    <p class="page-note">分类与商品均为真实数据库读写；上下架立即影响用户端可见性。数据源：GET /admin/dish/page（契约 docs/contracts/api-v1.md）。</p>
+    <p class="page-note">管理社区生鲜商品、规格库存与团购规则。商品上下架设置影响用户端可选商品。</p>
 
     <div class="layout">
       <!-- 分类列 -->
@@ -20,9 +20,10 @@
             :class="{ active: filter.categoryId === cat.id }"
             @click="onPickCategory(cat.id)"
           >
-            <span class="cat-name">{{ cat.name }}</span>
+            <span class="cat-name">{{ cat.name }}{{ Number(cat.status) === 1 ? '' : '（停用）' }}</span>
             <span class="cat-actions">
               <el-button link size="small" @click.stop="openCategoryDialog(cat)">编辑</el-button>
+              <el-button link size="small" @click.stop="toggleCategory(cat)">{{ Number(cat.status) === 1 ? '停用' : '启用' }}</el-button>
               <el-button link size="small" type="danger" @click.stop="onDeleteCategory(cat)">删除</el-button>
             </span>
           </li>
@@ -45,7 +46,7 @@
             <el-option label="停售" :value="0" />
           </el-select>
           <el-button type="primary" @click="onSearch">查询</el-button>
-          <el-button type="success" @click="openDishDialog()">新增商品</el-button>
+          <el-button type="success" @click="openDishDialog()">新增生鲜商品</el-button>
         </div>
 
         <div v-if="viewState === 'loading'" class="state-box">商品列表加载中…</div>
@@ -57,41 +58,40 @@
         <template v-else>
           <el-table :data="rows" border stripe @selection-change="onSelectionChange">
             <el-table-column type="selection" width="44" />
-            <el-table-column prop="name" label="名称" min-width="140" />
-            <el-table-column label="图片" width="72">
+            <el-table-column prop="name" label="商品名称" min-width="140" />
+            <el-table-column label="图片" width="76" align="center">
               <template #default="{ row }">
                 <el-image
                   v-if="row.image"
                   :src="resolveImage(row.image)"
                   :preview-src-list="[resolveImage(row.image)]"
                   fit="cover"
-                  style="width: 44px; height: 44px; border-radius: 4px"
+                  style="width: 44px; height: 44px; border-radius: 6px"
                   preview-teleported
                 />
-                <span v-else class="muted">无图</span>
+                <span v-else class="muted">暂无图片</span>
               </template>
             </el-table-column>
-            <el-table-column label="价格" width="90">
+            <el-table-column label="单买价格" width="100">
               <template #default="{ row }">￥{{ row.price }}</template>
             </el-table-column>
-            <el-table-column prop="stock" label="库存" width="80" />
-            <el-table-column prop="soldCount" label="销量" width="80" />
-            <el-table-column label="团购" width="140">
+            <el-table-column prop="stock" label="库存" width="90" align="center" />
+            <el-table-column label="社区团购" width="160">
               <template #default="{ row }">
                 <el-tag v-if="row.isGroupon === 1" type="success" size="small">
-                  ￥{{ row.grouponPrice }} × {{ row.grouponSize }}人团
+                  ￥{{ row.grouponPrice }} · {{ row.grouponSize }}人团
                 </el-tag>
-                <span v-else class="muted">非团购</span>
+                <span v-else class="muted">未参与</span>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="80">
+            <el-table-column label="售卖状态" width="90" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-                  {{ row.status === 1 ? '起售' : '停售' }}
+                  {{ row.status === 1 ? '起售中' : '已停售' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="操作" width="200" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button link type="primary" @click="openDishDialog(row)">编辑</el-button>
                 <el-button v-if="row.status === 1" link type="warning" @click="onSetStatus(row, 0)">停售</el-button>
@@ -117,17 +117,17 @@
             size="small"
             @click="onBatchDelete"
           >
-            批量删除（{{ selected.length }}）
+            批量删除已选（{{ selected.length }}）
           </el-button>
         </template>
       </section>
     </div>
 
     <!-- 分类编辑 -->
-    <el-dialog v-model="categoryDialog.visible" :title="categoryDialog.id ? '编辑分类' : '新增分类'" width="420px">
+    <el-dialog v-model="categoryDialog.visible" :title="categoryDialog.id ? '编辑生鲜分类' : '新增生鲜分类'" width="420px">
       <el-form label-width="70px">
         <el-form-item label="名称" required>
-          <el-input v-model="categoryDialog.name" maxlength="32" />
+          <el-input v-model="categoryDialog.name" maxlength="32" placeholder="请输入分类名称" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="categoryDialog.sort" :min="0" :max="999" />
@@ -140,55 +140,61 @@
     </el-dialog>
 
     <!-- 商品编辑 -->
-    <el-dialog v-model="dishDialog.visible" :title="dishDialog.id ? '编辑商品' : '新增商品'" width="620px" top="6vh">
-      <el-form label-width="92px">
-        <el-form-item label="名称" required>
-          <el-input v-model="dishDialog.name" maxlength="32" />
+    <el-dialog v-model="dishDialog.visible" :title="dishDialog.id ? '编辑生鲜商品' : '新增生鲜商品'" width="640px" top="6vh">
+      <el-form label-width="96px">
+        <el-form-item label="商品名称" required>
+          <el-input v-model="dishDialog.name" maxlength="32" placeholder="如 红富士苹果 / 崇明青菜" />
         </el-form-item>
-        <el-form-item label="分类" required>
-          <el-select v-model="dishDialog.categoryId" placeholder="选择分类" style="width: 100%">
+        <el-form-item label="商品分类" required>
+          <el-select v-model="dishDialog.categoryId" placeholder="请选择商品分类" style="width: 100%">
             <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="价格" required>
+        <el-form-item label="单买价格" required>
           <el-input-number v-model="dishDialog.price" :min="0.01" :precision="2" :step="1" />
         </el-form-item>
-        <el-form-item label="库存">
-          <el-input-number v-model="dishDialog.stock" :min="0" :step="10" />
-          <span class="form-note">直接置值；服务端下单按库存条件扣减</span>
+        <el-form-item label="库存数量" required>
+          <el-input-number v-model="dishDialog.stock" :min="0" :precision="0" :step="10" />
+          <span class="form-note">实际可售库存，顾客下单时将核验与扣减</span>
         </el-form-item>
         <el-form-item label="规格单位">
-          <el-input v-model="dishDialog.unit" maxlength="16" placeholder="如 500g / 份 / 箱" style="width: 220px" />
+          <el-input v-model="dishDialog.unit" maxlength="16" placeholder="如 500g / 盒 / 份" style="width: 220px" />
         </el-form-item>
-        <el-form-item label="产地">
-          <el-input v-model="dishDialog.origin" maxlength="64" placeholder="如 云南" style="width: 220px" />
+        <el-form-item label="生鲜产地">
+          <el-input v-model="dishDialog.origin" maxlength="64" placeholder="如 云南蒙自 / 山东烟台" style="width: 220px" />
         </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="dishDialog.description" type="textarea" maxlength="255" :rows="2" />
+        <el-form-item label="生鲜标识">
+          <el-switch v-model="dishDialog.isFresh" :active-value="1" :inactive-value="0" />
         </el-form-item>
-        <el-form-item label="图片地址">
-          <el-input v-model="dishDialog.image" placeholder="图片 URL 或上传后的地址" />
+        <el-form-item label="商品描述">
+          <el-input v-model="dishDialog.description" type="textarea" maxlength="255" :rows="2" placeholder="简述商品新鲜度、储藏条件与风味特点" />
         </el-form-item>
-        <el-divider>团购设置</el-divider>
-        <el-form-item label="参与团购">
+        <el-form-item label="商品图片">
+          <el-input v-model="dishDialog.image" placeholder="图片 URL 或上传后地址" style="margin-bottom: 8px" />
+          <el-upload accept="image/png,image/jpeg" :show-file-list="false" :http-request="uploadImage" :disabled="imageUploading">
+            <el-button :loading="imageUploading" icon="el-icon-upload">上传生鲜图片</el-button>
+          </el-upload>
+        </el-form-item>
+        <el-divider>社区拼团设置</el-divider>
+        <el-form-item label="参与拼团">
           <el-switch v-model="dishDialog.isGroupon" :active-value="1" :inactive-value="0" />
         </el-form-item>
         <template v-if="dishDialog.isGroupon === 1">
-          <el-form-item label="拼团价" required>
+          <el-form-item label="拼团优惠价" required>
             <el-input-number v-model="dishDialog.grouponPrice" :min="0.01" :precision="2" :step="1" />
           </el-form-item>
-          <el-form-item label="成团人数">
-            <el-input-number v-model="dishDialog.grouponSize" :min="2" :max="99" />
+          <el-form-item label="成团人数" required>
+            <el-input-number v-model="dishDialog.grouponSize" :min="2" :max="99" :precision="0" />
           </el-form-item>
-          <el-form-item label="有效时长">
-            <el-input-number v-model="dishDialog.grouponValidHours" :min="1" :max="720" />
-            <span class="form-note">小时；超时未成团由服务端关闭并处置订单</span>
+          <el-form-item label="拼团有效期" required>
+            <el-input-number v-model="dishDialog.grouponValidHours" :min="1" :max="720" :precision="0" />
+            <span class="form-note">小时；超时未成团将自动关闭活动并退款</span>
           </el-form-item>
         </template>
       </el-form>
       <template #footer>
         <el-button @click="dishDialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="dishDialog.saving" @click="saveDish">保存</el-button>
+        <el-button type="primary" :loading="dishDialog.saving" @click="saveDish">保存商品</el-button>
       </template>
     </el-dialog>
   </div>
@@ -200,7 +206,27 @@
 // 写操作成功与否一律以服务端返回为准：成功后重拉当前页核对，不本地改行。
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryList, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
+import { BASE_URL, createCategory, createDish, deleteCategory, deleteDishes, getCategoryPage, setCategoryStatus, getDish, getDishPage, setDishStatus, updateCategory, updateDish } from '../api'
+import { uploadProductImage } from '../api'
+
+const imageUploading = ref(false)
+async function uploadImage(options) {
+  if (options.file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过2MB')
+    options.onError(new Error('图片不能超过2MB'))
+    return
+  }
+  imageUploading.value = true
+  try {
+    const response = await uploadProductImage(options.file)
+    dishDialog.image = response.data
+    options.onSuccess(response)
+    ElMessage.success('图片已上传')
+  } catch (error) {
+    ElMessage.error(error.message || '图片上传失败')
+    options.onError(error)
+  } finally { imageUploading.value = false }
+}
 
 const viewState = ref('loading')
 const errorText = ref('')
@@ -222,8 +248,24 @@ function resolveImage(image) {
 }
 
 async function loadCategories() {
-  const res = await getCategoryList(1)
-  categories.value = res.data || []
+  const list = []
+  let categoryPage = 1
+  let res
+  do {
+    res = await getCategoryPage({ type: 1, page: categoryPage++, pageSize: 100 })
+    const records = res.data?.records || []
+    list.push(...records)
+    if (!records.length) break
+  } while (list.length < Number(res.data?.total || 0))
+  categories.value = list
+}
+
+async function toggleCategory(cat) {
+  try {
+    await setCategoryStatus(cat.id, Number(cat.status) === 1 ? 0 : 1)
+    await loadCategories()
+    ElMessage.success('分类状态已更新')
+  } catch (err) { ElMessage.error(err.message || '分类状态更新失败') }
 }
 
 async function loadDishes() {
@@ -277,6 +319,7 @@ function openCategoryDialog(cat) {
 }
 
 async function saveCategory() {
+  if (categoryDialog.saving) return
   if (!categoryDialog.name.trim()) {
     ElMessage.warning('请填写分类名称')
     return
@@ -323,7 +366,7 @@ async function onDeleteCategory(cat) {
 // ---- 商品 ----
 const dishDialog = reactive({
   visible: false, id: null, name: '', categoryId: null, price: null,
-  stock: 0, unit: '', origin: '', description: '', image: '',
+  stock: 0, unit: '', origin: '', description: '', image: '', flavors: [], isFresh: 1,
   isGroupon: 0, grouponPrice: null, grouponSize: 2, grouponValidHours: 24,
   saving: false
 })
@@ -335,9 +378,12 @@ async function openDishDialog(row) {
       const d = res.data || row
       Object.assign(dishDialog, {
         visible: true, id: d.id, name: d.name, categoryId: d.categoryId,
-        price: d.price == null ? null : Number(d.price), stock: d.stock || 0,
+        price: d.price == null ? null : Number(d.price),
+        stock: d.stock == null ? 0 : Math.floor(Number(d.stock)),
         unit: d.unit || '', origin: d.origin || '',
         description: d.description || '', image: d.image || '',
+        flavors: d.flavors || [],
+        isFresh: d.isFresh == null ? 1 : (Number(d.isFresh) === 1 ? 1 : 0),
         isGroupon: d.isGroupon || 0,
         grouponPrice: d.grouponPrice == null ? null : Number(d.grouponPrice),
         grouponSize: d.grouponSize || 2, grouponValidHours: d.grouponValidHours || 24
@@ -348,18 +394,33 @@ async function openDishDialog(row) {
   } else {
     Object.assign(dishDialog, {
       visible: true, id: null, name: '', categoryId: filter.categoryId, price: null,
-      stock: 0, unit: '', origin: '', description: '', image: '',
+      stock: 0, unit: '', origin: '', description: '', image: '', flavors: [], isFresh: 1,
       isGroupon: 0, grouponPrice: null, grouponSize: 2, grouponValidHours: 24
     })
   }
 }
 
 async function saveDish() {
+  if (dishDialog.saving) return
   if (!dishDialog.name.trim()) return ElMessage.warning('请填写商品名称')
   if (!dishDialog.categoryId) return ElMessage.warning('请选择分类')
   if (!dishDialog.price || dishDialog.price <= 0) return ElMessage.warning('请填写正确价格')
-  if (dishDialog.isGroupon === 1 && (!dishDialog.grouponPrice || dishDialog.grouponPrice <= 0)) {
-    return ElMessage.warning('参与团购必须填写拼团价')
+  if (dishDialog.stock == null || Number(dishDialog.stock) < 0 || !Number.isInteger(Number(dishDialog.stock))) {
+    return ElMessage.warning('商品库存必须为非负整数')
+  }
+  if (dishDialog.isGroupon === 1) {
+    if (!dishDialog.grouponPrice || dishDialog.grouponPrice <= 0) {
+      return ElMessage.warning('参与团购必须填写正确拼团价')
+    }
+    if (dishDialog.grouponPrice >= dishDialog.price) {
+      return ElMessage.warning('拼团价应低于单买原价')
+    }
+    if (!dishDialog.grouponSize || dishDialog.grouponSize < 2) {
+      return ElMessage.warning('成团人数至少为 2 人')
+    }
+    if (!dishDialog.grouponValidHours || dishDialog.grouponValidHours < 1) {
+      return ElMessage.warning('拼团有效时长至少为 1 小时')
+    }
   }
   dishDialog.saving = true
   try {
@@ -368,7 +429,9 @@ async function saveDish() {
       name: dishDialog.name.trim(),
       categoryId: dishDialog.categoryId,
       price: dishDialog.price,
-      stock: dishDialog.stock,
+      stock: Math.floor(Number(dishDialog.stock)),
+      isFresh: dishDialog.isFresh != null ? Number(dishDialog.isFresh) : 1,
+      flavors: dishDialog.flavors || [],
       unit: dishDialog.unit || undefined,
       origin: dishDialog.origin || undefined,
       description: dishDialog.description || undefined,
@@ -458,6 +521,7 @@ onMounted(async () => {
     await loadCategories()
   } catch (e) {
     // 分类读取失败不阻塞商品列表：商品表仍可查询
+    ElMessage.error(e.message || '分类读取失败，请刷新重试')
   }
   loadDishes()
 })
@@ -476,38 +540,42 @@ onMounted(async () => {
   background: #fff;
   border: 1px solid var(--admin-border);
   border-radius: 8px;
-  padding: 12px;
+  padding: 14px;
 }
 .side-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .side-title {
   font-weight: 600;
   font-size: 14px;
+  color: #1e293b;
 }
 .cat-list {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   padding: 0;
 }
 .cat-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
+  color: #475569;
+  transition: all 0.15s;
 }
 .cat-list li:hover {
-  background: #f5f7fa;
+  background: #f1f5f9;
+  color: #1e293b;
 }
 .cat-list li.active {
-  background: #ecf5ff;
-  color: #409eff;
+  background: #e8f5e9;
+  color: #27744D;
   font-weight: 600;
 }
 .cat-actions {
@@ -526,20 +594,20 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 .pager {
-  margin-top: 14px;
+  margin-top: 16px;
   justify-content: flex-end;
 }
 .batch-del {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 .muted {
-  color: #c0c4cc;
+  color: #94a3b8;
   font-size: 12px;
 }
 .form-note {
   margin-left: 10px;
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
 }
 .state-box {
   padding: 40px;
@@ -555,7 +623,7 @@ onMounted(async () => {
 }
 .state-desc {
   font-size: 13px;
-  color: #606266;
+  color: #64748b;
   margin-bottom: 10px;
 }
 </style>

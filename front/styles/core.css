@@ -1,0 +1,334 @@
+/* front/styles/core.css - 社区生鲜商城通用设计体系规范 */
+/* 微信 WXSS 严格兼容：禁用 * 通配、禁用 :root/CSS变量、禁用浏览器 uni-* 标签选择器，使用类名与常规层级 */
+
+/* 全局主容器：晨曦生鲜浅底 #F6F8F5、墨苔文本 #19241D、安全区垫底 */
+.core {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background-color: #f6f8f5;
+  padding: 24rpx 24rpx calc(140rpx + constant(safe-area-inset-bottom));
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+  color: #19241d;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 顶部绿色横幅 / 晨曦市集看板 */
+.hero {
+  background: linear-gradient(135deg, #27744d 0%, #1c5838 100%);
+  color: #ffffff;
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(39, 116, 77, 0.18);
+  border: 1rpx solid #1c5838;
+}
+
+.title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+  color: #19241d;
+  line-height: 1.35;
+}
+
+.hero .title {
+  color: #ffffff;
+}
+
+.sub {
+  display: block;
+  font-size: 24rpx;
+  color: #778579;
+  line-height: 1.5;
+}
+
+.hero .sub {
+  color: #d8eee1;
+}
+
+/* 核心内容卡片：白底微描边，去掉沉重脏灰阴影，突出食材品质感 */
+.card {
+  background-color: #ffffff;
+  border-radius: 18rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(25, 36, 29, 0.03);
+  border: 1rpx solid #e5ebe6;
+  box-sizing: border-box;
+}
+
+/* 纵向排布容器 */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* 横向行排布容器 */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+/* 明细行与分割线 */
+.line {
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eef2ef;
+  font-size: 28rpx;
+  color: #2b382f;
+}
+
+.line:last-child {
+  border-bottom: none;
+}
+
+/* 金额高亮：鲜果暖橙 #FF5722 + DIN/Arial 数字字体 */
+.price {
+  color: #ff5722;
+  font-size: 34rpx;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+}
+
+.price-symbol {
+  font-size: 24rpx;
+  margin-right: 2rpx;
+  font-weight: 600;
+}
+
+.price-del {
+  font-size: 22rpx;
+  color: #8c9b8f;
+  text-decoration: line-through;
+  margin-left: 8rpx;
+  font-weight: 400;
+}
+
+/* 提货核销凭证码 */
+.code {
+  font-size: 52rpx;
+  font-weight: 800;
+  letter-spacing: 8rpx;
+  color: #27744d;
+  background-color: #eaf5ee;
+  border: 2rpx dashed #7fc69c;
+  border-radius: 16rpx;
+  text-align: center;
+  padding: 20rpx 0;
+  margin: 16rpx 0;
+  font-family: monospace, Arial, sans-serif;
+}
+
+/* 通用主按钮：生鲜冷绿 */
+.primary {
+  background-color: #27744d;
+  color: #ffffff;
+  border-radius: 44rpx;
+  margin: 24rpx 0 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border: none;
+  box-shadow: 0 4rpx 14rpx rgba(39, 116, 77, 0.22);
+  box-sizing: border-box;
+}
+
+.primary::after {
+  border: none;
+}
+
+/* 通用次级按钮：翠叶浅绿 */
+.secondary {
+  background-color: #eaf5ee;
+  color: #27744d;
+  border-radius: 44rpx;
+  margin: 14rpx 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border: 1rpx solid #bce1ca;
+  box-sizing: border-box;
+}
+
+.secondary::after {
+  border: none;
+}
+
+button[disabled],
+.primary[disabled] {
+  background-color: #a4ceb6 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  opacity: 0.7;
+}
+
+.secondary[disabled] {
+  background-color: #f0f4f1 !important;
+  color: #9cb1a2 !important;
+  border-color: #dfe7e1 !important;
+  opacity: 0.7;
+}
+
+/* 输入表单控件 */
+.field {
+  background-color: #f7faf7;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  margin: 12rpx 0;
+  min-height: 84rpx;
+  font-size: 28rpx;
+  color: #19241d;
+  border: 1rpx solid #dfe6e0;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+input.field {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 24rpx;
+}
+
+textarea.field {
+  height: 180rpx;
+  line-height: 1.5;
+  padding: 20rpx 24rpx;
+}
+
+/* 标签胶囊列表 */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin: 16rpx 0 24rpx;
+}
+
+.chip {
+  padding: 10rpx 24rpx;
+  background-color: #f0f4f1;
+  color: #4b5a4f;
+  border-radius: 28rpx;
+  border: 1rpx solid #d9e3db;
+  font-size: 24rpx;
+  box-sizing: border-box;
+}
+
+.chip.active {
+  background-color: #27744d;
+  color: #ffffff;
+  border-color: #27744d;
+  font-weight: 600;
+  box-shadow: 0 3rpx 8rpx rgba(39, 116, 77, 0.2);
+}
+
+/* 商品卡片双列栅格 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
+.product-image {
+  width: 100%;
+  height: 260rpx;
+  background-color: #edf2ee;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.product-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #19241d;
+  line-height: 1.4;
+  margin: 12rpx 0 6rpx;
+}
+
+/* 总计汇总行 */
+.total {
+  padding: 18rpx 0 8rpx;
+  text-align: right;
+  font-weight: 700;
+  font-size: 28rpx;
+  color: #ff5722;
+}
+
+/* 错误提示态与空状态 */
+.error {
+  color: #c93424;
+  background-color: #fdf2f1;
+  border: 1rpx solid #fad2ce;
+  padding: 22rpx 26rpx;
+  border-radius: 14rpx;
+  margin: 20rpx 0;
+  font-size: 26rpx;
+  line-height: 1.45;
+}
+
+.empty {
+  padding: 80rpx 24rpx;
+  text-align: center;
+  color: #778579;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+/* Lucide 矢量图标通用尺寸与布局工具类 */
+.ui-icon {
+  width: 36rpx;
+  height: 36rpx;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.ui-icon-sm {
+  width: 28rpx;
+  height: 28rpx;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.ui-icon-lg {
+  width: 44rpx;
+  height: 44rpx;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.ui-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background-color: #27744d;
+  border: none;
+  padding: 0;
+}
+
+.ui-icon-btn:active {
+  background-color: #1e5a3c;
+}
+
+/* #ifdef H5 */
+/* 页面固定定位底栏/顶栏在 H5 宽屏居中限宽 480px */
+.bottom-bar,
+.bottom-action-bar,
+.nav-bar {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  left: 0;
+  right: 0;
+}
+/* #endif */

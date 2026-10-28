@@ -80,6 +80,15 @@
         order by create_time desc
     </select>
 
+    <select id="listAvailable" resultType="Dish">
+        select d.* from dish d inner join category c on c.id = d.category_id
+        where d.status = 1 and c.status = 1
+        <if test="id != null">and d.id = #{id}</if>
+        <if test="categoryId != null">and d.category_id = #{categoryId}</if>
+        <if test="keyword != null and keyword != ''">and d.name like concat('%',#{keyword},'%')</if>
+        order by d.create_time desc, d.id desc
+    </select>
+
     <select id="countByMap" resultType="java.lang.Integer">
         select count(id) from dish
         <where>
@@ -118,6 +127,7 @@
         where id = #{id}
           and stock is not null
           and stock &gt;= #{number}
+          and status = 1
     </update>
 
     <!-- 原子归还库存 -->

@@ -21,6 +21,9 @@ public interface OrderMapper {
      */
     void insert(Orders orders);
 
+    @Select("select * from orders where user_id=#{userId} and client_request_id=#{clientRequestId}")
+    Orders getByClientRequestId(@Param("userId") Long userId, @Param("clientRequestId") String clientRequestId);
+
     /**
      * 根据订单号和用户id查询订单
      * @param orderNumber
@@ -47,6 +50,12 @@ public interface OrderMapper {
      */
     @Select("select * from orders where id=#{id}")
     Orders getById(Long id);
+
+    @Select("select * from orders where id=#{id} for update")
+    Orders getByIdForUpdate(Long id);
+
+    @Select("select * from orders where number=#{orderNumber} for update")
+    Orders getByNumberForUpdate(String orderNumber);
 
     /**
      * 根据状态统计订单数量

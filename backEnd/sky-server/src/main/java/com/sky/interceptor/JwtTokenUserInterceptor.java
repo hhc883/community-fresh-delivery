@@ -34,9 +34,18 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
      * @throws Exception
      */
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        BaseContext.removeCurrentId();
         //判断当前拦截到的是Controller的方法还是其他资源
         if (!(handler instanceof HandlerMethod)) {
             //当前拦截到的不是动态方法，直接放行
+            return true;
+        }
+        // 商品只读接口允许匿名浏览，评价写入仍必须鉴权。
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        if ("GET".equals(request.getMethod())
+                && ("/api/dishes".equals(path) || path.startsWith("/api/dishes/")
+                    || path.startsWith("/api/stores")
+                    || "/user/category/list".equals(path))) {
             return true;
         }
 
@@ -57,7 +66,6 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
 
         //2、校验令牌
         try {
-            log.info("jwt校验:{}", token);
             Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);
             Long userId = Long.valueOf(claims.get(JwtClaimsConstant.USER_ID).toString());
             log.info("当前用户id：{}", userId);
@@ -69,11 +77,18 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             return true;
         } catch (Exception ex) {
             //4、不通过，响应401状态码与规范信封
-            log.warn("用户令牌校验失败或未登录: {}", ex.getMessage());
+            BaseContext.removeCurrentId();
+            log.warn("用户令牌校验失败或未登录: {}", ex.getClass().getSimpleName());
             response.setStatus(401);
             response.setContentType("application/json;charset=utf-8");
             response.getWriter().write("{\"code\":401,\"message\":\"请先登录\",\"msg\":\"请先登录\"}");
             return false;
         }
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
+                                Object handler, Exception ex) {
+        BaseContext.removeCurrentId();
     }
 }

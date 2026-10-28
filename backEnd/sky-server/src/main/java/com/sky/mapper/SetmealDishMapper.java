@@ -8,6 +8,8 @@ import java.util.List;
 
 @Mapper
 public interface SetmealDishMapper {
+    @org.apache.ibatis.annotations.Select("select * from setmeal_dish where setmeal_id=#{setmealId} order by dish_id")
+    List<SetmealDish> listBySetmealId(Long setmealId);
     /**
      * 根据菜品id查询对应的套餐id
      *

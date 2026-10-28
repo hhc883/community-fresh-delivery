@@ -1,29 +1,56 @@
 <template>
   <view class="home-page">
-    <!-- 顶部生鲜绿一体化头部（适配微信小程序胶囊与状态栏） -->
-    <view class="green-header" :style="{ paddingTop: (statusBarHeight + 8) + 'px' }">
-      <!-- 搜索行 -->
+    <!-- 顶部生鲜晨市头部（一体化沉浸式，包含状态栏占位） -->
+    <view
+      class="green-header"
+      :style="{ paddingTop: statusBarHeight + 8 + 'px' }"
+    >
       <view class="search-row">
-        <text class="loc-pin">📍</text>
+        <view class="loc-pin-box" @click="goPickup">
+          <image
+            class="header-icon"
+            src="/static/icons/lucide/map-pin-white.png"
+            mode="aspectFit"
+          />
+        </view>
         <view class="search-input-box" @click="goSearch">
-          <text class="search-icon">🔍</text>
-          <text class="search-placeholder">搜索商品/店铺/自提点...</text>
+          <image
+            class="search-icon-img"
+            src="/static/icons/lucide/search-muted.png"
+            mode="aspectFit"
+          />
+          <text class="search-placeholder">搜索商品名称</text>
         </view>
       </view>
 
-      <!-- 自提点指示条 -->
       <view class="station-strip" @click="goPickup">
-        <text class="station-icon">🏪</text>
-        <text class="station-text">自提点：{{ pickupPoint.name || '高黎柱发士多店(请自备袋子谢谢)' }}</text>
-        <text class="station-arrow">›</text>
+        <image
+          class="station-icon-img"
+          src="/static/icons/lucide/store-white.png"
+          mode="aspectFit"
+        />
+        <text class="station-text"
+          >当前自提点：{{ pickupPoint.name || "请选择就近自提点" }}</text
+        >
+        <image
+          class="station-arrow-img"
+          src="/static/icons/lucide/chevron-right-white.png"
+          mode="aspectFit"
+        />
       </view>
     </view>
 
-    <!-- 主内容区：使用原生自然流排版，坚决避免嵌套 scroll-view 导致双滚动条/断层衔接感 -->
     <view class="main-content">
-      <!-- 轮播海报 Banner（对齐 5.20 礼遇季鲜花与大促卡片） -->
+      <!-- 晨间鲜选 Banner 轮播 -->
       <view class="banner-section">
-        <swiper class="banner-swiper" :autoplay="true" :circular="true" :interval="4500" indicator-dots indicator-active-color="#25B873">
+        <swiper
+          class="banner-swiper"
+          :autoplay="true"
+          :circular="true"
+          :interval="4500"
+          indicator-dots
+          indicator-active-color="#27744D"
+        >
           <swiper-item v-for="(b, idx) in banners" :key="idx">
             <view class="banner-card">
               <view class="bc-left">
@@ -39,199 +66,267 @@
         </swiper>
       </view>
 
-      <!-- 服务承诺三标签 -->
+      <!-- 品质与履约说明 -->
       <view class="guarantee-row">
-        <view class="g-cell"><text class="g-check">✓</text><text>原产地直采/正品保证</text></view>
-        <view class="g-cell"><text class="g-check">✓</text><text>极速退款</text></view>
-        <view class="g-cell"><text class="g-check">✓</text><text>次日自提</text></view>
+        <view class="g-cell">
+          <image
+            class="g-check-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text>新鲜果蔬</text>
+        </view>
+        <view class="g-cell">
+          <image
+            class="g-check-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text>邻里拼团</text>
+        </view>
+        <view class="g-cell">
+          <image
+            class="g-check-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text>配送到家 / 社区自提</text>
+        </view>
       </view>
 
-      <!-- 金刚区 5 宫格大图标 -->
+      <!-- 金刚区快捷导航 -->
       <view class="kingkong-row">
-        <view class="kk-item" v-for="k in kingkongs" :key="k.name" @click="onKingkongTap(k)">
+        <view
+          class="kk-item"
+          v-for="k in kingkongs"
+          :key="k.name"
+          @click="onKingkongTap(k)"
+        >
           <view class="kk-icon-circle" :style="{ backgroundColor: k.bg }">
-            <text class="kk-emoji">{{ k.emoji }}</text>
+            <image
+              v-if="k.key === 'order'"
+              class="kk-svg-icon"
+              src="/static/icons/lucide/package.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else-if="k.key === 'groupon'"
+              class="kk-svg-icon"
+              src="/static/icons/lucide/users.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else-if="k.key === 'fresh'"
+              class="kk-svg-icon"
+              src="/static/icons/lucide/shopping-bag.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else-if="k.key === 'category'"
+              class="kk-svg-icon"
+              src="/static/icons/lucide/store.png"
+              mode="aspectFit"
+            />
+            <image
+              v-else
+              class="kk-svg-icon"
+              src="/static/icons/lucide/clock.png"
+              mode="aspectFit"
+            />
           </view>
           <text class="kk-name">{{ k.name }}</text>
         </view>
       </view>
 
-      <!-- 截单公告喇叭条 -->
+      <!-- 市集公告栏 -->
       <view class="notice-strip">
-        <text class="notice-icon">📢</text>
-        <text class="notice-text">截单提醒：每日23:00截单，次日16:00后到店自提！</text>
+        <image
+          class="notice-icon-img"
+          src="/static/icons/lucide/clock.png"
+          mode="aspectFit"
+        />
+        <text class="notice-text"
+          >配送与自提信息请以订单详情和门店通知为准。</text
+        >
       </view>
 
-      <!-- 推荐商品区块标题 -->
+      <!-- 推荐商品双列市集 -->
       <view class="section-title-row">
         <view class="title-bar"></view>
         <text class="title-text">推荐商品</text>
+        <text class="title-sub">时令精选 · 社区自提</text>
       </view>
 
-      <!-- 双列商品瀑布流卡片（完全对齐设计图首页，共4款核心代表商品，避免与后续页面商品或次屏混淆） -->
-      <view class="goods-waterfall">
+      <view v-if="loading" class="empty">正在拉取早市新鲜好物…</view>
+      <view v-else-if="error" class="error" @tap="load"
+        >{{ error }} · 点击重试</view
+      >
+      <view v-else-if="!goodsList.length" class="empty">暂无在售生鲜商品</view>
+      <view v-else class="goods-waterfall">
         <view
           class="goods-card"
           v-for="item in goodsList"
           :key="item.id"
           @click="goDetail(item)"
         >
-          <!-- 封面图 -->
           <view class="gc-img-box">
             <image class="gc-img" :src="item.image" mode="aspectFill" />
-            <view class="gc-promo-tag" v-if="item.promoTag"><text>{{ item.promoTag }}</text></view>
+            <view class="gc-promo-tag" v-if="item.promoTag">
+              <text>{{ item.promoTag }}</text>
+            </view>
           </view>
 
-          <!-- 信息体 -->
           <view class="gc-body">
             <text class="gc-title">{{ item.name }}</text>
             <view class="gc-bottom">
               <view class="gc-price-box">
                 <text class="gc-symbol">¥</text>
-                <text class="gc-price">{{ item.price }}</text>
+                <text class="gc-price">{{ $fmtMoney(item.price) }}</text>
               </view>
-              <!-- 绿色加购购物车按钮 -->
+
               <view class="gc-cart-btn" @click.stop="addToCart(item)">
-                <text class="cart-plus">+</text>
+                <image
+                  class="gc-cart-icon"
+                  src="/static/icons/lucide/plus-white.png"
+                  mode="aspectFit"
+                />
               </view>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 底部安全留白，避免 TabBar 遮挡 -->
       <view class="tabbar-safe-placeholder"></view>
     </view>
 
-    <!-- 悬浮社区拼团快捷入口 -->
+    <!-- 悬浮社区拼团入口 -->
     <view class="floating-groupon" @click="goGroupon">
       <view class="fg-badge"><text>HOT</text></view>
-      <text class="fg-icon">🔥</text>
+      <image
+        class="fg-icon-img"
+        src="/static/icons/lucide/users-white.png"
+        mode="aspectFit"
+      />
       <text class="fg-text">拼团</text>
     </view>
 
-    <!-- 悬浮购物车组件 -->
-    <FloatingCart ref="floatingCart" />
+    <!-- 悬浮购物车计数 -->
+    <view v-if="cartCount" class="green-cart-float" @tap="goCart">
+      <image
+        class="cart-float-icon"
+        src="/static/icons/lucide/shopping-cart-white.png"
+        mode="aspectFit"
+      />
+      <text class="cart-float-count">{{ cartCount }}</text>
+    </view>
   </view>
 </template>
 
 <script>
-import { mapState } from 'vuex'
-import { getDishes } from '@/api/index.js'
-import FloatingCart from '@/components/FloatingCart.vue'
-
+import { getDishes } from "../../api/index.js";
 export default {
-  components: {
-    FloatingCart
-  },
-  data() {
-    return {
-      statusBarHeight: 20,
-      banners: [
-        {
-          tag: '5.20 礼遇季',
-          title: '提前预定 享特惠',
-          desc: '原产地鲜花直发，新鲜如初，次日自提，甜蜜直达。',
-          img: '/static/images/png/dish-3.png'
-        },
-        {
-          tag: '数码好礼',
-          title: 'Redmi 9A 双旦直降',
-          desc: '超大电量高清大屏，现货到店提货。',
-          img: '/static/images/png/dish-2.png'
-        }
-      ],
-      kingkongs: [
-        { name: '今日推荐', key: 'today', emoji: '📅', bg: '#FFECE8' },
-        { name: '手机数码', key: 'digital', emoji: '📱', bg: '#E8F3FF' },
-        { name: '限时特惠', key: 'seckill', emoji: '💖', bg: '#FFEBF3' },
-        { name: '生鲜果蔬', key: 'fresh', emoji: '🥦', bg: '#E8F7F0' },
-        { name: '拼团专区', key: 'groupon', emoji: '📢', bg: '#FFF6E8' }
-      ],
-      goodsList: [
-        {
-          id: 1,
-          name: 'Apple/苹果 iPhone 12 Pro Max (128G) 银色/石墨色/金色/海蓝色 支持5G',
-          price: 9299,
-          promoTag: '',
-          image: '/static/images/png/dish-1.png'
-        },
-        {
-          id: 2,
-          name: 'Apple/苹果 iPhone 12 (64G/128G) 紫色/白色/蓝色 双卡双待',
-          price: 6299,
-          promoTag: '双旦特惠',
-          image: '/static/images/png/dish-1.png'
-        },
-        {
-          id: 3,
-          name: 'Redmi 9A 4GB+64GB 砂石黑 5000mAh大电量长续航',
-          price: 499,
-          promoTag: '直降¥100',
-          image: '/static/images/png/dish-2.png'
-        },
-        {
-          id: 4,
-          name: 'Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量 1300万像素',
-          price: 599,
-          promoTag: '双旦限时直降¥100',
-          image: '/static/images/png/dish-2.png'
-        }
-      ]
-    }
-  },
+  data: () => ({
+    statusBarHeight: 20,
+    goodsList: [],
+    loading: true,
+    error: "",
+    kingkongs: [
+      { name: "今日推荐", key: "today", emoji: "📅", bg: "#EAF5EE" },
+      { name: "商品分类", key: "category", emoji: "🍎", bg: "#EAF5EE" },
+      { name: "我的订单", key: "order", emoji: "📦", bg: "#EAF5EE" },
+      { name: "生鲜果蔬", key: "fresh", emoji: "🥦", bg: "#EAF5EE" },
+      { name: "拼团专区", key: "groupon", emoji: "📢", bg: "#FFF2EC" },
+    ],
+  }),
   computed: {
-    ...mapState(['pickupPoint'])
+    pickupPoint() {
+      return this.$store.state.pickupPoint;
+    },
+    cartCount() {
+      return this.$store.getters.cartCount;
+    },
+    banners() {
+      return [
+        {
+          tag: "社区鲜选",
+          title: "把新鲜带回家",
+          desc: "精选时令好物，发现身边的新鲜生活。",
+          img: this.goodsList[0]?.image || "/static/images/png/dish-3.png",
+        },
+        {
+          tag: "邻里拼团",
+          title: "好物一起分享",
+          desc: "查看真实团购商品与成团进度。",
+          img: this.goodsList[1]?.image || "/static/images/png/dish-3.png",
+        },
+      ];
+    },
   },
-  created() {
+  onLoad() {
     try {
-      const info = uni.getSystemInfoSync()
-      if (info && info.statusBarHeight) {
-        this.statusBarHeight = info.statusBarHeight
-      }
-    } catch (e) {}
+      this.statusBarHeight = uni.getSystemInfoSync().statusBarHeight || 20;
+    } catch {}
+  },
+  onShow() {
+    this.load();
   },
   methods: {
+    async load() {
+      this.loading = true;
+      this.error = "";
+      try {
+        const r = await getDishes({});
+        this.goodsList = Array.isArray(r.data) ? r.data : [];
+      } catch (e) {
+        this.error = e.message || "加载失败";
+      } finally {
+        this.loading = false;
+      }
+    },
     goSearch() {
-      uni.navigateTo({ url: '/pages/search/search' })
+      uni.navigateTo({ url: "/pages/search/search" });
     },
     goPickup() {
-      uni.navigateTo({ url: '/pages/pickup/pickup' })
+      uni.navigateTo({ url: "/pages/pickup/pickup" });
     },
-    onKingkongTap(k) {
-      if (k.key === 'groupon') {
-        uni.navigateTo({ url: '/pages/groupon/list' })
-        return
-      }
-      uni.switchTab({ url: '/pages/category/category' })
+    goCart() {
+      uni.switchTab({ url: "/pages/cart/cart" });
     },
     goGroupon() {
-      uni.navigateTo({ url: '/pages/groupon/list' })
+      uni.navigateTo({ url: "/pages/groupon/list" });
+    },
+    onKingkongTap(k) {
+      if (k.key === "groupon") this.goGroupon();
+      else if (k.key === "order") uni.navigateTo({ url: "/pages/order/order" });
+      else uni.switchTab({ url: "/pages/category/category" });
     },
     goDetail(item) {
-      uni.navigateTo({ url: `/pages/detail/detail?id=${item.id}` })
+      uni.navigateTo({
+        url: "/pages/detail/detail?id=" + encodeURIComponent(item.id),
+      });
     },
     addToCart(item) {
-      this.$store.commit('addToCart', item)
-      if (this.$refs.floatingCart) {
-        this.$refs.floatingCart.animateAdd(1)
+      if (Number(item.stock) <= 0) {
+        uni.showToast({ title: "商品暂时缺货", icon: "none" });
+        return;
       }
-    }
-  }
-}
+      this.$store.commit("addToCart", item);
+    },
+  },
+};
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .home-page {
   min-height: 100vh;
-  background-color: #F7F8FA;
+  background-color: #f6f8f5;
   box-sizing: border-box;
 }
 
-/* 顶部绿色头部（一体化沉浸式，包含状态栏占位，圆弧过渡） */
+/* 顶部绿色头部（生鲜主绿 #27744D，自然渐变与柔和边界） */
 .green-header {
-  background-color: #25B873;
-  padding: 16rpx 24rpx 24rpx;
+  background: linear-gradient(180deg, #27744d 0%, #1c5838 100%);
+  padding: 16rpx 24rpx 28rpx;
   border-radius: 0 0 28rpx 28rpx;
   box-sizing: border-box;
 }
@@ -241,45 +336,74 @@ export default {
   align-items: center;
 }
 
-.loc-pin {
-  font-size: 34rpx;
+.loc-pin-box {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.header-icon {
+  width: 38rpx;
+  height: 38rpx;
 }
 
 .search-input-box {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   height: 68rpx;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   border-radius: 34rpx;
   padding: 0 24rpx;
-  /* 留出微信小程序右侧胶囊按钮安全距离 */
+  /* #ifdef MP-WEIXIN */
   margin-right: 180rpx;
+  /* #endif */
+  /* #ifndef MP-WEIXIN */
+  margin-right: 0;
+  /* #endif */
+  border: 1rpx solid #e1e8e2;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.search-icon {
-  font-size: 26rpx;
-  color: #86909C;
-  margin-right: 12rpx;
+.search-icon-img {
+  width: 30rpx;
+  height: 30rpx;
+  margin-right: 14rpx;
+  flex-shrink: 0;
 }
 
 .search-placeholder {
+  flex: 1;
+  min-width: 0;
   font-size: 26rpx;
-  color: #86909C;
+  color: #778579;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .station-strip {
   display: flex;
   align-items: center;
-  margin-top: 16rpx;
-  color: #FFFFFF;
+  margin-top: 18rpx;
+  padding: 8rpx 16rpx;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-radius: 20rpx;
+  color: #ffffff;
   font-size: 24rpx;
 }
 
-.station-icon {
-  margin-right: 8rpx;
-  font-size: 26rpx;
+.station-icon-img {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
 }
 
 .station-text {
@@ -289,11 +413,14 @@ export default {
   white-space: nowrap;
 }
 
-.station-arrow {
-  font-size: 28rpx;
+.station-arrow-img {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
 }
 
-/* 主内容：原生自然排版，不使用嵌套 scroll-view */
+/* 主内容 */
 .main-content {
   padding: 0 24rpx;
   box-sizing: border-box;
@@ -301,25 +428,26 @@ export default {
 
 /* Banner */
 .banner-section {
-  margin-top: -10rpx;
-  margin-bottom: 16rpx;
+  margin-top: -12rpx;
+  margin-bottom: 20rpx;
 }
 
 .banner-swiper {
-  height: 240rpx;
-  border-radius: 20rpx;
+  height: 230rpx;
+  border-radius: 18rpx;
   overflow: hidden;
 }
 
 .banner-card {
   height: 100%;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24rpx;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  border-radius: 18rpx;
+  border: 1rpx solid #e5ebe6;
+  box-sizing: border-box;
 }
 
 .bc-left {
@@ -331,30 +459,30 @@ export default {
 .bc-tag {
   align-self: flex-start;
   font-size: 20rpx;
-  color: #25B873;
-  background-color: #E8F7F0;
-  padding: 2rpx 12rpx;
+  color: #27744d;
+  background-color: #eaf5ee;
+  padding: 4rpx 12rpx;
   border-radius: 6rpx;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 8rpx;
 }
 
 .bc-title {
-  font-size: 32rpx;
-  font-weight: 800;
-  color: #1F2329;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #19241d;
   margin-bottom: 6rpx;
 }
 
 .bc-desc {
-  font-size: 20rpx;
-  color: #86909C;
-  line-height: 28rpx;
+  font-size: 22rpx;
+  color: #778579;
+  line-height: 30rpx;
 }
 
 .bc-right {
-  width: 160rpx;
-  height: 160rpx;
+  width: 150rpx;
+  height: 150rpx;
   margin-left: 20rpx;
 }
 
@@ -364,28 +492,31 @@ export default {
   border-radius: 12rpx;
 }
 
-/* 服务承诺 */
+/* 履约承诺行 */
 .guarantee-row {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  background-color: #FFFFFF;
-  border-radius: 12rpx;
-  padding: 16rpx 0;
+  background-color: #ffffff;
+  border-radius: 14rpx;
+  padding: 18rpx 0;
   margin-bottom: 20rpx;
+  border: 1rpx solid #e9eee9;
 }
 
 .g-cell {
   display: flex;
   align-items: center;
   font-size: 22rpx;
-  color: #25B873;
+  color: #27744d;
   font-weight: 500;
 }
 
-.g-check {
-  margin-right: 6rpx;
-  font-weight: 700;
+.g-check-icon {
+  width: 24rpx;
+  height: 24rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
 }
 
 /* 金刚区 */
@@ -393,11 +524,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #FFFFFF;
-  border-radius: 20rpx;
+  background-color: #ffffff;
+  border-radius: 18rpx;
   padding: 24rpx 16rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  margin-bottom: 20rpx;
+  border: 1rpx solid #e5ebe6;
 }
 
 .kk-item {
@@ -407,88 +538,99 @@ export default {
 }
 
 .kk-icon-circle {
-  width: 88rpx;
-  height: 88rpx;
+  width: 84rpx;
+  height: 84rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8rpx;
+  margin-bottom: 10rpx;
 }
 
-.kk-emoji {
-  font-size: 44rpx;
+.kk-svg-icon {
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .kk-name {
-  font-size: 22rpx;
-  color: #1F2329;
+  font-size: 24rpx;
+  color: #19241d;
   font-weight: 500;
 }
 
-/* 公告 */
+/* 公告栏 */
 .notice-strip {
   display: flex;
   align-items: center;
-  background-color: #E8F7F0;
-  border-radius: 10rpx;
+  background-color: #eaf5ee;
+  border-radius: 12rpx;
   padding: 14rpx 20rpx;
-  margin-bottom: 20rpx;
-  font-size: 22rpx;
-  color: #25B873;
+  margin-bottom: 24rpx;
+  border: 1rpx solid #d4ebdc;
 }
 
-.notice-icon {
+.notice-icon-img {
+  width: 28rpx;
+  height: 28rpx;
   margin-right: 12rpx;
-  font-size: 26rpx;
+  flex-shrink: 0;
 }
 
 .notice-text {
   flex: 1;
+  font-size: 22rpx;
+  color: #27744d;
   font-weight: 500;
 }
 
-/* 标题 */
+/* 栏目标题 */
 .section-title-row {
   display: flex;
-  align-items: center;
-  margin: 16rpx 0;
+  align-items: baseline;
+  margin: 20rpx 0 16rpx;
 }
 
 .title-bar {
-  width: 8rpx;
-  height: 32rpx;
-  background-color: #25B873;
+  width: 6rpx;
+  height: 28rpx;
+  background-color: #27744d;
   border-radius: 4rpx;
   margin-right: 12rpx;
+  align-self: center;
 }
 
 .title-text {
   font-size: 30rpx;
-  font-weight: 800;
-  color: #1F2329;
+  font-weight: 700;
+  color: #19241d;
+  margin-right: 12rpx;
 }
 
-/* 瀑布流 */
+.title-sub {
+  font-size: 22rpx;
+  color: #778579;
+}
+
+/* 双列商品流 */
 .goods-waterfall {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
+  gap: 18rpx;
 }
 
 .goods-card {
-  background-color: #FFFFFF;
-  border-radius: 20rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
   overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid #e5ebe6;
   display: flex;
   flex-direction: column;
 }
 
 .gc-img-box {
   width: 100%;
-  height: 320rpx;
-  background-color: #F7F8FA;
+  height: 310rpx;
+  background-color: #f1f4f1;
   position: relative;
 }
 
@@ -499,12 +641,12 @@ export default {
 
 .gc-promo-tag {
   position: absolute;
-  left: 12rpx;
-  top: 12rpx;
-  background: linear-gradient(90deg, #7C3AED 0%, #6D28D9 100%);
-  color: #FFFFFF;
+  left: 10rpx;
+  top: 10rpx;
+  background-color: #ff5722;
+  color: #ffffff;
   font-size: 18rpx;
-  font-weight: 700;
+  font-weight: 600;
   padding: 4rpx 10rpx;
   border-radius: 6rpx;
 }
@@ -520,7 +662,7 @@ export default {
 .gc-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #1F2329;
+  color: #19241d;
   line-height: 36rpx;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -543,87 +685,124 @@ export default {
 
 .gc-symbol {
   font-size: 22rpx;
-  color: #25B873;
+  color: #ff5722;
   font-weight: 700;
 }
 
 .gc-price {
   font-size: 34rpx;
-  color: #25B873;
-  font-weight: 800;
-  font-family: Arial, Helvetica, sans-serif;
+  color: #ff5722;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
 }
 
 .gc-cart-btn {
-  width: 52rpx;
-  height: 52rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
-  background-color: #25B873;
+  background-color: #27744d;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(37, 184, 115, 0.35);
 }
 
-.cart-plus {
-  color: #FFFFFF;
-  font-size: 34rpx;
-  font-weight: 700;
-  line-height: 1;
-  margin-top: -2rpx;
+.gc-cart-icon {
+  width: 26rpx;
+  height: 26rpx;
 }
 
-/* 底部防 TabBar 遮挡留白 */
+/* 底部防 TabBar 遮挡 */
 .tabbar-safe-placeholder {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 /* 悬浮拼团按钮 */
 .floating-groupon {
   position: fixed;
   right: 28rpx;
-  bottom: 280rpx;
-  width: 96rpx;
-  height: 96rpx;
+  bottom: 260rpx;
+  width: 92rpx;
+  height: 92rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF6B35 0%, #FF2442 100%);
+  background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 20rpx rgba(255, 36, 66, 0.38);
+  box-shadow: 0 6rpx 16rpx rgba(255, 87, 34, 0.35);
   z-index: 998;
-  transition: transform 0.2s ease;
+}
 
-  &:active {
-    transform: scale(0.92);
+.floating-groupon .fg-badge {
+  position: absolute;
+  top: -6rpx;
+  right: -2rpx;
+  background: #ffd21e;
+  color: #9e1000;
+  font-size: 16rpx;
+  font-weight: 800;
+  padding: 2rpx 8rpx;
+  border-radius: 10rpx;
+  line-height: 1.2;
+}
+
+.fg-icon-img {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.floating-groupon .fg-text {
+  font-size: 18rpx;
+  color: #ffffff;
+  font-weight: 600;
+  margin-top: 2rpx;
+  line-height: 1;
+}
+
+/* 悬浮购物车 */
+.green-cart-float {
+  position: fixed;
+  bottom: 150rpx;
+  left: 28rpx;
+  background-color: #27744d;
+  color: #ffffff;
+  border-radius: 40rpx;
+  padding: 16rpx 26rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4rpx 14rpx rgba(39, 116, 77, 0.3);
+  z-index: 998;
+}
+
+.cart-float-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 8rpx;
+}
+
+.cart-float-count {
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+  font-size: 26rpx;
+}
+
+/* #ifdef H5 */
+@media screen and (min-width: 481px) {
+  .home-page {
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .fg-badge {
-    position: absolute;
-    top: -8rpx;
-    right: -4rpx;
-    background: #FFD21E;
-    color: #9E1000;
-    font-size: 16rpx;
-    font-weight: 800;
-    padding: 2rpx 8rpx;
-    border-radius: 12rpx;
-    border: 2rpx solid #FFFFFF;
-    line-height: 1.2;
+  .floating-groupon {
+    right: calc(50% - 240px + 28rpx);
   }
 
-  .fg-icon {
-    font-size: 32rpx;
-    line-height: 1;
-  }
-
-  .fg-text {
-    font-size: 20rpx;
-    color: #FFFFFF;
-    font-weight: 700;
-    margin-top: 2rpx;
-    line-height: 1;
+  .green-cart-float {
+    left: calc(50% - 240px + 28rpx);
   }
 }
+/* #endif */
 </style>

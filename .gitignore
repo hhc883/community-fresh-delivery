@@ -39,6 +39,10 @@ log.bat
 push-to-github.bat
 .env.local
 .env.*.local
+.local/
+.dev-tools/
+**/__pycache__/
+*.pyc
 
 # ==================== IDE 与操作系统配置 ====================
 .idea/

@@ -10,14 +10,17 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,18 +31,31 @@ import java.util.Map;
 @Api(tags = "生鲜自提-认证接口")
 public class ApiAuthController {
 
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
+
     @Autowired
     private UserMapper userMapper;
 
     @Autowired
     private JwtProperties jwtProperties;
 
+    @Value("${sky.auth.mock-login:false}")
+    private boolean mockLogin;
+
+    @Value("${sky.auth.dev-code:}")
+    private String developmentCode;
+
     @PostMapping("/send-code")
     @ApiOperation("发送短信验证码")
     public Result<String> sendCode(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
-        log.info("发送短信验证码到手机: {}", phone);
-        return Result.success("验证码已发送");
+        if (!isPhone(phone)) {
+            return Result.error(400, "手机号格式不正确");
+        }
+        if (!mockLogin || !StringUtils.hasText(developmentCode)) {
+            return Result.error(400, "短信登录尚未配置，请使用密码或微信登录");
+        }
+        return Result.success("开发模式模拟验证码，请使用配置的开发验证码；未发送真实短信");
     }
 
     @PostMapping("/login")
@@ -47,11 +63,14 @@ public class ApiAuthController {
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
         String code = body.get("code");
-        String inviteCode = body.get("inviteCode");
-        log.info("前端手机号登录: phone={}, code={}, inviteCode={}", phone, code, inviteCode);
-
-        if (!StringUtils.hasText(phone)) {
-            return Result.error(400, "手机号不能为空");
+        if (!isPhone(phone)) {
+            return Result.error(400, "手机号格式不正确");
+        }
+        if (!mockLogin || !StringUtils.hasText(developmentCode)) {
+            return Result.error(400, "短信登录尚未配置，请使用密码或微信登录");
+        }
+        if (!developmentCode.equals(code)) {
+            return Result.error(400, "验证码错误");
         }
 
         User user = userMapper.getByPhone(phone);
@@ -66,7 +85,7 @@ public class ApiAuthController {
                     .createTime(LocalDateTime.now())
                     .build();
             userMapper.insert(user);
-            log.info("新用户静默注册成功: id={}, phone={}", user.getId(), phone);
+            log.info("开发模式创建用户: id={}", user.getId());
         }
 
         // 签发 JWT
@@ -87,6 +106,7 @@ public class ApiAuthController {
         data.put("nickname", user.getNickname());
         data.put("avatar", user.getAvatar());
         data.put("user", userMap);
+        data.put("mock", true);
 
         return Result.success(data);
     }
@@ -96,7 +116,8 @@ public class ApiAuthController {
     public Result<Map<String, Object>> loginPassword(@RequestBody Map<String, String> body) {
         String phone = body.get("phone");
         String password = body.get("password");
-        if (!StringUtils.hasText(phone) || !StringUtils.hasText(password)) {
+        if (!isPhone(phone) || !StringUtils.hasText(password)
+                || password.getBytes(StandardCharsets.UTF_8).length > 72) {
             return Result.error(400, "手机号和密码不能为空");
         }
         User user = userMapper.getByPhone(phone);
@@ -106,9 +127,22 @@ public class ApiAuthController {
         if (!StringUtils.hasText(user.getPassword())) {
             return Result.error(400, "尚未设置密码，请先使用验证码登录");
         }
-        String md5 = DigestUtils.md5DigestAsHex(password.getBytes());
-        if (!md5.equals(user.getPassword()) && !password.equals(user.getPassword())) {
+        String storedPassword = user.getPassword();
+        boolean bcrypt = storedPassword.startsWith("$2");
+        boolean matches = bcrypt ? PASSWORD_ENCODER.matches(password, storedPassword)
+                : storedPassword.matches("(?i)[0-9a-f]{32}")
+                    && DigestUtils.md5DigestAsHex(password.getBytes(StandardCharsets.UTF_8))
+                        .equalsIgnoreCase(storedPassword);
+        if (!matches) {
             return Result.error(400, "密码错误，请重新输入");
+        }
+        // 旧 MD5 账户在验证真实密码后迁移，不接受存储值本身或明文兜底。
+        if (!bcrypt) {
+            int migrated = userMapper.migratePassword(user.getId(), storedPassword,
+                    PASSWORD_ENCODER.encode(password));
+            if (migrated != 1) {
+                return Result.error(400, "账户信息已更新，请重新登录");
+            }
         }
 
         Map<String, Object> claims = new HashMap<>();
@@ -133,18 +167,23 @@ public class ApiAuthController {
     @ApiOperation("设置登录密码")
     public Result<String> setPassword(@RequestBody Map<String, String> body) {
         String password = body.get("password");
-        if (!StringUtils.hasText(password) || password.length() < 6) {
-            return Result.error(400, "密码长度不能少于6位");
+        if (!StringUtils.hasText(password) || password.length() < 6
+                || password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            return Result.error(400, "密码至少6位且不能超过72字节");
         }
         Long userId = com.sky.context.BaseContext.getCurrentId();
         if (userId == null) {
             return Result.error(401, "请先登录");
         }
         User user = userMapper.getById(userId);
-        if (user != null) {
-            user.setPassword(DigestUtils.md5DigestAsHex(password.getBytes()));
-            userMapper.update(user);
+        if (user == null) {
+            return Result.error(401, "用户不存在，请重新登录");
         }
+        userMapper.update(User.builder().id(userId).password(PASSWORD_ENCODER.encode(password)).build());
         return Result.success("密码设置成功");
+    }
+
+    private boolean isPhone(String phone) {
+        return phone != null && phone.matches("1[3-9]\\d{9}");
     }
 }

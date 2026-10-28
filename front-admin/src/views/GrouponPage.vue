@@ -2,16 +2,15 @@
   <div class="page">
     <div class="page-head">
       <h2 class="page-title">拼团管理</h2>
-      <el-tag type="danger" effect="dark" size="small" class="mode-badge">本页会改数据</el-tag>
+      <el-tag type="success" effect="plain" size="small" class="mode-badge">社区团购活动</el-tag>
     </div>
     <p class="page-note">
-      拼团状态：1拼团中 → 2已成团（人数满足）/ 3已失败 / 4已过期（终态不可逆）。
-      成团校验幂等：对已成团的活动再次触发不会产生第二次效果。
+      查看拼团状态、参团进度和自提点，处理已过期的团。
     </p>
 
     <div class="toolbar">
-      <el-input v-model="filter.keyword" placeholder="商品名称" clearable style="width: 200px" @keyup.enter="onSearch" />
-      <el-select v-model="filter.status" placeholder="拼团状态" clearable style="width: 130px">
+      <el-input v-model="filter.keyword" placeholder="拼团商品名称" clearable style="width: 200px" @keyup.enter="onSearch" />
+      <el-select v-model="filter.status" placeholder="拼团活动状态" clearable style="width: 140px">
         <el-option v-for="(label, value) in STATUS_LABELS" :key="value" :label="label" :value="Number(value)" />
       </el-select>
       <el-button type="primary" @click="onSearch">查询</el-button>
@@ -26,21 +25,27 @@
     </div>
     <template v-else>
       <el-table :data="rows" border stripe>
-        <el-table-column label="活动ID" width="90">
+        <el-table-column label="活动ID" width="90" align="center">
           <template #default="{ row }">#{{ row.id }}</template>
         </el-table-column>
-        <el-table-column prop="dishName" label="商品" min-width="140" />
-        <el-table-column label="拼团价" width="100">
-          <template #default="{ row }">￥{{ row.grouponPrice }}</template>
+        <el-table-column prop="dishName" label="拼团商品" min-width="150" />
+        <el-table-column label="拼团优惠价" width="110">
+          <template #default="{ row }">
+            <span class="groupon-price">￥{{ row.grouponPrice }}</span>
+          </template>
         </el-table-column>
-        <el-table-column label="人数" width="120">
-          <template #default="{ row }">{{ row.currentSize }} / {{ row.requiredSize }}</template>
+        <el-table-column label="参团进度" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.currentSize >= row.requiredSize ? 'success' : 'warning'">
+              {{ row.currentSize }} / {{ row.requiredSize }} 人
+            </el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="leaderName" label="团长" width="100" />
-        <el-table-column prop="pickupPointName" label="自提点" min-width="140">
-          <template #default="{ row }">{{ row.pickupPointName || '-' }}</template>
+        <el-table-column prop="leaderName" label="发起团长" width="110" />
+        <el-table-column prop="pickupPointName" label="履约自提点" min-width="150">
+          <template #default="{ row }">{{ row.pickupPointName || '未指定自提点' }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="活动状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="STATUS_TAG_TYPES[row.status] || 'info'" size="small">
               {{ STATUS_LABELS[row.status] || row.status }}
@@ -51,9 +56,9 @@
         <el-table-column prop="completeTime" label="成团时间" width="170">
           <template #default="{ row }">{{ row.completeTime || '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="showMembers(row)">成员</el-button>
+            <el-button v-if="Array.isArray(row.members)" link type="primary" @click="showMembers(row)">成员</el-button>
             <el-button v-if="row.status === 1" link type="success" @click="onComplete(row)">校验成团</el-button>
           </template>
         </el-table-column>
@@ -69,8 +74,8 @@
       />
     </template>
 
-    <!-- 成员列表 -->
-    <el-drawer v-model="members.visible" :title="`拼团 #${members.grouponId || ''} 成员`" size="420px">
+    <!-- 成员列表抽屉 -->
+    <el-drawer v-model="members.visible" :title="`拼团活动 #${members.grouponId || ''} 成员明细`" size="420px">
       <div v-if="members.loading" class="state-box">成员加载中…</div>
       <template v-else>
         <el-alert
@@ -81,16 +86,16 @@
           style="margin-bottom: 12px"
         />
         <el-table :data="members.list" border size="small">
-          <el-table-column label="成员" min-width="100">
+          <el-table-column label="顾客成员" min-width="100">
             <template #default="{ row }">{{ row.userName || row.userId }}</template>
           </el-table-column>
-          <el-table-column label="身份" width="80">
+          <el-table-column label="身份" width="80" align="center">
             <template #default="{ row }">
               <el-tag v-if="row.isLeader === 1" type="warning" size="small">团长</el-tag>
               <span v-else>团员</span>
             </template>
           </el-table-column>
-          <el-table-column prop="number" label="数量" width="60" />
+          <el-table-column prop="number" label="数量" width="60" align="center" />
           <el-table-column prop="joinTime" label="参团时间" width="170" />
         </el-table>
       </template>
@@ -206,36 +211,18 @@ function showMembers(row) {
   members.grouponId = row.id
   members.status = row.status
   members.lack = Math.max((row.requiredSize || 0) - (row.currentSize || 0), 0)
-  members.list = []
+  members.list = row.members || []
 }
+onMounted(loadPage)
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 16px 0 14px;
+.groupon-price {
+  font-weight: 600;
+  color: #27744D;
 }
 .pager {
-  margin-top: 14px;
+  margin-top: 16px;
   justify-content: flex-end;
-}
-.state-box {
-  padding: 40px;
-  text-align: center;
-  background: #fff;
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-}
-.state-title {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.state-desc {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 10px;
 }
 </style>

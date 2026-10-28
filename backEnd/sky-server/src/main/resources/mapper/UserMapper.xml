@@ -11,11 +11,12 @@
     <select id="countByMap" resultType="java.lang.Integer">
         select count(id) from user
         <where>
+            <!-- 与订单统计一致的闭区间口径：包含当日 00:00:00 边界 -->
             <if test="begin != null">
-                and create_time &gt; #{begin}
+                and create_time &gt;= #{begin}
             </if>
             <if test="end != null">
-                and create_time &lt; #{end}
+                and create_time &lt;= #{end}
             </if>
         </where>
     </select>

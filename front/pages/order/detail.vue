@@ -1,513 +1,367 @@
 <template>
-  <view class="order-detail-page">
-    <!-- 顶部订单状态栏 -->
-    <view class="status-header">
-      <text class="sh-status">待自提</text>
-      <text class="sh-arrow">›</text>
+  <view class="core">
+    <view class="detail-header">
+      <text class="title">订单详情</text>
+      <text class="sub">订单履约凭证与状态实时流转记录</text>
     </view>
 
-    <!-- 卡片 1: 提货码卡片 -->
-    <view class="detail-card code-card">
-      <view class="cc-left">
-        <text class="cc-label">提货码：</text>
-        <text class="cc-code">{{ order.pickupCode || '57865482' }}</text>
+    <view v-if="loading" class="empty">正在读取订单状态…</view>
+    <view v-if="error" class="error" @tap="load">{{ error }} · 点击重试</view>
+
+    <template v-if="order">
+      <!-- 状态横幅看板 -->
+      <view class="hero">
+        <text class="title">{{ labels[order.status] || "未知状态" }}</text>
+        <text class="sub"
+          >{{ payLabels[order.payStatus] }} ·
+          {{ isPickup ? "社区自提" : "配送到家" }}</text
+        >
+        <text
+          class="sub groupon-hint-text"
+          v-if="order.grouponId && String(order.grouponId) !== '0'"
+          >社区拼团订单需成团并付款后完成配送履约</text
+        >
       </view>
-      <button class="cc-copy-btn" @click="copyCode">复制</button>
-    </view>
 
-    <!-- 卡片 2: 自提网点与履约信息 -->
-    <view class="detail-card station-card">
-      <view class="sc-head">
-        <text class="sc-title">自提网点信息</text>
-        <view class="sc-nav" @click="openNavigation">
-          <text class="nav-icon">📍</text>
-          <text class="nav-text">导航</text>
+      <!-- 提货凭证与履约信息卡片 -->
+      <view class="card stack">
+        <view class="info-row">
+          <text class="info-label">订单编号：</text>
+          <text class="info-val font-mono">{{
+            order.number || order.orderNumber
+          }}</text>
         </view>
-      </view>
-
-      <view class="station-name-row" @click="goPickup">
-        <text class="station-name">{{ order.pickupPointName || '高黎柱发士多店' }}</text>
-        <text class="arrow">›</text>
-      </view>
-
-      <view class="sc-info-row">
-        <text class="row-label">自提时间</text>
-        <text class="row-val highlight-time">{{ order.pickupTime || '次日自提 16:00-18:00' }}</text>
-      </view>
-
-      <view class="sc-info-row align-start">
-        <text class="row-label">自提网点</text>
-        <view class="addr-box">
-          <text class="addr-contact">联系人：柱哥 13800138000</text>
-          <text class="addr-detail">详细地址：广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号</text>
+        <view class="info-row">
+          <text class="info-label">下单时间：</text>
+          <text class="info-val">{{ order.orderTime }}</text>
         </view>
-      </view>
+        <view class="info-row">
+          <text class="info-label">订单金额：</text>
+          <text class="price"
+            ><text class="price-symbol">¥</text
+            >{{ $fmtMoney(order.amount) }}</text
+          >
+        </view>
 
-      <view class="sc-info-row">
-        <text class="row-label">提货人</text>
-        <text class="row-val">李某 13800138000</text>
-      </view>
-    </view>
-
-    <!-- 卡片 3: 商品清单与费用明细 -->
-    <view class="detail-card goods-card">
-      <view class="goods-row">
-        <image class="goods-img" :src="goods.image || '/static/images/png/dish-2.png'" mode="aspectFill" />
-        <view class="goods-info">
-          <text class="goods-name">{{ goods.name }}</text>
-          <text class="goods-spec">{{ goods.spec }}</text>
-          <view class="goods-price-qty">
-            <text class="goods-qty">{{ goods.quantity }} x </text>
-            <text class="goods-price">¥ {{ goods.price }}</text>
+        <!-- 自提点信息 -->
+        <view v-if="isPickup" class="station-detail-box">
+          <view class="station-title-row">
+            <image
+              class="box-icon"
+              src="/static/icons/lucide/store.png"
+              mode="aspectFit"
+            />
+            <text class="station-box-name">{{
+              order.pickupPointName ||
+              order.pickupPointAddress ||
+              "自提网点 #" + order.pickupPointId
+            }}</text>
           </view>
+          <text
+            v-if="
+              isPickup && order.pickupPointAddress && order.pickupPointName
+            "
+            class="sub station-box-addr"
+            >{{ order.pickupPointAddress }}</text
+          >
+        </view>
+
+        <!-- 配送地址 -->
+        <view v-if="!isPickup && order.address" class="delivery-address-box">
+          <image
+            class="box-icon"
+            src="/static/icons/lucide/map-pin.png"
+            mode="aspectFit"
+          />
+          <text class="del-addr-text">收货地址：{{ order.address }}</text>
+        </view>
+
+        <view class="info-row">
+          <text class="info-label">联系人：</text>
+          <text class="info-val"
+            >{{ order.pickupPersonName || order.consignee || "-" }}
+            {{ order.pickupPersonPhone || order.phone || "" }}</text
+          >
+        </view>
+
+        <!-- 提货核销码（仅限自提且已付款） -->
+        <view
+          v-if="isPickup && order.pickupCode && Number(order.payStatus) === 1"
+          class="pickup-code-section"
+        >
+          <text class="code-title">门店自提核销凭证码</text>
+          <view class="code">{{ order.pickupCode }}</view>
+          <text class="sub code-hint"
+            >到店请出示此核销码供团长或店员验证取货</text
+          >
+        </view>
+
+        <view v-if="Number(order.verifyStatus) === 1" class="verify-badge">
+          <image
+            class="verify-icon"
+            src="/static/icons/lucide/check.png"
+            mode="aspectFit"
+          />
+          <text>已于 {{ order.verifyTime }} 完成到店核销提货</text>
+        </view>
+
+        <view v-if="order.cancelReason" class="cancel-reason-box">
+          <text class="cancel-label">取消原因：</text>
+          <text class="cancel-text">{{ order.cancelReason }}</text>
         </view>
       </view>
 
-      <!-- 售后与再次购买操作按钮 -->
-      <view class="goods-actions">
-        <button class="ga-btn" @click="applyAfterSale">申请售后</button>
-        <button class="ga-btn" @click="buyAgain">再次购买</button>
-      </view>
-
-      <view class="card-divider"></view>
-
-      <!-- 费用明细明细项 -->
-      <view class="fee-row">
-        <text class="fee-label">商品金额</text>
-        <text class="fee-val">¥ 699</text>
-      </view>
-      <view class="fee-row">
-        <text class="fee-label">运费</text>
-        <text class="fee-val">+¥ 0</text>
-      </view>
-      <view class="fee-row">
-        <text class="fee-label">包装/其他</text>
-        <text class="fee-val">+¥ 0</text>
-      </view>
-      <view class="fee-row">
-        <text class="fee-label">限时直降</text>
-        <text class="fee-val discount-val">-¥ 100</text>
-      </view>
-      <view class="fee-row total-pay-row">
-        <text class="fee-label">实付金额</text>
-        <text class="fee-val total-pay-val">¥ 599</text>
-      </view>
-    </view>
-
-    <!-- 卡片 4: 订单基础信息 -->
-    <view class="detail-card order-info-card">
-      <view class="info-row">
-        <text class="info-label">订单编号</text>
-        <view class="info-val-copy">
-          <text class="info-val">{{ order.id || '20210321152030018593' }}</text>
+      <!-- 购买商品清单 -->
+      <view class="card">
+        <text class="product-name">商品明细清单</text>
+        <view
+          class="line row item-line"
+          v-for="d in order.orderDetailList || []"
+          :key="d.id"
+        >
+          <text class="detail-goods-name">{{ d.name }} ×{{ d.number }}</text>
+          <text class="detail-goods-price">¥{{ $fmtMoney(d.amount) }}</text>
         </view>
       </view>
-      <view class="info-row">
-        <text class="info-label">创建时间</text>
-        <text class="info-val">{{ order.createTime || '2021-03-21 15:20:30' }}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">支付方式</text>
-        <text class="info-val">微信支付</text>
-      </view>
-    </view>
+
+      <!-- 操作按钮流 -->
+      <button v-if="Number(order.status) === 1" class="primary" @tap="pay">
+        去模拟支付
+      </button>
+      <button
+        v-if="[1, 2].includes(Number(order.status))"
+        class="secondary cancel-btn"
+        :loading="cancelling"
+        :disabled="cancelling"
+        @tap="cancel"
+      >
+        取消订单
+      </button>
+      <button
+        v-if="order.grouponId && String(order.grouponId) !== '0'"
+        class="secondary"
+        @tap="group"
+      >
+        查看拼团进度
+      </button>
+      <button class="secondary" @tap="load">刷新状态</button>
+    </template>
   </view>
 </template>
 
 <script>
-import { getOrderDetail } from '@/api/index.js'
-
+import { getOrderDetail, cancelOrder } from "../../api/index.js";
 export default {
-  data() {
-    return {
-      orderId: '20210321152030018593',
-      order: {
-        id: '20210321152030018593',
-        status: 'pending_pickup',
-        pickupCode: '57865482',
-        pickupPointName: '高黎柱发士多店',
-        pickupTime: '次日自提 16:00-18:00',
-        createTime: '2021-03-21 15:20:30'
-      },
-      goods: {
-        id: 2,
-        name: 'Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量...',
-        spec: '晴空翠 4+128G',
-        price: '599.00',
-        quantity: 1,
-        image: '/static/images/png/dish-2.png'
-      }
-    }
+  data: () => ({
+    id: "",
+    order: null,
+    loading: true,
+    error: "",
+    cancelling: false,
+    labels: {
+      1: "待付款",
+      2: "待接单 / 待履约",
+      3: "已接单",
+      4: "配送中",
+      5: "已完成",
+      6: "已取消",
+    },
+    payLabels: { 0: "未付款", 1: "已模拟付款", 2: "已模拟退款" },
+  }),
+  computed: {
+    isPickup() {
+      if (!this.order) return false;
+      // deliveryType: 1 为配送到家，2 为社区自提。
+      // 配送订单绝不显示提货码与自提点
+      if (Number(this.order.deliveryType) === 1) return false;
+      if (Number(this.order.deliveryType) === 2) return true;
+      return Boolean(this.order.pickupPointId);
+    },
   },
-  onLoad(options) {
-    if (options.id) {
-      this.orderId = options.id
-      this.fetchDetail(options.id)
-    }
+  onLoad(o) {
+    this.id = o.id || "";
+  },
+  onShow() {
+    this.load();
   },
   methods: {
-    async fetchDetail(id) {
+    group() {
+      uni.navigateTo({
+        url:
+          "/pages/groupon/detail?id=" + encodeURIComponent(this.order.grouponId),
+      });
+    },
+    async load() {
+      this.loading = true;
+      this.error = "";
       try {
-        const res = await getOrderDetail(id)
-        if (res && res.data && res.data.data) {
-          const d = res.data.data
-          this.order.id = d.number || d.id || id
-          this.order.createTime = d.orderTime || this.order.createTime
-          this.order.pickupCode = d.pickupCode || '57865482'
-          if (d.orderDetailList && d.orderDetailList.length > 0) {
-            const first = d.orderDetailList[0]
-            this.goods = {
-              name: first.name,
-              spec: first.dishFlavor || '标准规格',
-              price: first.amount || 599,
-              quantity: first.number || 1,
-              image: first.image || '/static/images/png/dish-2.png'
-            }
-          }
-        }
+        if (!this.id) throw new Error("缺少订单号");
+        this.order = (await getOrderDetail(this.id)).data;
       } catch (e) {
-        // Fallback to mock
+        this.error = e.message;
+        this.order = null;
+      } finally {
+        this.loading = false;
       }
     },
-    copyCode() {
-      uni.setClipboardData({
-        data: this.order.pickupCode || '57865482',
-        success: () => {
-          uni.showToast({ title: '提货码已复制', icon: 'success' })
-        }
-      })
+    pay() {
+      uni.navigateTo({
+        url: "/pages/order/pay?orderId=" + encodeURIComponent(this.id),
+      });
     },
-    openNavigation() {
-      uni.openLocation({
-        latitude: 22.7845,
-        longitude: 113.2982,
-        name: '高黎柱发士多店',
-        address: '广东省佛山市顺德区容桂高黎环涌西路桥灵坊23号'
-      })
+    cancel() {
+      if (this.cancelling) return;
+      uni.showModal({
+        title: "取消订单",
+        content: "确认取消此订单？已付款订单只记录模拟退款。",
+        success: async (r) => {
+          if (!r.confirm) return;
+          this.cancelling = true;
+          try {
+            await cancelOrder(this.id);
+            await this.load();
+          } catch (e) {
+            this.error = e.message || "取消失败";
+          } finally {
+            this.cancelling = false;
+          }
+        },
+      });
     },
-    goPickup() {
-      uni.navigateTo({ url: '/pages/pickup/pickup' })
-    },
-    applyAfterSale() {
-      uni.showToast({ title: '售后通道已开启', icon: 'none' })
-    },
-    buyAgain() {
-      uni.navigateTo({ url: `/pages/detail/detail?id=${this.goods.id || 2}` })
-    }
-  }
-}
+  },
+};
 </script>
 
-<style lang="scss" scoped>
-.order-detail-page {
-  min-height: 100vh;
-  background-color: #F7F8FA;
-  padding: 24rpx;
-  box-sizing: border-box;
-}
-
-/* 顶部状态栏 */
-.status-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 24rpx;
-  padding-left: 8rpx;
-
-  .sh-status {
-    font-size: 36rpx;
-    font-weight: 700;
-    color: #1F2329;
-  }
-
-  .sh-arrow {
-    font-size: 36rpx;
-    color: #1F2329;
-    margin-left: 10rpx;
-  }
-}
-
-/* 通用卡片容器 */
-.detail-card {
-  background-color: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 24rpx 28rpx;
+<style scoped>
+.detail-header {
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.02);
 }
 
-/* 卡片 1: 提货码卡片 */
-.code-card {
+.groupon-hint-text {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+}
+
+.info-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  .cc-left {
-    display: flex;
-    align-items: baseline;
-
-    .cc-label {
-      font-size: 28rpx;
-      color: #1F2329;
-      font-weight: 500;
-    }
-
-    .cc-code {
-      font-size: 36rpx;
-      font-weight: 700;
-      color: #1F2329;
-      letter-spacing: 2rpx;
-    }
-  }
-
-  .cc-copy-btn {
-    height: 56rpx;
-    line-height: 54rpx;
-    padding: 0 26rpx;
-    border-radius: 28rpx;
-    border: 1rpx solid #D8D8D8;
-    background-color: #FFFFFF;
-    color: #666666;
-    font-size: 24rpx;
-    margin: 0;
-
-    &::after {
-      border: none;
-    }
-  }
+  padding: 8rpx 0;
+  font-size: 26rpx;
 }
 
-/* 卡片 2: 自提网点卡片 */
-.station-card {
-  .sc-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16rpx;
-
-    .sc-title {
-      font-size: 28rpx;
-      font-weight: 700;
-      color: #1F2329;
-    }
-
-    .sc-nav {
-      display: flex;
-      align-items: center;
-
-      .nav-icon {
-        font-size: 26rpx;
-        margin-right: 6rpx;
-      }
-
-      .nav-text {
-        font-size: 24rpx;
-        color: #25B873;
-        font-weight: 500;
-      }
-    }
-  }
-
-  .station-name-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 16rpx;
-    border-bottom: 1rpx solid #F0F2F5;
-    margin-bottom: 16rpx;
-
-    .station-name {
-      font-size: 28rpx;
-      font-weight: 600;
-      color: #1F2329;
-    }
-
-    .arrow {
-      font-size: 32rpx;
-      color: #C9CDD4;
-    }
-  }
-
-  .sc-info-row {
-    display: flex;
-    margin-bottom: 14rpx;
-
-    &.align-start {
-      align-items: flex-start;
-    }
-
-    .row-label {
-      width: 140rpx;
-      font-size: 26rpx;
-      color: #8F959E;
-    }
-
-    .row-val {
-      flex: 1;
-      font-size: 26rpx;
-      color: #1F2329;
-
-      &.highlight-time {
-        color: #1F2329;
-        font-weight: 500;
-      }
-    }
-
-    .addr-box {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-
-      .addr-contact {
-        font-size: 26rpx;
-        color: #1F2329;
-        margin-bottom: 6rpx;
-      }
-
-      .addr-detail {
-        font-size: 24rpx;
-        color: #8F959E;
-        line-height: 36rpx;
-      }
-    }
-  }
+.info-label {
+  color: #778579;
 }
 
-/* 卡片 3: 商品清单与费用 */
-.goods-card {
-  .goods-row {
-    display: flex;
-    padding-bottom: 20rpx;
-
-    .goods-img {
-      width: 140rpx;
-      height: 140rpx;
-      border-radius: 12rpx;
-      background-color: #F7F8FA;
-    }
-
-    .goods-info {
-      flex: 1;
-      margin-left: 20rpx;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-
-      .goods-name {
-        font-size: 26rpx;
-        color: #1F2329;
-        font-weight: 500;
-        line-height: 38rpx;
-      }
-
-      .goods-spec {
-        font-size: 22rpx;
-        color: #8F959E;
-      }
-
-      .goods-price-qty {
-        display: flex;
-        align-items: baseline;
-
-        .goods-qty {
-          font-size: 24rpx;
-          color: #8F959E;
-          margin-right: 6rpx;
-        }
-
-        .goods-price {
-          font-size: 28rpx;
-          font-weight: 600;
-          color: #1F2329;
-        }
-      }
-    }
-  }
-
-  .goods-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 16rpx;
-    margin-bottom: 20rpx;
-
-    .ga-btn {
-      height: 56rpx;
-      line-height: 54rpx;
-      padding: 0 24rpx;
-      border-radius: 28rpx;
-      border: 1rpx solid #D8D8D8;
-      background-color: #FFFFFF;
-      color: #666666;
-      font-size: 24rpx;
-      margin: 0;
-
-      &::after {
-        border: none;
-      }
-    }
-  }
-
-  .card-divider {
-    height: 1rpx;
-    background-color: #F0F2F5;
-    margin-bottom: 20rpx;
-  }
-
-  .fee-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 56rpx;
-
-    .fee-label {
-      font-size: 26rpx;
-      color: #8F959E;
-    }
-
-    .fee-val {
-      font-size: 26rpx;
-      color: #1F2329;
-
-      &.discount-val {
-        color: #FF7D00;
-      }
-    }
-
-    &.total-pay-row {
-      margin-top: 10rpx;
-
-      .fee-label {
-        font-size: 28rpx;
-        font-weight: 600;
-        color: #1F2329;
-      }
-
-      .total-pay-val {
-        font-size: 32rpx;
-        font-weight: 700;
-        color: #FF7D00;
-      }
-    }
-  }
+.info-val {
+  color: #19241d;
+  font-weight: 500;
 }
 
-/* 卡片 4: 订单编号 */
-.order-info-card {
-  .info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 60rpx;
+.font-mono {
+  font-family: monospace, Arial, sans-serif;
+}
 
-    .info-label {
-      font-size: 26rpx;
-      color: #8F959E;
-    }
+.station-detail-box,
+.delivery-address-box {
+  background-color: #f6f8f5;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin: 12rpx 0;
+  border: 1rpx solid #e1e8e2;
+}
 
-    .info-val {
-      font-size: 26rpx;
-      color: #1F2329;
-    }
-  }
+.station-title-row,
+.delivery-address-box {
+  display: flex;
+  align-items: center;
+}
+
+.box-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+
+.station-box-name,
+.del-addr-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #19241d;
+}
+
+.station-box-addr {
+  margin-top: 6rpx;
+  padding-left: 38rpx;
+}
+
+.pickup-code-section {
+  margin: 16rpx 0;
+  text-align: center;
+}
+
+.code-title {
+  display: block;
+  font-size: 24rpx;
+  color: #27744d;
+  font-weight: 600;
+  margin-bottom: 6rpx;
+}
+
+.code-hint {
+  text-align: center;
+}
+
+.verify-badge {
+  display: flex;
+  align-items: center;
+  background-color: #eaf5ee;
+  padding: 12rpx 20rpx;
+  border-radius: 10rpx;
+  color: #27744d;
+  font-size: 24rpx;
+  font-weight: 500;
+  margin: 10rpx 0;
+}
+
+.verify-icon {
+  width: 24rpx;
+  height: 24rpx;
+  margin-right: 8rpx;
+}
+
+.cancel-reason-box {
+  background-color: #fdf2f1;
+  border: 1rpx solid #fad2ce;
+  border-radius: 10rpx;
+  padding: 12rpx 20rpx;
+  font-size: 24rpx;
+  color: #c93424;
+  margin: 10rpx 0;
+}
+
+.item-line {
+  padding: 16rpx 0;
+}
+
+.detail-goods-name {
+  font-size: 26rpx;
+  color: #19241d;
+  font-weight: 500;
+}
+
+.detail-goods-price {
+  font-size: 26rpx;
+  color: #ff5722;
+  font-weight: 600;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
+}
+
+.cancel-btn {
+  color: #c93424;
+  border-color: #fed2ce;
+  background-color: #fff6f5;
 }
 </style>

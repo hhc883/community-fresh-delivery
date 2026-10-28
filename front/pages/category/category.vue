@@ -1,30 +1,72 @@
 <template>
   <view class="cat-page">
-    <!-- 顶部白色搜索条 -->
     <view class="top-search-wrap">
       <view class="search-pill" @click="goSearch">
-        <text class="search-icon">🔍</text>
-        <text class="search-text">搜索商品/自提点/店铺...</text>
+        <image
+          class="cat-search-icon"
+          src="/static/icons/lucide/search-muted.png"
+          mode="aspectFit"
+        />
+        <text class="search-text">搜索商品名称</text>
       </view>
     </view>
 
-    <!-- 顶部 5 列分类快捷圆形图标栏 -->
+    <!-- 顶部分类快捷切换栏 -->
     <view class="top-icon-strip">
-      <view class="tis-item" v-for="t in topShortcuts" :key="t.name" @click="selectTopShortcut(t)">
+      <view
+        class="tis-item"
+        v-for="t in topShortcuts"
+        :key="t.name"
+        @click="selectTopShortcut(t)"
+      >
         <view class="tis-circle" :style="{ backgroundColor: t.bg }">
-          <text class="tis-emoji">{{ t.emoji }}</text>
+          <image
+            v-if="t.key === 'order'"
+            class="tis-svg"
+            src="/static/icons/lucide/package.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'pickup'"
+            class="tis-svg"
+            src="/static/icons/lucide/store.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'group'"
+            class="tis-svg"
+            src="/static/icons/lucide/users.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else-if="t.key === 'fresh'"
+            class="tis-svg"
+            src="/static/icons/lucide/shopping-bag.png"
+            mode="aspectFit"
+          />
+          <image
+            v-else
+            class="tis-svg"
+            src="/static/icons/lucide/store.png"
+            mode="aspectFit"
+          />
         </view>
-        <text class="tis-name" :class="{ active: currentTopKey === t.key }">{{ t.name }}</text>
+        <text class="tis-name" :class="{ active: currentTopKey === t.key }">{{
+          t.name
+        }}</text>
       </view>
       <view class="tis-expand" @click="toggleExpand">
-        <text class="tis-expand-text">分类</text>
-        <text class="tis-expand-icon">∨</text>
+        <text class="tis-expand-text">全部</text>
+        <image
+          class="tis-expand-arrow"
+          src="/static/icons/lucide/chevron-right-muted.png"
+          mode="aspectFit"
+        />
       </view>
     </view>
 
-    <!-- 主体左右分栏 -->
     <view class="cat-main">
-      <!-- 左侧分类侧栏 -->
+      <!-- 左侧分类导航 -->
       <scroll-view class="cat-sidebar" scroll-y>
         <view
           class="sidebar-item"
@@ -38,19 +80,44 @@
         </view>
       </scroll-view>
 
-      <!-- 右侧商品区 -->
+      <!-- 右侧商品明细列表 -->
       <view class="cat-content">
-        <!-- 排序条（综合/销量/新品/价格） -->
         <view class="sort-header">
-          <text class="sh-tab" :class="{ active: sortBy === 'default' }" @click="setSort('default')">综合</text>
-          <text class="sh-tab" :class="{ active: sortBy === 'sales' }" @click="setSort('sales')">销量</text>
-          <text class="sh-tab" :class="{ active: sortBy === 'new' }" @click="setSort('new')">新品</text>
-          <text class="sh-tab" :class="{ active: sortBy === 'price' }" @click="togglePriceSort">价格 {{ priceAsc ? '↑' : '↓' }}</text>
+          <text
+            class="sh-tab"
+            :class="{ active: sortBy === 'default' }"
+            @click="setSort('default')"
+            >综合</text
+          >
+          <text
+            class="sh-tab"
+            :class="{ active: sortBy === 'stock' }"
+            @click="setSort('stock')"
+            >库存</text
+          >
+          <text
+            class="sh-tab"
+            :class="{ active: sortBy === 'name' }"
+            @click="setSort('name')"
+            >名称</text
+          >
+          <text
+            class="sh-tab"
+            :class="{ active: sortBy === 'price' }"
+            @click="togglePriceSort"
+            >价格 {{ priceAsc ? "↑" : "↓" }}</text
+          >
         </view>
 
-        <!-- 商品流 -->
         <scroll-view class="goods-scroll" scroll-y>
-          <view class="goods-list">
+          <view v-if="loading" class="empty">商品加载中…</view>
+          <view v-else-if="error" class="error" @tap="load"
+            >{{ error }} · 点击重试</view
+          >
+          <view v-else-if="!currentCategoryGoods.length" class="empty"
+            >该分类暂无商品</view
+          >
+          <view v-else class="goods-list">
             <view
               class="goods-row"
               v-for="item in currentCategoryGoods"
@@ -60,15 +127,21 @@
               <image class="goods-thumb" :src="item.image" mode="aspectFill" />
               <view class="goods-meta">
                 <text class="goods-title">{{ item.name }}</text>
-                <text class="goods-spec">{{ item.spec }}</text>
+                <text class="goods-spec"
+                  >{{ item.unit || "份" }} · 库存 {{ item.stock }}</text
+                >
                 <view class="goods-price-row">
                   <view class="price-val-box">
                     <text class="price-symbol">¥</text>
-                    <text class="price-num">{{ item.price }}</text>
+                    <text class="price-num">{{ $fmtMoney(item.price) }}</text>
                   </view>
-                  <!-- 绿色购物车小按钮 -->
+
                   <view class="cart-btn" @click.stop="addToCart(item)">
-                    <text class="cart-icon">🛒</text>
+                    <image
+                      class="cart-add-icon"
+                      src="/static/icons/lucide/plus-white.png"
+                      mode="aspectFit"
+                    />
                   </view>
                 </view>
               </view>
@@ -77,158 +150,139 @@
         </scroll-view>
       </view>
     </view>
-
-    <!-- 悬浮购物车组件 -->
-    <FloatingCart ref="floatingCart" />
   </view>
 </template>
 
 <script>
-import FloatingCart from '@/components/FloatingCart.vue'
-
+import { getCategories, getDishes } from "../../api/index.js";
 export default {
-  components: {
-    FloatingCart
-  },
-  data() {
-    return {
-      currentTopKey: 'all',
-      activeCatIndex: 0,
-      sortBy: 'default',
-      priceAsc: true,
-      topShortcuts: [
-        { name: '全部', key: 'all', emoji: '🍎', bg: '#FFECE8' },
-        { name: '今日特惠', key: 'discount', emoji: '📱', bg: '#E8F3FF' },
-        { name: '限时秒杀', key: 'seckill', emoji: '💖', bg: '#FFEBF3' },
-        { name: '满减促销', key: 'promo', emoji: '🥩', bg: '#E8F7F0' },
-        { name: '拼团抽奖', key: 'lottery', emoji: '📢', bg: '#FFF6E8' }
-      ],
-      categories: [
-        { id: 1, name: '推荐' },
-        { id: 2, name: '手机数码' },
-        { id: 3, name: '电脑办公' },
-        { id: 4, name: '家用电器' },
-        { id: 5, name: '生鲜果蔬' },
-        { id: 6, name: '食品饮料' },
-        { id: 7, name: '母婴玩具' },
-        { id: 8, name: '美妆个护' }
-      ],
-      allGoods: [
-        {
-          id: 1,
-          catId: 1,
-          name: 'Apple/苹果 iPhone 12 Pro Max (128G) 银色/石墨色/金色/海蓝色 支持5G',
-          spec: '原装国行正品 全网通',
-          price: 9299,
-          image: '/static/images/png/dish-1.png'
-        },
-        {
-          id: 7,
-          catId: 1,
-          name: 'Redmi 9 4GB+64GB 碳素黑 全高清大屏 5020mAh大电量',
-          spec: '碳素黑 4+64G',
-          price: 799,
-          image: '/static/images/png/dish-2.png'
-        },
-        {
-          id: 4,
-          catId: 1,
-          name: 'Redmi 9A 4GB+128GB 晴空翠 5000mAh大电量 1300万高清相机',
-          spec: '晴空翠 4+128G',
-          price: 599,
-          image: '/static/images/png/dish-2.png'
-        },
-        {
-          id: 8,
-          catId: 1,
-          name: 'Redmi 9 4GB+128GB 霓虹蓝 后置全场景AI四摄',
-          spec: '霓虹蓝 4+128G',
-          price: 799,
-          image: '/static/images/png/dish-2.png'
-        },
-        {
-          id: 2,
-          catId: 1,
-          name: 'Apple/苹果 iPhone 12 (64G/128G) 紫色/白色/蓝色 双卡双待',
-          spec: '双卡双待 现货速提',
-          price: 6299,
-          image: '/static/images/png/dish-1.png'
-        }
-      ]
-    }
-  },
+  data: () => ({
+    activeCatIndex: 0,
+    currentTopKey: "all",
+    sortBy: "default",
+    priceAsc: true,
+    categories: [],
+    allGoods: [],
+    loading: true,
+    error: "",
+    topShortcuts: [
+      { name: "全部商品", key: "all", emoji: "🍎", bg: "#EAF5EE" },
+      { name: "生鲜选购", key: "fresh", emoji: "🥬", bg: "#EAF5EE" },
+      { name: "我的订单", key: "order", emoji: "📦", bg: "#EAF5EE" },
+      { name: "自提门店", key: "pickup", emoji: "🏪", bg: "#EAF5EE" },
+      { name: "社区拼团", key: "group", emoji: "📢", bg: "#FFF2EC" },
+    ],
+  }),
   computed: {
     currentCategoryGoods() {
-      let list = [...this.allGoods]
-      if (this.sortBy === 'sales') {
-        list.reverse()
-      } else if (this.sortBy === 'price') {
-        list.sort((a, b) => this.priceAsc ? a.price - b.price : b.price - a.price)
-      }
-      return list
-    }
+      const id = this.categories[this.activeCatIndex]?.id;
+      let list = id
+        ? this.allGoods.filter((x) => String(x.categoryId) === String(id))
+        : [...this.allGoods];
+      if (this.sortBy === "price")
+        list.sort(
+          (a, b) =>
+            (Number(a.price) - Number(b.price)) * (this.priceAsc ? 1 : -1),
+        );
+      if (this.sortBy === "stock")
+        list.sort((a, b) => Number(b.stock) - Number(a.stock));
+      if (this.sortBy === "name")
+        list.sort((a, b) => a.name.localeCompare(b.name, "zh"));
+      return list;
+    },
+  },
+  onShow() {
+    this.load();
   },
   methods: {
+    async load() {
+      this.loading = true;
+      this.error = "";
+      try {
+        const [c, d] = await Promise.all([getCategories(), getDishes({})]);
+        this.categories = [{ id: "", name: "全部" }, ...(c.data || [])];
+        this.allGoods = Array.isArray(d.data) ? d.data : [];
+        if (this.activeCatIndex >= this.categories.length)
+          this.activeCatIndex = 0;
+      } catch (e) {
+        this.error = e.message || "加载失败";
+      } finally {
+        this.loading = false;
+      }
+    },
     goSearch() {
-      uni.navigateTo({ url: '/pages/search/search' })
+      uni.navigateTo({ url: "/pages/search/search" });
     },
     selectTopShortcut(t) {
-      this.currentTopKey = t.key
+      if (t.key === "group") uni.navigateTo({ url: "/pages/groupon/list" });
+      else if (t.key === "order") uni.navigateTo({ url: "/pages/order/order" });
+      else if (t.key === "pickup")
+        uni.navigateTo({ url: "/pages/pickup/pickup" });
+      else {
+        this.currentTopKey = t.key;
+        this.activeCatIndex = 0;
+      }
     },
     toggleExpand() {
-      uni.showToast({ title: '全部分类已展开', icon: 'none' })
+      this.activeCatIndex = 0;
     },
-    setSort(type) {
-      this.sortBy = type
+    setSort(s) {
+      this.sortBy = s;
     },
     togglePriceSort() {
-      this.sortBy = 'price'
-      this.priceAsc = !this.priceAsc
+      this.priceAsc = this.sortBy === "price" ? !this.priceAsc : true;
+      this.sortBy = "price";
     },
     goDetail(item) {
-      uni.navigateTo({ url: `/pages/detail/detail?id=${item.id}` })
+      uni.navigateTo({
+        url: "/pages/detail/detail?id=" + encodeURIComponent(item.id),
+      });
     },
     addToCart(item) {
-      this.$store.commit('addToCart', item)
-      if (this.$refs.floatingCart) {
-        this.$refs.floatingCart.animateAdd(1)
+      if (Number(item.stock) <= 0) {
+        uni.showToast({ title: "商品暂时缺货", icon: "none" });
+        return;
       }
-    }
-  }
-}
+      this.$store.commit("addToCart", item);
+    },
+  },
+};
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .cat-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
 }
 
 .top-search-wrap {
   padding: 16rpx 24rpx;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
+  border-bottom: 1rpx solid #eef2ef;
 }
 
 .search-pill {
   display: flex;
   align-items: center;
   height: 68rpx;
-  background-color: #F7F8FA;
+  background-color: #f6f8f5;
   border-radius: 34rpx;
   padding: 0 24rpx;
+  border: 1rpx solid #e1e8e2;
 }
 
-.search-icon {
-  font-size: 26rpx;
-  color: #86909C;
-  margin-right: 12rpx;
+.cat-search-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 14rpx;
+  flex-shrink: 0;
 }
 
 .search-text {
   font-size: 26rpx;
-  color: #86909C;
+  color: #778579;
 }
 
 /* 顶部圆形快捷入口栏 */
@@ -236,7 +290,8 @@ export default {
   display: flex;
   align-items: center;
   padding: 12rpx 20rpx 16rpx;
-  border-bottom: 1rpx solid #F2F4F7;
+  border-bottom: 1rpx solid #edf1ee;
+  background-color: #ffffff;
 }
 
 .tis-item {
@@ -247,8 +302,8 @@ export default {
 }
 
 .tis-circle {
-  width: 76rpx;
-  height: 76rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -256,40 +311,41 @@ export default {
   margin-bottom: 6rpx;
 }
 
-.tis-emoji {
-  font-size: 36rpx;
+.tis-svg {
+  width: 36rpx;
+  height: 36rpx;
 }
 
 .tis-name {
-  font-size: 20rpx;
-  color: #4E5969;
+  font-size: 22rpx;
+  color: #556257;
 }
 
 .tis-name.active {
-  color: #25B873;
+  color: #27744d;
   font-weight: 700;
 }
 
 .tis-expand {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 10rpx;
-  border-left: 1rpx solid #F2F4F7;
+  padding: 0 10rpx 0 16rpx;
+  border-left: 1rpx solid #eef2ef;
 }
 
 .tis-expand-text {
-  font-size: 20rpx;
-  color: #86909C;
+  font-size: 22rpx;
+  color: #778579;
 }
 
-.tis-expand-icon {
-  font-size: 20rpx;
-  color: #86909C;
+.tis-expand-arrow {
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 4rpx;
 }
 
-/* 主体 */
+/* 主体分栏 */
 .cat-main {
   flex: 1;
   display: flex;
@@ -300,7 +356,8 @@ export default {
 .cat-sidebar {
   width: 170rpx;
   height: 100%;
-  background-color: #F7F8FA;
+  background-color: #f6f8f5;
+  border-right: 1rpx solid #eef2ef;
 }
 
 .sidebar-item {
@@ -310,23 +367,28 @@ export default {
   justify-content: center;
   position: relative;
   font-size: 26rpx;
-  color: #4E5969;
+  color: #556257;
 }
 
 .sidebar-item.active {
-  background-color: #FFFFFF;
-  color: #25B873;
+  background-color: #ffffff;
+  color: #27744d;
   font-weight: 700;
 }
 
 .active-indicator {
   position: absolute;
   left: 0;
-  top: 26rpx;
-  bottom: 26rpx;
+  top: 24rpx;
+  bottom: 24rpx;
   width: 6rpx;
-  background-color: #25B873;
+  background-color: #27744d;
   border-radius: 0 4rpx 4rpx 0;
+}
+
+.sidebar-text {
+  padding: 0 12rpx;
+  text-align: center;
 }
 
 /* 右侧内容 */
@@ -335,6 +397,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: #ffffff;
 }
 
 .sort-header {
@@ -342,13 +405,13 @@ export default {
   align-items: center;
   justify-content: space-around;
   height: 72rpx;
-  border-bottom: 1rpx solid #F2F4F7;
+  border-bottom: 1rpx solid #eef2ef;
   font-size: 24rpx;
-  color: #86909C;
+  color: #778579;
 }
 
 .sh-tab.active {
-  color: #25B873;
+  color: #27744d;
   font-weight: 700;
 }
 
@@ -364,14 +427,14 @@ export default {
 .goods-row {
   display: flex;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #F7F8FA;
+  border-bottom: 1rpx solid #f2f5f2;
 }
 
 .goods-thumb {
   width: 150rpx;
   height: 150rpx;
   border-radius: 12rpx;
-  background-color: #F7F8FA;
+  background-color: #f1f4f1;
   margin-right: 16rpx;
   flex-shrink: 0;
 }
@@ -386,7 +449,7 @@ export default {
 .goods-title {
   font-size: 26rpx;
   font-weight: 600;
-  color: #1F2329;
+  color: #19241d;
   line-height: 36rpx;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -395,8 +458,8 @@ export default {
 }
 
 .goods-spec {
-  font-size: 20rpx;
-  color: #86909C;
+  font-size: 22rpx;
+  color: #778579;
   margin-top: 4rpx;
 }
 
@@ -414,27 +477,29 @@ export default {
 
 .price-symbol {
   font-size: 22rpx;
-  color: #25B873;
+  color: #ff5722;
   font-weight: 700;
 }
 
 .price-num {
   font-size: 32rpx;
-  color: #25B873;
-  font-weight: 800;
-  font-family: Arial, Helvetica, sans-serif;
+  color: #ff5722;
+  font-weight: 700;
+  font-family: "DIN Alternate", -apple-system, Arial, sans-serif;
 }
 
 .cart-btn {
   width: 48rpx;
   height: 48rpx;
+  border-radius: 50%;
+  background-color: #27744d;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.cart-icon {
-  font-size: 36rpx;
-  color: #25B873;
+.cart-add-icon {
+  width: 24rpx;
+  height: 24rpx;
 }
 </style>

@@ -66,9 +66,8 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns("/user/groupon/dish/list")
                 .excludePathPatterns("/user/pickupPoint/list")
                 // 前端生鲜自提公开API放行
-                .excludePathPatterns("/api/auth/**")
+                .excludePathPatterns("/api/auth/send-code", "/api/auth/login", "/api/auth/login-password")
                 .excludePathPatterns("/api/dict")
-                .excludePathPatterns("/api/dishes", "/api/dishes/**")
                 .excludePathPatterns("/api/stores")
                 .excludePathPatterns("/api/seckill/**")
                 .excludePathPatterns("/api/free/current");

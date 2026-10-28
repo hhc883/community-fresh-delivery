@@ -59,10 +59,10 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public TurnoverReportVO getTurnoverReport(LocalDate begin, LocalDate end) {
-
+        validateDateRange(begin, end, false);
         List<LocalDate> dates = new ArrayList<>();
         dates.add(begin);
-        while (begin.equals(end)) {
+        while (!begin.equals(end)) {
             begin = begin.plusDays(1);
             dates.add(begin);
         }
@@ -73,6 +73,7 @@ public class ReportServiceImpl implements ReportService {
             LocalDateTime endTime = LocalDateTime.of(date, LocalTime.MAX);
             Map<String, Object> map = new HashMap<>();
             map.put("status", Orders.COMPLETED);
+            map.put("payStatus", Orders.PAID);
             map.put("begin", beginTime);
             map.put("end", endTime);
             Double turnover = orderMapper.sumByMap(map);
@@ -95,6 +96,7 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public UserReportVO getUserStatistics(LocalDate begin, LocalDate end) {
+        validateDateRange(begin, end, false);
         List<LocalDate> dateList = new ArrayList<>();
         dateList.add(begin);
 
@@ -132,6 +134,7 @@ public class ReportServiceImpl implements ReportService {
      * @return
      */
     public OrderReportVO getOrderStatistics(LocalDate begin, LocalDate end) {
+        validateDateRange(begin, end, false);
         List<LocalDate> dateList = new ArrayList<>();
         dateList.add(begin);
 
@@ -186,6 +189,7 @@ public class ReportServiceImpl implements ReportService {
      * @return
      */
     public SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end) {
+        validateDateRange(begin, end, false);
         LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
         List<GoodsSalesDTO> goodsSalesDTOList = orderMapper.getSalesTop10(beginTime, endTime);
@@ -207,6 +211,7 @@ public class ReportServiceImpl implements ReportService {
      */
     @Override
     public GrouponStatisticsVO getGrouponStatistics(LocalDate begin, LocalDate end) {
+        validateDateRange(begin, end, true);
         LocalDateTime beginTime = begin == null ? null : LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime endTime = end == null ? null : LocalDateTime.of(end, LocalTime.MAX);
         GrouponStatisticsVO vo = grouponMapper.statistics(beginTime, endTime);
@@ -248,9 +253,19 @@ public class ReportServiceImpl implements ReportService {
     private Integer getOrderCount(LocalDateTime beginTime, LocalDateTime endTime, Integer status) {
         Map<String, Object> map = new HashMap<>();
         map.put("status", status);
+        if (Orders.COMPLETED.equals(status)) map.put("payStatus", Orders.PAID);
         map.put("begin", beginTime);
         map.put("end", endTime);
         return orderMapper.countByMap(map);
+    }
+
+    private void validateDateRange(LocalDate begin, LocalDate end, boolean optional) {
+        if (!optional && (begin == null || end == null)) {
+            throw new com.sky.exception.BaseException("请选择开始和结束日期");
+        }
+        if (begin != null && end != null && begin.isAfter(end)) {
+            throw new com.sky.exception.BaseException("开始日期不能晚于结束日期");
+        }
     }
 
     /**

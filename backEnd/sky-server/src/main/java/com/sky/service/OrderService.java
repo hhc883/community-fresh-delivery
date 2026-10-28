@@ -44,6 +44,9 @@ public interface OrderService {
      */
     OrderVO details(Long id);
 
+    /** 用户入口只能查看当前用户自己的订单，管理员入口继续使用 details。 */
+    OrderVO userDetails(Long id);
+
     /**
      * 用户取消订单
      * @param id
@@ -111,6 +114,9 @@ public interface OrderService {
     void reminder(Long id);
 //cancel order
     void userCancel(Long id);
+
+    /** Scheduled-worker capability; ordinary unpaid orders expire after fifteen minutes. */
+    boolean expireUnpaidOrder(Long id);
 
     // ===== 自提核销（m21） =====
 

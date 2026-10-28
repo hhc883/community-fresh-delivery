@@ -1,58 +1,9 @@
 {
   "pages": [
     {
-      "path": "pages/login/login",
-      "style": {
-        "navigationBarTitleText": "商家登录"
-      }
-    },
-    {
       "path": "pages/workspace/workspace",
-      "style": {
-        "navigationBarTitleText": "商家工作台"
-      }
-    },
-    {
-      "path": "pages/dishes/dishes",
-      "style": {
-        "navigationBarTitleText": "商品管理"
-      }
-    },
-    {
-      "path": "pages/dish-edit/dish-edit",
-      "style": {
-        "navigationBarTitleText": "新增商品"
-      }
-    },
-    {
-      "path": "pages/pickup-plan/pickup-plan",
-      "style": {
-        "navigationBarTitleText": "备货单"
-      }
-    },
-    {
-      "path": "pages/plan-orders/plan-orders",
-      "style": {
-        "navigationBarTitleText": "供货明细"
-      }
-    },
-    {
-      "path": "pages/dashboard/dashboard",
-      "style": {
-        "navigationBarTitleText": "数据看板"
-      }
-    },
-    {
-      "path": "pages/marketing/marketing",
-      "style": {
-        "navigationBarTitleText": "营销参与态"
-      }
+      "style": { "navigationBarTitleText": "扩展端暂未开放" }
     }
   ],
-  "globalStyle": {
-    "backgroundColor": "#F5F5F5",
-    "navigationBarBackgroundColor": "#E02020",
-    "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "生鲜商家端"
-  }
+  "globalStyle": { "navigationBarTitleText": "扩展端暂未开放" }
 }

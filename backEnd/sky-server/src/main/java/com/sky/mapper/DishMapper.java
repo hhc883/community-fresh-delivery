@@ -68,6 +68,13 @@ public interface DishMapper {
     void deleteById(Long id);
 
     /**
+     * 商品退出拼团模式时清空陈旧团参数（groupon_* 置空），防止残留半截拼团配置
+     */
+    @org.apache.ibatis.annotations.Update("update dish set groupon_price = null, groupon_size = null, "
+            + "groupon_valid_hours = null, update_time = now() where id = #{id}")
+    void clearGroupon(Long id);
+
+    /**
      * 根据id动态修改菜品数据
      *
      * @param dish
@@ -82,6 +89,10 @@ public interface DishMapper {
      * @return
      */
     List<Dish> list(Dish dish);
+
+    /** Public catalog: only available dishes belonging to an enabled category. */
+    List<Dish> listAvailable(@Param("id") Long id, @Param("categoryId") Long categoryId,
+                             @Param("keyword") String keyword);
 
     /**
      * 根据套餐id查询菜品

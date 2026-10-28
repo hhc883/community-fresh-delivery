@@ -24,6 +24,15 @@ public class MessageConstant {
     public static final String DISH_BE_RELATED_BY_SETMEAL = "当前菜品关联了套餐,不能删除";
     public static final String ORDER_STATUS_ERROR = "订单状态错误";
     public static final String ORDER_NOT_FOUND = "订单不存在";
+    public static final String DISH_NOT_FOUND = "菜品不存在";
+    public static final String DISH_RESERVED_BY_ACTIVE_ORDER = "菜品存在进行中订单的库存预留，不能删除";
+    public static final String DISH_NAME_REQUIRED = "菜品名称不能为空";
+    public static final String DISH_PRICE_INVALID = "菜品价格必须大于0";
+    public static final String DISH_CATEGORY_INVALID = "必须选择有效的商品分类";
+    public static final String DISH_STOCK_INVALID = "库存不能为负数";
+    public static final String DISH_GROUPON_PRICE_INVALID = "参与拼团必须设置大于0的拼团价";
+    public static final String DISH_GROUPON_SIZE_INVALID = "拼团人数至少为2人";
+    public static final String DISH_GROUPON_HOURS_INVALID = "拼团有效时长必须大于0小时";
 
     // ===== 社区团购相关 =====
     public static final String GROUPON_NOT_FOUND = "拼团活动不存在";
